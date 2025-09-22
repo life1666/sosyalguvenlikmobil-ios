@@ -1,0 +1,70 @@
+{
+  "project_info": {
+    "project_number": "100925070763",
+    "project_id": "sosyal-guvenlik-cepte-61d36",
+    "storage_bucket": "sosyal-guvenlik-cepte-61d36.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:100925070763:android:fca35194b114e868f9c6ee",
+        "android_client_info": {
+          "package_name": "com.sosyalguvenlik.mobil"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "100925070763-furiamr71sep951hnpp50rnt9bnohj9m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sosyalguvenlik.mobil",
+            "certificate_hash": "c6795bf914deed1f2180d3e88e5dea7689494ade"
+          }
+        },
+        {
+          "client_id": "100925070763-h20ufc27rajeijjdipnhle0nelg7qks3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sosyalguvenlik.mobil",
+            "certificate_hash": "cba666bdad7efebe234cdaa84e3e29df3f8853ba"
+          }
+        },
+        {
+          "client_id": "100925070763-kblelflru2h4hqhlehpnmm6a9no08ro1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sosyalguvenlik.mobil",
+            "certificate_hash": "7bfc8679e900a8122c43111d8855ef9963b3e101"
+          }
+        },
+        {
+          "client_id": "100925070763-cetkooe3egska9o2ovtc103j450mpt28.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC67EHhCM7xb2FfjNZ3r5i_iTIbjXMSgAc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "100925070763-cetkooe3egska9o2ovtc103j450mpt28.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "100925070763-emohabt35tp2phajhcfeh2qj4ao8jc8q.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.src"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
