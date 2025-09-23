@@ -1,71 +1,22 @@
-name: src
-description: A new Flutter project.
-publish_to: "none"
-version: 1.0.0+9
+workflows:
+  ios-release:
+    name: iOS Release Build
+    environment:
+      flutter: 3.32.0   # Senin lokalde kullandığın Flutter versiyonu
+      xcode: 15.4
+    scripts:
+      - name: Clean & pub get
+        script: |
+          flutter clean
+          flutter pub get
 
-environment:
-  sdk: ">=3.7.0 <4.0.0"
+      - name: Reinstall CocoaPods
+        script: |
+          cd ios
+          rm -rf Pods Podfile.lock .symlinks Flutter/Flutter.framework Flutter/Flutter.podspec
+          pod install --repo-update
+          cd ..
 
-dependencies:
-  flutter:
-    sdk: flutter
-
-  # UI & Icons
-  cupertino_icons: ^1.0.8
-  font_awesome_flutter: ^10.5.0
-  fl_chart: ^1.0.0
-  shared_preferences: ^2.2.2
-  pdf: ^3.11.3
-  printing: ^5.12.0
-  excel: ^2.1.0
-
-  # Firebase & Google
-  firebase_core: ^3.13.0
-  firebase_auth: ^5.5.3
-  cloud_firestore: ^5.6.7
-  google_sign_in: ^6.2.1
-  firebase_analytics: ^11.4.5
-
-  google_mobile_ads: ^6.0.0
-
-  # Utils
-  path_provider: ^2.1.2
-  package_info_plus: ^8.0.0
-  url_launcher: ^6.3.0
-  decimal: ^3.2.1
-  intl: ^0.20.2
-  share_plus: ^12.0.0
-
-  # Splash
-  flutter_native_splash: 2.4.4
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^5.0.0
-  flutter_launcher_icons: ^0.14.3
-
-flutter:
-  uses-material-design: true
-  assets:
-    - assets/splash2.png
-    - assets/fonts/  # Font dosyalarının bulunduğu klasörü ekliyoruz
-  fonts:
-    - family: OpenSans
-      fonts:
-        - asset: assets/fonts/OpenSans-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/OpenSans-Bold.ttf
-          weight: 700
-
-flutter_icons:
-  android: true
-  ios: true
-  image_path: assets/app_icon2.png
-
-flutter_native_splash:
-  color: "#3F51B5" # Arka plan rengi (indigo)
-  image: assets/splash2.png # Açılışta gözükecek görsel
-  android: true
-  ios: true
-  android_gravity: center
+      - name: Build IPA
+        script: |
+          flutter build ipa --release
