@@ -2,7 +2,7 @@ workflows:
   ios-release:
     name: iOS Release Build
     environment:
-      flutter: 3.24.0     # net sürüm belirtmek indirme sorunlarını azaltır
+      flutter: 3.32.0     # net sürüm belirtmek indirme sorunlarını azaltır
       xcode: 15.4         # sabitlemek iyi olur
       cocoapods: default
     scripts:
