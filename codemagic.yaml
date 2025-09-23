@@ -1,0 +1,29 @@
+workflows:
+  ios-release:
+    name: iOS Release Build
+    environment:
+      flutter: 3.24.0     # net sürüm belirtmek indirme sorunlarını azaltır
+      xcode: 15.4         # sabitlemek iyi olur
+      cocoapods: default
+    scripts:
+      - name: Clean & pub get
+        script: |
+          set -e
+          set -x
+          flutter clean
+          flutter pub get
+      - name: Reinstall CocoaPods
+        script: |
+          set -e
+          set -x
+          cd ios
+          rm -rf Pods Podfile.lock .symlinks Flutter/Flutter.framework Flutter/Flutter.podspec
+          pod install --repo-update
+          cd ..
+      - name: Build IPA
+        script: |
+          set -e
+          set -x
+          flutter build ipa --release
+    artifacts:
+      - build/ios/ipa/*.ipa
