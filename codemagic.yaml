@@ -6,7 +6,7 @@ workflows:
       xcode: 15.4
       cocoapods: default
       groups:
-        - ios-signing   # UI’de oluşturduğun grup (APP_STORE_CONNECT_ISSUER_ID, KEY_IDENTIFIER, API_KEY burada)
+        - ios-signing   # UI’de tanımladığın grup
     scripts:
       - name: Clean & pub get
         script: |
@@ -29,11 +29,12 @@ workflows:
           flutter build ipa --release
     artifacts:
       - build/ios/ipa/*.ipa
-    ios_signing:
-      distribution_type: app_store
-      bundle_identifier: "com.sosyalguvenlik.mobil"   # senin bundle id burada olmalı
     publishing:
-      app_store_connect:
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        api_key: $APP_STORE_CONNECT_API_KEY
+      ios:
+        app_store_connect:
+          issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+          key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+          api_key: $APP_STORE_CONNECT_API_KEY
+        ios_signing:
+          distribution_type: app_store
+          bundle_identifier: "com.sosyalguvenlik.mobil"
