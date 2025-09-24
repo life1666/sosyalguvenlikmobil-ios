@@ -2,9 +2,15 @@ workflows:
   ios-release:
     name: iOS Release Build
     environment:
-      flutter: 3.32.0     # net sürüm belirtmek indirme sorunlarını azaltır
-      xcode: 15.4         # sabitlemek iyi olur
+      flutter: 3.24.0
+      xcode: 15.4
       cocoapods: default
+      vars:
+        APP_STORE_CONNECT_ISSUER_ID: "your-issuer-id"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "your-key-identifier"
+        APP_STORE_CONNECT_API_KEY: $APP_STORE_CONNECT_API_KEY
+        CERTIFICATE_PRIVATE_KEY: $CERTIFICATE_PRIVATE_KEY
+        APPLE_PROVISIONING_PROFILE: $APPLE_PROVISIONING_PROFILE
     scripts:
       - name: Clean & pub get
         script: |
@@ -27,3 +33,8 @@ workflows:
           flutter build ipa --release
     artifacts:
       - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        api_key: $APP_STORE_CONNECT_API_KEY
