@@ -14,7 +14,7 @@ dependencies:
   # UI & Icons
   cupertino_icons: ^1.0.8
   font_awesome_flutter: ^10.5.0
-  fl_chart: ^1.0.0
+  fl_chart: ^0.67.0
   shared_preferences: ^2.2.2
   pdf: ^3.11.3
   printing: ^5.12.0
