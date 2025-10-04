@@ -8,7 +8,7 @@ import 'yanmenu/hesabim_ekrani.dart';
 import 'yanmenu/iletisim_ekrani.dart';
 import 'yanmenu/sozlesme_ekrani.dart';
 import 'yanmenu/kvkk_ekrani.dart';
-import 'package:src/reklamlar/banner_reklam_widget.dart';
+//import 'package:src/reklamlar/banner_reklam_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -335,7 +335,7 @@ class _AnaEkranState extends State<AnaEkran> {
               ],
             ),
           ),
-          BannerReklamWidget(),
+         // BannerReklamWidget(),
         ],
       ),
       bottomNavigationBar: Theme(
