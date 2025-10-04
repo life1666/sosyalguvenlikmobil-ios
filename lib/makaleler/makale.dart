@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // ✅ Makale model sınıfı
 class Makale {
@@ -35,46 +34,13 @@ class MakaleDetailScreen extends StatefulWidget {
 }
 
 class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
-  final List<BannerAd> _bannerAds = [];
-  final List<bool> _isAdLoadedList = [];
-
   @override
   void initState() {
     super.initState();
-    _loadBannerAds();
-  }
-
-  void _loadBannerAds() {
-    // Sadece bir reklam oluştur
-    int adCount = 1; // Sabit olarak 1 reklam
-
-    for (int i = 0; i < adCount; i++) {
-      BannerAd bannerAd = BannerAd(
-        adUnitId: 'ca-app-pub-6005798972779145/9282710600', // Test ID
-        size: AdSize.banner,
-        request: const AdRequest(),
-        listener: BannerAdListener(
-          onAdLoaded: (Ad ad) {
-            setState(() {
-              _isAdLoadedList[i] = true;
-            });
-          },
-          onAdFailedToLoad: (Ad ad, LoadAdError error) {
-            ad.dispose();
-            print('Banner reklam $i yüklenemedi: $error');
-          },
-        ),
-      )..load();
-      _bannerAds.add(bannerAd);
-      _isAdLoadedList.add(false);
-    }
   }
 
   @override
   void dispose() {
-    for (var ad in _bannerAds) {
-      ad.dispose();
-    }
     super.dispose();
   }
 
@@ -106,7 +72,7 @@ class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ..._buildParagraphsWithAds(),
+                  ..._buildParagraphs(),
                 ],
               ),
             ),
@@ -116,14 +82,14 @@ class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
     );
   }
 
-  List<Widget> _buildParagraphsWithAds() {
+  List<Widget> _buildParagraphs() {
     List<Widget> children = [];
-    int normalParagraphCounter = 0;
-    int adIndex = 0;
 
     for (int i = 0; i < widget.makale.paragraphs.length; i++) {
       final paragraph = widget.makale.paragraphs[i];
-      final isTitle = paragraph.length < 50 && (paragraph.startsWith(RegExp(r'\d+\.\s')) || paragraph.startsWith(RegExp(r'\d+\.\d+\s')));
+      final isTitle = paragraph.length < 50 &&
+          (paragraph.startsWith(RegExp(r'\d+\.\s')) ||
+              paragraph.startsWith(RegExp(r'\d+\.\d+\s')));
 
       children.add(
         Padding(
@@ -158,32 +124,6 @@ class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
           ),
         ),
       );
-
-      if (!isTitle) {
-        normalParagraphCounter++;
-        if (normalParagraphCounter == 3 && adIndex < _bannerAds.length) { // İlk reklam 3. normal paragraftan sonra
-          children.add(
-            _isAdLoadedList[adIndex]
-                ? Container(
-              alignment: Alignment.center,
-              height: 60,
-              margin: const EdgeInsets.symmetric(vertical: 8.0),
-              child: AdWidget(ad: _bannerAds[adIndex]),
-            )
-                : Container(
-              alignment: Alignment.center,
-              height: 60,
-              margin: const EdgeInsets.symmetric(vertical: 8.0),
-              child: const Text(
-                'Reklam yükleniyor...',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-            ),
-          );
-          children.add(const SizedBox(height: 16));
-          adIndex++;
-        }
-      }
     }
     return children;
   }

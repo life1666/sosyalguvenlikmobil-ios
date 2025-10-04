@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // Türkçe Aylar İçin Sabit Liste
 const List<String> months = [
@@ -455,7 +454,6 @@ void scrollToResult(GlobalKey key, ScrollController controller) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('tr_TR', null);
-  await MobileAds.instance.initialize();
   runApp(const YillikUcretliIzinApp());
 }
 
@@ -482,44 +480,18 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
   String? sigortaKolu;
   String? day, month, year;
   Map<String, dynamic>? result;
-  InterstitialAd? _interstitialAd;
-  bool _isAdReady = false;
   final GlobalKey resultKey = GlobalKey();
   final ScrollController scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
   }
 
   @override
   void dispose() {
     scrollController.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-6005798972779145/4051383467', // Test reklam kimliği
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          setState(() {
-            _interstitialAd = ad;
-            _isAdReady = true;
-          });
-          print('Reklam yüklendi');
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          setState(() {
-            _isAdReady = false;
-          });
-          print('Reklam yüklenemedi: $error');
-        },
-      ),
-    );
   }
 
   void _showHesaplamaSonucu() {
@@ -675,33 +647,7 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
             const SizedBox(height: 20),
             buildGradientButton(
               text: 'Hesapla',
-              onPressed: () {
-                if (_isAdReady && _interstitialAd != null) {
-                  _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-                    onAdDismissedFullScreenContent: (InterstitialAd ad) {
-                      ad.dispose();
-                      setState(() {
-                        _interstitialAd = null;
-                        _isAdReady = false;
-                      });
-                      _loadInterstitialAd();
-                      _showHesaplamaSonucu();
-                    },
-                    onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-                      ad.dispose();
-                      setState(() {
-                        _interstitialAd = null;
-                        _isAdReady = false;
-                      });
-                      _loadInterstitialAd();
-                      _showHesaplamaSonucu();
-                    },
-                  );
-                  _interstitialAd!.show();
-                } else {
-                  _showHesaplamaSonucu();
-                }
-              },
+              onPressed: _showHesaplamaSonucu,
             ),
             const SizedBox(height: 20),
             if (result != null)

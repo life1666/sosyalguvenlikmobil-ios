@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -11,7 +10,6 @@ import 'dart:io';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
   runApp(const NettenBruteApp());
 }
 
@@ -65,9 +63,6 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
   late List<double> taxBrackets;
   late List<double> taxRates;
 
-  InterstitialAd? _interstitialAd;
-  bool _isAdReady = false;
-
   static const List<String> monthNames = [
     'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
     'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
@@ -79,27 +74,6 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
   void initState() {
     super.initState();
     _updateConstants(_selectedYear);
-    _loadInterstitialAd();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-6005798972779145/4051383467',
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          setState(() {
-            _interstitialAd = ad;
-            _isAdReady = true;
-          });
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          setState(() {
-            _isAdReady = false;
-          });
-        },
-      ),
-    );
   }
 
   @override
@@ -108,7 +82,6 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
     for (var controller in _netSalaryControllers) {
       controller.dispose();
     }
-    _interstitialAd?.dispose();
     super.dispose();
   }
 
@@ -438,31 +411,7 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
       return;
     }
 
-    if (_isAdReady && _interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-      );
-      _interstitialAd!.show();
-    } else {
-      _showHesaplamaSonucu();
-    }
+    _showHesaplamaSonucu();
   }
 
   void _showHesaplamaSonucu() {

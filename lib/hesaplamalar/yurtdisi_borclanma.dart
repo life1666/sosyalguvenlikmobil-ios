@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
   runApp(const YurtDisiBorclanmaHesaplamaApp());
 }
 
@@ -46,8 +44,6 @@ class YurtDisiBorclanmaHesaplamaScreen extends StatefulWidget {
 class _YurtDisiBorclanmaHesaplamaScreenState extends State<YurtDisiBorclanmaHesaplamaScreen> {
   final TextEditingController _gunController = TextEditingController();
   Map<String, dynamic>? _hesaplamaSonucu;
-  InterstitialAd? _interstitialAd;
-  bool _isAdReady = false;
   final double _asgariAylikGelir = 26005.50;
   final double _ustLimitGelir = 169035.75;
   final double _borclanmaOrani = 0.45;
@@ -58,36 +54,12 @@ class _YurtDisiBorclanmaHesaplamaScreenState extends State<YurtDisiBorclanmaHesa
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
   }
 
   @override
   void dispose() {
     _gunController.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-6005798972779145/4051383467', // Test reklam kimliği
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          setState(() {
-            _interstitialAd = ad;
-            _isAdReady = true;
-          });
-          print('Reklam yüklendi');
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          setState(() {
-            _isAdReady = false;
-          });
-          print('Reklam yüklenemedi: $error');
-        },
-      ),
-    );
   }
 
   // Kelimelerin ilk harfini büyük yapmaya yarayan fonksiyon
@@ -121,31 +93,7 @@ class _YurtDisiBorclanmaHesaplamaScreenState extends State<YurtDisiBorclanmaHesa
   }
 
   void _hesapla() {
-    if (_isAdReady && _interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-      );
-      _interstitialAd!.show();
-    } else {
-      _showHesaplamaSonucu();
-    }
+    _showHesaplamaSonucu();
   }
 
   void _showHesaplamaSonucu() {

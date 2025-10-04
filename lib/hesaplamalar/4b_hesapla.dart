@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() {
   runApp(const EmeklilikHesaplamaApp());
@@ -47,9 +46,6 @@ class _EmeklilikHesaplama4bSayfasiState extends State<EmeklilikHesaplama4bSayfas
   final GlobalKey _resultKey = GlobalKey();
   final ScrollController _scrollController = ScrollController();
 
-  InterstitialAd? _interstitialAd;
-  bool _isAdReady = false;
-
   DateTime? dogumTarihi;
   int? dogumGun;
   int? dogumAy;
@@ -81,27 +77,6 @@ class _EmeklilikHesaplama4bSayfasiState extends State<EmeklilikHesaplama4bSayfas
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-6005798972779145/4051383467',
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          setState(() {
-            _interstitialAd = ad;
-            _isAdReady = true;
-          });
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          setState(() {
-            _isAdReady = false;
-          });
-        },
-      ),
-    );
   }
 
   Map<String, dynamic> emeklilikHesapla(
@@ -277,7 +252,7 @@ class _EmeklilikHesaplama4bSayfasiState extends State<EmeklilikHesaplama4bSayfas
       }
       reqAgeYas = ageLimitReqAge;
 
-      ageLimitEligible = (primGun >= ageLimitPrim && age >= ageLimitReqAge);
+      ageLimitEligible = (primGun >= ageLimitPrim && age >= reqAgeYas);
 
       details["Normal Emeklilik"] =
       "Mevcut: $primGun Gün, $age Yaş | Gerekli: $normalReqPrim Gün, $reqAgeNormal Yaş";
@@ -374,31 +349,7 @@ class _EmeklilikHesaplama4bSayfasiState extends State<EmeklilikHesaplama4bSayfas
   void _hesaplaEmeklilik() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      if (_isAdReady && _interstitialAd != null) {
-        _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-          onAdDismissedFullScreenContent: (InterstitialAd ad) {
-            ad.dispose();
-            setState(() {
-              _interstitialAd = null;
-              _isAdReady = false;
-            });
-            _loadInterstitialAd();
-            _showEmeklilikSonucu();
-          },
-          onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-            ad.dispose();
-            setState(() {
-              _interstitialAd = null;
-              _isAdReady = false;
-            });
-            _loadInterstitialAd();
-            _showEmeklilikSonucu();
-          },
-        );
-        _interstitialAd!.show();
-      } else {
-        _showEmeklilikSonucu();
-      }
+      _showEmeklilikSonucu();
     }
   }
 

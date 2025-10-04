@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// Noktalama ve parantezleri hem baştan hem sondan ayırarak
 /// kalan kısmı "title case"e çevirir.
@@ -120,9 +119,6 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
 
   Map<String, dynamic>? _hesaplamaSonucu;
 
-  InterstitialAd? _interstitialAd;
-  bool _isAdReady = false;
-
   final double _asgariAylikGelir = 26005.50;
   final double _ustLimitGelir = 169035.75;
   final String _basvuruTarihi = '01.01.2025 - 31.12.2025';
@@ -158,28 +154,6 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-6005798972779145/4051383467', // Test reklam kimliği
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          setState(() {
-            _interstitialAd = ad;
-            _isAdReady = true;
-          });
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          setState(() {
-            _isAdReady = false;
-          });
-          print('Reklam yüklenemedi: $error');
-        },
-      ),
-    );
   }
 
   String formatSayi(double sayi) {
@@ -203,31 +177,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
   }
 
   void _hesapla() {
-    if (_isAdReady && _interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-      );
-      _interstitialAd!.show();
-    } else {
-      _showHesaplamaSonucu();
-    }
+    _showHesaplamaSonucu();
   }
 
   void _showHesaplamaSonucu() {
@@ -707,7 +657,6 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
   void dispose() {
     _gunController.dispose();
     _scrollController.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
   }
 }

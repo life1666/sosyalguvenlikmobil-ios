@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// CustomCurrencyFormatter:
 /// - Girilen rakam sayısı 5'ten azsa hiçbir formatlama yapmaz.
@@ -59,7 +58,6 @@ String toTitleCase(String text) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
   runApp(const RaporParasiHesaplamaApp());
 }
 
@@ -116,9 +114,6 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
 
   Map<String, dynamic>? _hesaplamaSonucu;
 
-  InterstitialAd? _interstitialAd;
-  bool _isAdReady = false;
-
   final Map<String, String> raporNedenleri = {
     'İş Kazası': 'İş Kazası',
     'Meslek Hastalığı': 'Meslek Hastalığı',
@@ -142,7 +137,6 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
   }
 
   @override
@@ -156,30 +150,7 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
     workDays2.dispose();
     workDays3.dispose();
     _scrollController.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-6005798972779145/4051383467', // Test reklam kimliği
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          setState(() {
-            _interstitialAd = ad;
-            _isAdReady = true;
-          });
-          print('Reklam yüklendi');
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          setState(() {
-            _isAdReady = false;
-          });
-          print('Reklam yüklenemedi: $error');
-        },
-      ),
-    );
   }
 
   double parseGrossSalary(String input) {
@@ -339,32 +310,8 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       return;
     }
 
-    // Doğrulama başarılıysa reklam göster
-    if (_isAdReady && _interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-      );
-      _interstitialAd!.show();
-    } else {
-      _showHesaplamaSonucu();
-    }
+    // Doğrulama başarılıysa hesaplama sonucunu göster
+    _showHesaplamaSonucu();
   }
 
   void _showHesaplamaSonucu() {

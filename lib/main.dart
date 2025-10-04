@@ -7,7 +7,7 @@ import 'screens/ana_ekran.dart';
 import 'screens/auth/giris_ekrani.dart';
 import 'screens/yanmenu/iletisim_ekrani.dart';
 import 'screens/admin/mesajlar_ekrani.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+//import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -3,12 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('tr_TR', null);
-  await MobileAds.instance.initialize();
   runApp(const MyApp());
 }
 
@@ -58,10 +56,6 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _resultKey = GlobalKey();
 
-  // Reklam değişkenleri
-  InterstitialAd? _interstitialAd;
-  bool _isAdReady = false;
-
   // 2024 Birim Maliyetler (TL/m²)
   final Map<String, Map<String, double>> birimMaliyetler2024 = {
     'I': {'A': 1450.0, 'B': 2100.0},
@@ -83,37 +77,13 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
   }
 
   @override
   void dispose() {
     alanController.dispose();
     _scrollController.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-6005798972779145/4051383467', // Test reklam kimliği
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          setState(() {
-            _interstitialAd = ad;
-            _isAdReady = true;
-          });
-          print('Reklam yüklendi');
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          setState(() {
-            _isAdReady = false;
-          });
-          print('Reklam yüklenemedi: $error');
-        },
-      ),
-    );
   }
 
   double getAsgariIscilikOrani() {
@@ -246,32 +216,7 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
       return;
     }
 
-    // Doğrulama başarılıysa reklam göster
-    if (_isAdReady && _interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-      );
-      _interstitialAd!.show();
-    } else {
-      _showHesaplamaSonucu();
-    }
+    _showHesaplamaSonucu();
   }
 
   void _showHesaplamaSonucu() {
@@ -498,7 +443,6 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
       ),
     );
 
-    // Ek Bilgi kartı
     // Ek Bilgi kartı
     Widget ekBilgiCard = Card(
       child: Padding(

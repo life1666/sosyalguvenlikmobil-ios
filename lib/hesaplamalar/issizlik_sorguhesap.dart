@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() {
   runApp(const IsizlikMaasiApp());
@@ -55,9 +54,6 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
   final TextEditingController kazanc4 = TextEditingController();
 
   Map<String, dynamic>? _hesaplamaSonucu;
-
-  InterstitialAd? _interstitialAd;
-  bool _isAdReady = false;
 
   // Sonuç ekranına kaydırmak için ScrollController ve GlobalKey
   final ScrollController _scrollController = ScrollController();
@@ -130,29 +126,6 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
   void initState() {
     super.initState();
     initializeDateFormatting('tr_TR', null);
-    _loadInterstitialAd();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-6005798972779145/4051383467', // Test reklam kimliği
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          setState(() {
-            _interstitialAd = ad;
-            _isAdReady = true;
-          });
-          print('Reklam yüklendi');
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          setState(() {
-            _isAdReady = false;
-          });
-          print('Reklam yüklenemedi: $error');
-        },
-      ),
-    );
   }
 
   @override
@@ -162,7 +135,6 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
     kazanc3.dispose();
     kazanc4.dispose();
     _scrollController.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
   }
 
@@ -183,31 +155,7 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
   }
 
   void _hesapla() {
-    if (_isAdReady && _interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          setState(() {
-            _interstitialAd = null;
-            _isAdReady = false;
-          });
-          _loadInterstitialAd();
-          _showHesaplamaSonucu();
-        },
-      );
-      _interstitialAd!.show();
-    } else {
-      _showHesaplamaSonucu();
-    }
+    _showHesaplamaSonucu();
   }
 
   void _showHesaplamaSonucu() {
