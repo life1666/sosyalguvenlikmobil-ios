@@ -7,30 +7,12 @@ import 'screens/ana_ekran.dart';
 import 'screens/auth/giris_ekrani.dart';
 import 'screens/yanmenu/iletisim_ekrani.dart';
 import 'screens/admin/mesajlar_ekrani.dart';
-//import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    await MobileAds.instance.initialize();
-    print('✅ Mobile Ads initialized');
-  } catch (e) {
-    print('❌ Mobile Ads init hatası: $e');
-  }
-
-  try {
-    final RequestConfiguration configuration = RequestConfiguration(
-      testDeviceIds: ['2B085837824D260DBBEFEBBF1B9C4943'],
-    );
-    MobileAds.instance.updateRequestConfiguration(configuration);
-    print('✅ Reklam test cihazı ayarlandı');
-  } catch (e) {
-    print('❌ Reklam konfigürasyon hatası: $e');
-  }
 
   try {
     await Firebase.initializeApp(
@@ -76,7 +58,6 @@ class SgkBilgiPlatformu extends StatelessWidget {
           labelLarge: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      // home kısmı aşağıda değişti!
       home: IlkYuklemeKontrolEkrani(),
       routes: {
         '/giris': (context) => GirisEkrani(),
@@ -87,7 +68,6 @@ class SgkBilgiPlatformu extends StatelessWidget {
   }
 }
 
-// --- Sadece burası eklendi! ---
 class IlkYuklemeKontrolEkrani extends StatefulWidget {
   @override
   State<IlkYuklemeKontrolEkrani> createState() => _IlkYuklemeKontrolEkraniState();
@@ -134,6 +114,5 @@ class _IlkYuklemeKontrolEkraniState extends State<IlkYuklemeKontrolEkrani> {
       );
     }
     return _kullanici == null ? AnaEkran() : AnaEkran();
-    // Kullanıcı girişi kontrolü ister buradan, ister menüden açılır.
   }
 }
