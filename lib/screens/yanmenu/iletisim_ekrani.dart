@@ -79,77 +79,222 @@ class _IletisimEkraniState extends State<IletisimEkrani> {
 
   @override
   Widget build(BuildContext context) {
+    final border = OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.indigo.withOpacity(0.3)),
+      borderRadius: BorderRadius.circular(12),
+    );
+    final focusedBorder = OutlineInputBorder(
+      borderSide: const BorderSide(color: Colors.indigo, width: 2),
+      borderRadius: BorderRadius.circular(12),
+    );
+
     return Scaffold(
-      appBar: AppBar(title: Text('İletişim')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      appBar: AppBar(
+        title: const Text(
+          'İletişim',
+          style: TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              Colors.indigo.withOpacity(0.02),
+            ],
+          ),
+        ),
         child: _currentUser == null
-            ? Center(child: Text("Mesaj göndermek için giriş yapmalısınız."))
-            : Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              "Bize mesaj gönderin",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.green,
-              ),
-            ),
-            SizedBox(height: 12),
-            TextFormField(
-              controller: _mesajController,
-              maxLines: 5,
-              decoration: InputDecoration(
-                hintText: "Mesajınız...",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 12),
-            AnimatedSwitcher(
-              duration: Duration(milliseconds: 300),
-              switchInCurve: Curves.easeIn,
-              switchOutCurve: Curves.easeOut,
-              child: SizedBox(
-                key: ValueKey("buton_${_yukleniyor}_${_gonderildi}"),
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: (!_yukleniyor && !_gonderildi) ? _mesajGonder : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _gonderildi ? Colors.green : Colors.indigo,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: Builder(
-                    builder: (_) {
-                      if (_yukleniyor) {
-                        return SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        );
-                      } else if (_gonderildi) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text("Gönderildi", style: TextStyle(fontSize: 16)),
-                          ],
-                        );
-                      } else {
-                        return Text("Gönder", style: TextStyle(fontSize: 16));
-                      }
-                    },
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.login_rounded,
+                          size: 64,
+                          color: Colors.indigo,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Giriş Yapın',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.indigo,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Mesaj göndermek için giriş yapmalısınız.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Modern Header
+                    Center(
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.mail_outline_rounded,
+                              size: 64,
+                              color: Colors.indigo,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Bize Mesaj Gönderin',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Sorularınız, önerileriniz veya geri bildirimleriniz için bizimle iletişime geçin',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Mesaj TextField
+                    TextFormField(
+                      controller: _mesajController,
+                      maxLines: 8,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        labelText: 'Mesajınız',
+                        labelStyle: const TextStyle(color: Colors.indigo),
+                        hintText: 'Mesajınızı buraya yazın...',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.only(bottom: 120),
+                          child: Icon(Icons.message_outlined, color: Colors.indigo),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: border,
+                        enabledBorder: border,
+                        focusedBorder: focusedBorder,
+                        contentPadding: const EdgeInsets.all(16),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Gönder Butonu
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      switchInCurve: Curves.easeIn,
+                      switchOutCurve: Curves.easeOut,
+                      child: SizedBox(
+                        key: ValueKey("buton_${_yukleniyor}_${_gonderildi}"),
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: (!_yukleniyor && !_gonderildi) ? _mesajGonder : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _gonderildi ? Colors.green : Colors.indigo,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: Builder(
+                            builder: (_) {
+                              if (_yukleniyor) {
+                                return const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                );
+                              } else if (_gonderildi) {
+                                return const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Gönderildi",
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              } else {
+                                return const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.send_rounded, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Gönder",
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

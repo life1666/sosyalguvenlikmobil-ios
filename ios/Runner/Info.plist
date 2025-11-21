@@ -86,5 +86,30 @@
     <false/>
     <key>UIFileSharingEnabled</key>
     <false/>
+
+    <!-- Google Sign-In: URL scheme (ZORUNLU) -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <!-- REVERSED_CLIENT_ID -->
+                <string>com.googleusercontent.apps.100925070763-is93i8oa2amr175gpnclj81brcfrvcv6</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Google Sign-In: (Opsiyonel ama faydalı) Normal CLIENT_ID -->
+    <key>GIDClientID</key>
+    <string>100925070763-is93i8oa2amr175gpnclj81brcfrvcv6.apps.googleusercontent.com</string>
+
+    <!-- (Opsiyonel) Bazı sistemlerde yönlendirme sorunlarını engellemek için -->
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>google</string>
+        <string>com.googleusercontent.apps.100925070763-is93i8oa2amr175gpnclj81brcfrvcv6</string>
+    </array>
 </dict>
 </plist>

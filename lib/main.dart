@@ -10,9 +10,18 @@ import 'screens/admin/mesajlar_ekrani.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'mesaitakip/mesaitakip.dart'; // OvertimeCalendarPage burada
+import 'package:flutter/gestures.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'dart:ui'; // PointerDeviceKind için (eğer scrollBehavior kullanacaksan)
+import 'cv/cv_sablon.dart'; // CV şablonları için
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // CV şablonlarını kaydet
+  registerTemplates();
+  print('✅ CV şablonları yüklendi');
 
   try {
     await Firebase.initializeApp(
@@ -40,35 +49,55 @@ class SgkBilgiPlatformu extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Sosyal Güvenlik Cepte',
+      title: 'Sosyal Güvenlik Mobil',
       navigatorObservers: [
         FirebaseAnalyticsObserver(analytics: analytics),
       ],
       theme: ThemeData(
         primaryColor: Colors.indigo,
         scaffoldBackgroundColor: Colors.white,
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           backgroundColor: Colors.indigo,
           titleTextStyle: TextStyle(
               color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           iconTheme: IconThemeData(color: Colors.white),
         ),
-        textTheme: TextTheme(
+        textTheme: const TextTheme(
           bodyMedium: TextStyle(color: Colors.black87),
           labelLarge: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
+
+      // >>>>> BURASI ÖNEMLİ: önce delegates, sonra supportedLocales; ikisi de kapanıyor
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('tr', 'TR')],
+
+      // İstersen kullan; "const" KALMAYACAK!
+      scrollBehavior: MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.unknown,
+        },
+      ),
+
       home: IlkYuklemeKontrolEkrani(),
       routes: {
         '/giris': (context) => GirisEkrani(),
         '/iletisim': (context) => IletisimEkrani(),
         '/mesajlar': (context) => MesajlarEkrani(),
+        '/mesai': (_) => const OvertimeCalendarPage(), // eğer rota olarak kullanacaksan
       },
     );
   }
 }
-
-class IlkYuklemeKontrolEkrani extends StatefulWidget {
+    class IlkYuklemeKontrolEkrani extends StatefulWidget {
   @override
   State<IlkYuklemeKontrolEkrani> createState() => _IlkYuklemeKontrolEkraniState();
 }

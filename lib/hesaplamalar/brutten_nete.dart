@@ -1,13 +1,331 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
-import 'package:intl/intl.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/painting.dart' as flutter_painting show Border;
+import 'dart:io';
+import '../sonhesaplama/sonhesaplama.dart';
+
+/// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
+
+const double kPageHPad = 12.0;
+const double kTextScale = 1.00;
+const Color kTextColor = Colors.black;
+
+// Divider (global)
+const double kDividerThickness = 0.2;
+const double kDividerSpace = 2.0;
+
+// Form alanı çerçevesi
+const double kFieldBorderWidth = 0.2;
+const double kFieldBorderRadius = 10.0;
+const Color kFieldBorderColor = Colors.black87;
+const Color kFieldFocusColor = Colors.black87;
+
+/// ===== YAZILI ÖZET MADDE KNOB’LARI =====
+const EdgeInsets kSumItemPadding = EdgeInsets.symmetric(vertical: 4, horizontal: 0);
+const double kSumItemFontScale = 1.10;
+
+class AppW {
+  static const appBarTitle = FontWeight.w700;
+  static const heading = FontWeight.w500;
+  static const body = FontWeight.w400;
+  static const minor = FontWeight.w300;
+  static const tableHead = FontWeight.w600;
+}
+
+extension AppText on BuildContext {
+  TextStyle get sFormLabel => Theme.of(this).textTheme.titleLarge!;
+}
+
+/// ----------------------------------------------
+///  TEMA
+/// ----------------------------------------------
+ThemeData uygulamaTemasi = (() {
+  final double sizeTitleLg = 16.5 * kTextScale;
+  final double sizeTitleMd = 15 * kTextScale;
+  final double sizeBody = 13.5 * kTextScale;
+  final double sizeSmall = 12.5 * kTextScale;
+  final double sizeAppBar = 20.5 * kTextScale;
+
+  final colorScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: Colors.white,
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.indigo[500],
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontSize: sizeAppBar,
+        fontWeight: AppW.appBarTitle,
+        color: Colors.white,
+        letterSpacing: 0.15,
+        height: 1.22,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+    ),
+    textTheme: TextTheme(
+      titleLarge: TextStyle(
+        fontSize: sizeTitleLg,
+        fontWeight: AppW.heading,
+        color: kTextColor,
+        height: 1.25,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+      titleMedium: TextStyle(
+        fontSize: sizeTitleMd,
+        fontWeight: AppW.heading,
+        color: kTextColor,
+        letterSpacing: 0.2,
+        height: 1.22,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+      bodyMedium: TextStyle(
+        fontSize: sizeBody,
+        color: kTextColor,
+        fontWeight: AppW.body,
+        height: 1.4,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+      bodySmall: TextStyle(
+        fontSize: sizeSmall,
+        color: Colors.black87,
+        fontWeight: AppW.minor,
+        height: 1.45,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+      labelLarge: TextStyle(
+        fontSize: sizeBody,
+        fontWeight: AppW.body,
+        color: Colors.black87,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+    ),
+    dividerTheme: const DividerThemeData(
+      color: Colors.black,
+      thickness: kDividerThickness,
+      space: kDividerSpace,
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      isDense: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+      ),
+      hintStyle: TextStyle(fontSize: 13 * kTextScale, color: Colors.grey),
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    ),
+  );
+})();
+
+/// ======================
+///  BASIT FORMAT / ARAÇLAR
+/// ======================
+
+double _parseCurrency(String text) {
+  if (text.trim().isEmpty) return 0.0;
+  String t = text.replaceAll(' TL', '').replaceAll('.', '').replaceAll(',', '.').trim();
+  return double.tryParse(t) ?? 0.0;
+}
+
+String _formatCurrency(double n) {
+  final neg = n < 0;
+  n = n.abs();
+  final fixed = n.toStringAsFixed(2);
+  final parts = fixed.split('.');
+  String intPart = parts[0];
+  final frac = parts[1];
+  final buf = StringBuffer();
+  for (int i = 0; i < intPart.length; i++) {
+    final posFromEnd = intPart.length - i;
+    buf.write(intPart[i]);
+    if (posFromEnd > 1 && posFromEnd % 3 == 1) buf.write('.');
+  }
+  return '${neg ? '-' : ''}${buf.toString()},$frac TL';
+}
+
+/// TL’siz ama aynı nokta/virgül kuralı
+String _formatPlain(double n) {
+  final neg = n < 0;
+  n = n.abs();
+  final fixed = n.toStringAsFixed(2);
+  final parts = fixed.split('.');
+  String intPart = parts[0];
+  final frac = parts[1];
+  final buf = StringBuffer();
+  for (int i = 0; i < intPart.length; i++) {
+    final posFromEnd = intPart.length - i;
+    buf.write(intPart[i]);
+    if (posFromEnd > 1 && posFromEnd % 3 == 1) buf.write('.');
+  }
+  return '${neg ? '-' : ''}${buf.toString()},$frac';
+}
+
+/// ===== CENTER NOTICE (mini) =====
+enum AppNoticeType { error, info, success, warning }
+
+Future<void> showCenterNotice(
+    BuildContext context, {
+      required String message,
+      AppNoticeType type = AppNoticeType.info,
+    }) async {
+  final snack = SnackBar(
+    behavior: SnackBarBehavior.floating,
+    backgroundColor: Colors.black.withOpacity(.85),
+    content: Text(message, style: const TextStyle(color: Colors.white)),
+    duration: const Duration(seconds: 2),
+  );
+  ScaffoldMessenger.of(context).showSnackBar(snack);
+}
+
+/// ===== Cupertino tarzı başlık+“kutucuk” alan (modal picker açar) =====
+class _CupertinoField extends StatelessWidget {
+  final String label;
+  final String valueText; // boş ise 'Seçiniz' gösterilecek
+  final VoidCallback onTap;
+  final bool enabled;
+
+  const _CupertinoField({
+    required this.label,
+    required this.valueText,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isPlaceholder = valueText.trim().isEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: context.sFormLabel),
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: enabled ? onTap : null,
+            child: Opacity(
+              opacity: enabled ? 1 : 0.6,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                    borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                    borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
+                  ),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isPlaceholder ? 'Seçiniz' : valueText,
+                        style: TextStyle(
+                          color: isPlaceholder ? Colors.grey[700] : Colors.black87,
+                          fontWeight: AppW.body,
+                        ),
+                      ),
+                    ),
+                    // chevron kaldırıldı
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ===== Ücret alanı (iç metin TL'siz, sağda sabit 'TL' suffix) =====
+class _AmountField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final VoidCallback onChangedCascade;
+
+  const _AmountField({
+    required this.label,
+    required this.controller,
+    required this.onChangedCascade,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      // sade kutu
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 8, top: 6,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 22, left: 8, right: 8, bottom: 6),
+            child: TextFormField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Brüt Ücret',
+                isCollapsed: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                border: InputBorder.none,
+                suffix: Text('TL', style: TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+              maxLines: 1,
+              textAlign: TextAlign.right,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+              onChanged: (_) => onChangedCascade(), // canlı biçimleme yok, sadece zincirleme
+              onEditingComplete: () {
+                FocusScope.of(context).unfocus();
+                if (controller.text.trim().isNotEmpty) {
+                  final val = _parseCurrency(controller.text);
+                  controller.text = _formatPlain(val); // kutu içinde TL yok
+                }
+              },
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: .2, color: Colors.black87),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 void main() {
   runApp(const SalaryCalculatorApp());
@@ -21,15 +339,7 @@ class SalaryCalculatorApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Brütten Nete Maaş Hesaplama',
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.grey[100],
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(fontSize: 14, color: Colors.black87),
-          bodyMedium: TextStyle(fontSize: 12, color: Colors.black54),
-          headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),
-        ),
-      ),
+      theme: uygulamaTemasi,
       home: const SalaryCalculatorScreen(),
     );
   }
@@ -43,15 +353,23 @@ class SalaryCalculatorScreen extends StatefulWidget {
 }
 
 class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
-  List<TextEditingController> _grossSalaryControllers = List.generate(12, (index) => TextEditingController(text: ''));
-  List<DataRow> _monthlyRows = [];
-  String? _errorMessage;
-  int _selectedYear = 2025;
-  String _selectedIncentive = "Teşvik Yok";
-  String _employeeStatus = "Normal Çalışan";
-  List<String> _incentiveOptions = [];
-  List<String> _employeeStatusOptions = ["Normal Çalışan", "SGDP Kapsamında Çalışan"];
+  // Ay alanları
+  final List<TextEditingController> _gross = List.generate(12, (_) => TextEditingController());
 
+  // Seçimler (Cupertino) — başlangıçta "Seçiniz" görünsün
+  final List<int> _years = const [2022, 2023, 2024, 2025];
+  int _selectedYearInternal = 2025;
+  bool _pickedYear = false;
+
+  final List<String> _employeeStatusOptions = const ["Normal Çalışan", "SGDP Kapsamında Çalışan"];
+  String _employeeStatusInternal = "Normal Çalışan";
+  bool _pickedStatus = false;
+
+  List<String> _incentiveOptions = const ["Teşvik Yok", "4 Puan", "5 Puan"];
+  String _selectedIncentiveInternal = "Teşvik Yok";
+  bool _pickedIncentive = false;
+
+  // Hesaplama sabitleri
   late double sgkEmployeeRate;
   late double sgkEmployerBaseRate;
   late double unemploymentEmployeeRate;
@@ -63,92 +381,100 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
   late List<double> taxBrackets;
   late List<double> taxRates;
 
-  static const List<String> monthNames = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
-  ];
+  // Sonuçlar
+  List<DataRow> _monthlyRows = [];
+  String? _errorMessage;
 
-  final ScrollController _verticalScrollController = ScrollController();
+  static const List<String> monthNames = [
+    'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'
+  ];
 
   @override
   void initState() {
     super.initState();
-    _updateConstants(_selectedYear);
+    _updateConstants(_selectedYearInternal);
   }
 
   @override
   void dispose() {
-    _verticalScrollController.dispose();
-    for (var controller in _grossSalaryControllers) {
-      controller.dispose();
-    }
+    for (final c in _gross) { c.dispose(); }
     super.dispose();
   }
 
+  // === Yardımcılar ===
+  void _autoFillMonths(int startIndex) {
+    if (_gross[startIndex].text.trim().isEmpty) {
+      for (int i = startIndex + 1; i < 12; i++) {
+        _gross[i].clear();
+      }
+    } else {
+      final value = _parseCurrency(_gross[startIndex].text);
+      final formatted = _formatPlain(value); // TL YOK
+      for (int i = startIndex + 1; i < 12; i++) {
+        _gross[i].text = formatted;
+      }
+    }
+  }
+
+  // === Sabitleri yıl/statü/teşvik’e göre güncelle ===
   void _updateConstants(int year) {
-    setState(() {
-      _selectedYear = year;
-      if (_employeeStatus == "SGDP Kapsamında Çalışan") {
-        sgkEmployeeRate = 0.075;
-        unemploymentEmployeeRate = 0.0;
-        unemploymentEmployerRate = 0.0;
-        sgkEmployerBaseRate = 0.225;
-      } else {
-        sgkEmployeeRate = 0.14;
-        unemploymentEmployeeRate = 0.01;
-        unemploymentEmployerRate = 0.02;
-        sgkEmployerBaseRate = 0.185;
-      }
-      stampTaxRate = 0.00759;
-      if (_employeeStatus == "SGDP Kapsamında Çalışan") {
-        if (year == 2023 || year == 2024) {
-          _incentiveOptions = ["Teşvik Yok", "5 Puan"];
-        } else {
-          _incentiveOptions = ["Teşvik Yok"];
-        }
-      } else {
-        if (year == 2025) {
-          _incentiveOptions = ["Teşvik Yok", "4 Puan", "5 Puan"];
-        } else {
-          _incentiveOptions = ["Teşvik Yok", "5 Puan"];
-        }
-      }
-      if (!_incentiveOptions.contains(_selectedIncentive)) {
-        _selectedIncentive = _incentiveOptions.isNotEmpty ? _incentiveOptions[0] : "Teşvik Yok";
-      }
-      if (year == 2022) {
-        minWage = 5004.00;
-        taxBrackets = [32000, 70000, 250000, 880000];
-        taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
-      } else if (year == 2023) {
-        minWage = 10008.00;
-        taxBrackets = [70000, 150000, 550000, 1900000];
-        taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
-      } else if (year == 2024) {
-        minWage = 20002.50;
-        taxBrackets = [110000, 230000, 870000, 3000000];
-        taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
-      } else {
-        minWage = 26005.50;
-        taxBrackets = [158000, 330000, 1200000, 4300000];
-        taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
-      }
-      minWageTaxableBase = minWage * (1 - sgkEmployeeRate - unemploymentEmployeeRate);
-    });
+    if (_employeeStatusInternal == "SGDP Kapsamında Çalışan") {
+      sgkEmployeeRate = 0.075;
+      unemploymentEmployeeRate = 0.0;
+      unemploymentEmployerRate = 0.0;
+      sgkEmployerBaseRate = 0.225;
+      _incentiveOptions = (year == 2023 || year == 2024)
+          ? ["Teşvik Yok", "5 Puan"]
+          : ["Teşvik Yok"];
+    } else {
+      sgkEmployeeRate = 0.14;
+      unemploymentEmployeeRate = 0.01;
+      unemploymentEmployerRate = 0.02;
+      sgkEmployerBaseRate = 0.185;
+      _incentiveOptions = (year == 2025)
+          ? ["Teşvik Yok", "4 Puan", "5 Puan"]
+          : ["Teşvik Yok", "5 Puan"];
+    }
+    if (!_incentiveOptions.contains(_selectedIncentiveInternal)) {
+      _selectedIncentiveInternal = _incentiveOptions.first;
+    }
+
+    stampTaxRate = 0.00759;
+
+    if (year == 2022) {
+      minWage = 5004.00;
+      taxBrackets = [32000, 70000, 250000, 880000];
+      taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else if (year == 2023) {
+      minWage = 10008.00;
+      taxBrackets = [70000, 150000, 550000, 1900000];
+      taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else if (year == 2024) {
+      minWage = 20002.50;
+      taxBrackets = [110000, 230000, 870000, 3000000];
+      taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else {
+      minWage = 26005.50;
+      taxBrackets = [158000, 330000, 1200000, 4300000];
+      taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    }
+    minWageTaxableBase = minWage * (1 - sgkEmployeeRate - unemploymentEmployeeRate);
+
+    setState(() {});
   }
 
   double getExemptionTaxAmount(int monthIndex) {
-    if (_selectedYear == 2022) {
+    if (_selectedYearInternal == 2022) {
       if (monthIndex < 6) return 638.01;
       if (monthIndex == 6) return 825.05;
       if (monthIndex == 7) return 1051.11;
       return 1100.07;
-    } else if (_selectedYear == 2023) {
+    } else if (_selectedYearInternal == 2023) {
       if (monthIndex < 6) return 1276.02;
       if (monthIndex == 6) return 1710.35;
       if (monthIndex == 7) return 1902.62;
       return 2280.46;
-    } else if (_selectedYear == 2024) {
+    } else if (_selectedYearInternal == 2024) {
       if (monthIndex < 6) return 2550.32;
       if (monthIndex == 6) return 3001.06;
       return 3400.42;
@@ -159,34 +485,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     }
   }
 
-  double _parseCurrency(String text) {
-    if (text.trim().isEmpty) return 0.0;
-    String withoutTL = text.replaceAll(' TL', '').trim();
-    String justNumber = withoutTL.replaceAll('.', '').replaceAll(',', '.');
-    double value = double.tryParse(justNumber) ?? 0.0;
-    return value;
-  }
-
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat("#,##0.00", "tr_TR");
-    return '${formatter.format(value)} TL';
-  }
-
-  void _autoFillMonths(int startIndex) {
-    if (_grossSalaryControllers[startIndex].text.trim().isEmpty) {
-      for (int i = startIndex + 1; i < 12; i++) {
-        _grossSalaryControllers[i].clear();
-      }
-    } else {
-      double value = _parseCurrency(_grossSalaryControllers[startIndex].text);
-      String formatted = _formatCurrency(value);
-      for (int i = startIndex + 1; i < 12; i++) {
-        _grossSalaryControllers[i].text = formatted;
-      }
-    }
-  }
-
-  Map<String, double> calculateIncomeTax(
+  Map<String, double> _incomeTaxCalc(
       double monthlyTaxableIncomeDbl,
       double cumulativeTaxableIncomeBeforeExemptionDbl,
       double cumulativeTaxableIncomeBeforeExemptionPreviousDbl,
@@ -196,16 +495,14 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     int cumTotal = (cumulativeTaxableIncomeBeforeExemptionDbl * 100).round();
     int cumPrev = (cumulativeTaxableIncomeBeforeExemptionPreviousDbl * 100).round();
     int minBaseK = (minWageTaxableBase * 100).round();
+
     if (monthlyTI <= 0) {
-      return {
-        'tax': 0,
-        'exemption': 0,
-        'taxableIncomeAfterExemption': 0,
-        'taxBeforeExemption': 0,
-      };
+      return {'tax':0,'exemption':0,'taxableIncomeAfterExemption':0,'taxBeforeExemption':0};
     }
+
     int exemptionK = monthlyTI >= minBaseK ? minBaseK : monthlyTI;
     int taxableAfterK = monthlyTI - exemptionK;
+
     int totalBP = 0;
     int rem = cumTotal;
     int prevLimit = 0;
@@ -218,9 +515,10 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       prevLimit = limitK;
       rem -= sliceK;
     }
+
     int prevBP = 0;
     rem = cumPrev;
-    prevLimit = 0;
+    prevLimit = 0; // reset
     for (int i = 0; i < taxBrackets.length + 1; i++) {
       if (rem <= 0) break;
       int limitK = i < taxBrackets.length ? (taxBrackets[i] * 100).round() : rem;
@@ -230,13 +528,16 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       prevLimit = limitK;
       rem -= sliceK;
     }
+
     int monthlyBPdiff = totalBP - prevBP;
     int monthlyBeforeK = (monthlyBPdiff + 50) ~/ 100;
     double roundedMonthlyBefore = monthlyBeforeK / 100.0;
+
     int exemptionTaxK = (getExemptionTaxAmount(monthIndex) * 100).round();
     int monthlyTaxK = monthlyBeforeK - exemptionTaxK;
     if (monthlyTaxK < 0) monthlyTaxK = 0;
     double monthlyTax = monthlyTaxK / 100.0;
+
     return {
       'tax': monthlyTax,
       'exemption': getExemptionTaxAmount(monthIndex),
@@ -246,61 +547,91 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
   }
 
   bool _validateInputs() {
-    bool hasValidInput = false;
-    for (var controller in _grossSalaryControllers) {
-      if (controller.text.trim().isNotEmpty && _parseCurrency(controller.text) > 0) {
-        hasValidInput = true;
-        break;
-      }
+    for (final c in _gross) {
+      if (c.text.trim().isNotEmpty && _parseCurrency(c.text) > 0) return true;
     }
-    if (!hasValidInput) {
-      setState(() {
-        _monthlyRows = [];
-        _errorMessage = 'Lütfen en az bir ay için geçerli bir brüt maaş giriniz!';
-      });
-      return false;
-    }
-    return true;
+    setState(() {
+      _monthlyRows = [];
+      _errorMessage = 'Lütfen en az bir ay için geçerli bir brüt maaş giriniz!';
+    });
+    return false;
   }
 
-  void _hesapla() {
+  Future<void> _hesapla() async {
     setState(() {
       _errorMessage = null;
       _monthlyRows.clear();
     });
-    if (!_validateInputs()) {
-      return;
-    }
-    _showHesaplamaSonucu();
-  }
 
-  void _showHesaplamaSonucu() {
-    for (var controller in _grossSalaryControllers) {
-      if (controller.text.trim().isNotEmpty) {
-        double val = _parseCurrency(controller.text);
-        if (val <= 0) {
+    if (!_validateInputs()) return;
+
+    for (final c in _gross) {
+      if (c.text.trim().isNotEmpty) {
+        final v = _parseCurrency(c.text);
+        if (v <= 0) {
           setState(() {
             _monthlyRows = [];
             _errorMessage = 'Brüt maaş sıfır veya negatif olamaz!';
           });
           return;
         }
-        controller.text = _formatCurrency(val);
+        c.text = _formatPlain(v); // Giriş alanı TL’siz kalır
       }
     }
-    calculateNetSalaryForYear();
+
+    _calculateNetSalaryForYear();
+
+    // Son hesaplamalara kaydet
+    try {
+      final monthlyNetSalaries = _getNetSalaries(_monthlyRows);
+      final avgNet = _calcAverageNet(_monthlyRows);
+      final yearlyNet = _calcSumNet(_monthlyRows);
+      
+      final veriler = <String, dynamic>{
+        'yil': _selectedYearInternal,
+        'calisanDurumu': _employeeStatusInternal,
+        'tesvik': _selectedIncentiveInternal,
+      };
+      
+      final sonuclar = <String, String>{
+        'Yıl': _selectedYearInternal.toString(),
+        'Ortalama Net Maaş': _formatCurrency(avgNet),
+        'Yıllık Toplam Net Maaş': _formatCurrency(yearlyNet),
+      };
+      
+      final sonHesaplama = SonHesaplama(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        hesaplamaTuru: 'Brütten Nete Maaş Hesaplama',
+        tarihSaat: DateTime.now(),
+        veriler: veriler,
+        sonuclar: sonuclar,
+        ozet: 'Brütten nete maaş hesaplaması tamamlandı',
+      );
+      
+      await SonHesaplamalarDeposu.ekle(sonHesaplama);
+    } catch (e) {
+      debugPrint('Son hesaplama kaydedilirken hata: $e');
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ResultsScreen(
-          selectedYear: _selectedYear,
+        builder: (_) => ResultsScreen(
+          selectedYear: _selectedYearInternal,
           monthlyRows: _monthlyRows,
           monthNames: monthNames,
+          monthlyNetSalaries: _getNetSalaries(_monthlyRows),
+          firstMonthNet: _monthlyRows.length > 1 ? _getCellNet(_monthlyRows[0]) : 0,
+          lastMonthNet: _monthlyRows.length > 1 ? _getCellNet(_monthlyRows[_monthlyRows.length - 2]) : 0,
+          avgNet: _calcAverageNet(_monthlyRows),
+          yearlyNet: _calcSumNet(_monthlyRows),
+          avgEmployerCost: _calcAverageEmployerCost(_monthlyRows),
+          yearlyEmployerCost: _calcSumEmployerCost(_monthlyRows),
         ),
       ),
     );
   }
 
-  void calculateNetSalaryForYear() {
+  void _calculateNetSalaryForYear() {
     List<double> roundedCumulativeTaxes = List.filled(12, 0.0);
     List<DataRow> monthlyRows = [];
     double cumulativeTaxableIncomeBeforeExemption = 0;
@@ -317,101 +648,117 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     double totalUnemploymentEmployerDeduction = 0;
     double totalTaxBeforeExemption = 0;
     double totalStampTaxBeforeExemption = 0;
-    double roundTo2(double value) => (value * 100).round() / 100;
+
+    double round2(double v) => (v * 100).round() / 100;
+
     for (int month = 0; month < 12; month++) {
-      double shortTermRate = (_selectedYear < 2024 || (_selectedYear == 2024 && month < 8)) ? 0.02 : 0.0225;
+      double shortTermRate = (_selectedYearInternal < 2024 || (_selectedYearInternal == 2024 && month < 8)) ? 0.02 : 0.0225;
       sgkEmployerRate = sgkEmployerBaseRate + shortTermRate;
-      final String rawText = _grossSalaryControllers[month].text.trim();
-      double grossSalaryParsed = _parseCurrency(rawText);
-      if (grossSalaryParsed <= 0) continue;
-      if (_selectedYear == 2022) {
+
+      final raw = _gross[month].text.trim();
+      final gross = _parseCurrency(raw);
+      if (gross <= 0) continue;
+
+      if (_selectedYearInternal == 2022) {
         minWage = month < 6 ? 5004.00 : 6471.00;
-      } else if (_selectedYear == 2023) {
+      } else if (_selectedYearInternal == 2023) {
         minWage = month < 6 ? 10008.00 : 13414.50;
-      } else if (_selectedYear == 2024) {
+      } else if (_selectedYearInternal == 2024) {
         minWage = 20002.50;
       } else {
         minWage = 26005.50;
       }
-      double sgkCeiling = minWage * 7.5;
-      minWageTaxableBase = roundTo2(minWage * (1 - sgkEmployeeRate - unemploymentEmployeeRate));
-      if (_employeeStatus == "SGDP Kapsamında Çalışan" && _selectedYear == 2024) {
+      final sgkCeiling = minWage * 7.5;
+      minWageTaxableBase = round2(minWage * (1 - sgkEmployeeRate - unemploymentEmployeeRate));
+
+      if (_employeeStatusInternal == "SGDP Kapsamında Çalışan" && _selectedYearInternal == 2024) {
         sgkEmployerRate = month < 8 ? 0.245 : 0.2475;
       }
-      double originalSgkEmployerRate = sgkEmployerRate;
+
+      final originalEmployerRate = sgkEmployerRate;
       double incentiveRate = 0.0;
-      if (_employeeStatus == "SGDP Kapsamında Çalışan") {
-        if (_selectedIncentive == "5 Puan" && (_selectedYear == 2023 || _selectedYear == 2024)) {
+      if (_employeeStatusInternal == "SGDP Kapsamında Çalışan") {
+        if (_selectedIncentiveInternal == "5 Puan" && (_selectedYearInternal == 2023 || _selectedYearInternal == 2024)) {
           incentiveRate = 0.05;
         }
       } else {
-        if (_selectedIncentive == "5 Puan") {
+        if (_selectedIncentiveInternal == "5 Puan") {
           incentiveRate = 0.05;
-        } else if (_selectedIncentive == "4 Puan" && _selectedYear == 2025) {
+        } else if (_selectedIncentiveInternal == "4 Puan" && _selectedYearInternal == 2025) {
           incentiveRate = 0.04;
         }
       }
-      double effectiveSgkEmployerRate = originalSgkEmployerRate - incentiveRate;
-      double unemploymentEmployerDeduction = roundTo2(grossSalaryParsed * unemploymentEmployerRate);
-      double sgkBase = grossSalaryParsed > sgkCeiling ? sgkCeiling : grossSalaryParsed;
-      double sgkEmployeeDeduction = roundTo2(sgkBase * sgkEmployeeRate);
-      double unemploymentEmployeeDeduction = roundTo2(sgkBase * unemploymentEmployeeRate);
-      double totalEmployeeDeduction = roundTo2(sgkEmployeeDeduction + unemploymentEmployeeDeduction);
-      double sgkEmployerDeduction = roundTo2(sgkBase * effectiveSgkEmployerRate);
-      double totalEmployerDeduction = roundTo2(sgkEmployerDeduction + unemploymentEmployerDeduction);
-      double taxableIncomeBase = roundTo2(grossSalaryParsed - totalEmployeeDeduction);
-      double cumulativeTaxableIncomeBeforeExemptionPrevious = cumulativeTaxableIncomeBeforeExemption;
-      cumulativeTaxableIncomeBeforeExemption += taxableIncomeBase;
-      Map<String, double> incomeTaxResult = calculateIncomeTax(
-        taxableIncomeBase,
+      final effEmployerRate = originalEmployerRate - incentiveRate;
+
+      final unemploymentEmployerDed = round2(gross * unemploymentEmployerRate);
+      final sgkBase = gross > sgkCeiling ? sgkCeiling : gross;
+      final sgkEmployeeDed = round2(sgkBase * sgkEmployeeRate);
+      final unemploymentEmployeeDed = round2(sgkBase * unemploymentEmployeeRate);
+      final totalEmployeeDed = round2(sgkEmployeeDed + unemploymentEmployeeDed);
+
+      final sgkEmployerDed = round2(sgkBase * effEmployerRate);
+      final totalEmployerDed = round2(sgkEmployerDed + unemploymentEmployerDed);
+
+      final taxableBase = round2(gross - totalEmployeeDed);
+      final prevCum = cumulativeTaxableIncomeBeforeExemption;
+      cumulativeTaxableIncomeBeforeExemption += taxableBase;
+
+      final taxRes = _incomeTaxCalc(
+        taxableBase,
         cumulativeTaxableIncomeBeforeExemption,
-        cumulativeTaxableIncomeBeforeExemptionPrevious,
+        prevCum,
         month,
         roundedCumulativeTaxes,
       );
+
       if (month == 0) {
-        roundedCumulativeTaxes[0] = incomeTaxResult['taxBeforeExemption']!;
+        roundedCumulativeTaxes[0] = taxRes['taxBeforeExemption']!;
       } else {
-        roundedCumulativeTaxes[month] = roundedCumulativeTaxes[month - 1] + incomeTaxResult['taxBeforeExemption']!;
+        roundedCumulativeTaxes[month] = roundedCumulativeTaxes[month - 1] + taxRes['taxBeforeExemption']!;
       }
-      double stampTaxExemption = roundTo2(minWage * stampTaxRate);
-      double stampTaxBeforeExemption = roundTo2(grossSalaryParsed * stampTaxRate);
-      double stampTax = roundTo2(stampTaxBeforeExemption - stampTaxExemption);
-      if (stampTax < 0) stampTax = 0;
-      double totalDeductions = roundTo2(totalEmployeeDeduction + incomeTaxResult['tax']! + stampTax);
-      double netSalary = roundTo2(grossSalaryParsed - totalDeductions);
-      double monthlyEmployerCost = roundTo2(grossSalaryParsed + totalEmployerDeduction);
+
+      final stampEx = round2(minWage * 0.00759);
+      final stampBefore = round2(gross * 0.00759);
+      double stamp = round2(stampBefore - stampEx);
+      if (stamp < 0) stamp = 0;
+
+      final totalDeductions = round2(totalEmployeeDed + taxRes['tax']! + stamp);
+      final net = round2(gross - totalDeductions);
+      final employerCost = round2(gross + totalEmployerDed);
+
       monthlyRows.add(DataRow(cells: [
         DataCell(Text(monthNames[month])),
-        DataCell(Text(_formatCurrency(grossSalaryParsed))),
-        DataCell(Text(_formatCurrency(netSalary))),
-        DataCell(Text(_formatCurrency(sgkEmployeeDeduction))),
-        DataCell(Text(_formatCurrency(unemploymentEmployeeDeduction))),
-        DataCell(Text(_formatCurrency(sgkEmployerDeduction))),
-        DataCell(Text(_formatCurrency(unemploymentEmployerDeduction))),
-        DataCell(Text(_formatCurrency(incomeTaxResult['tax']!))),
+        DataCell(Text(_formatCurrency(gross))),
+        DataCell(Text(_formatCurrency(net))),
+        DataCell(Text(_formatCurrency(sgkEmployeeDed))),
+        DataCell(Text(_formatCurrency(unemploymentEmployeeDed))),
+        DataCell(Text(_formatCurrency(sgkEmployerDed))),
+        DataCell(Text(_formatCurrency(unemploymentEmployerDed))),
+        DataCell(Text(_formatCurrency(taxRes['tax']!))),
         DataCell(Text(_formatCurrency(cumulativeTaxableIncomeBeforeExemption))),
-        DataCell(Text(_formatCurrency(incomeTaxResult['taxBeforeExemption']!))),
-        DataCell(Text(_formatCurrency(incomeTaxResult['exemption']!))),
-        DataCell(Text(_formatCurrency(stampTax))),
-        DataCell(Text(_formatCurrency(stampTaxBeforeExemption))),
-        DataCell(Text(_formatCurrency(stampTaxExemption))),
-        DataCell(Text(_formatCurrency(monthlyEmployerCost))),
+        DataCell(Text(_formatCurrency(taxRes['taxBeforeExemption']!))),
+        DataCell(Text(_formatCurrency(taxRes['exemption']!))),
+        DataCell(Text(_formatCurrency(stamp))),
+        DataCell(Text(_formatCurrency(stampBefore))),
+        DataCell(Text(_formatCurrency(stampEx))),
+        DataCell(Text(_formatCurrency(employerCost))),
       ]));
-      totalGrossSalary += grossSalaryParsed;
-      totalNetSalary += netSalary;
-      totalSgkEmployeeDeduction += sgkEmployeeDeduction;
-      totalUnemploymentEmployeeDeduction += unemploymentEmployeeDeduction;
-      cumulativeIncomeTax += incomeTaxResult['tax']!;
-      totalStampTax += stampTax;
-      totalSgkEmployerDeduction += sgkEmployerDeduction;
-      totalUnemploymentEmployerDeduction += unemploymentEmployerDeduction;
-      totalEmployerCost += monthlyEmployerCost;
-      totalIncomeTaxExemption += incomeTaxResult['exemption']!;
-      totalStampTaxExemption += stampTaxExemption;
-      totalTaxBeforeExemption += incomeTaxResult['taxBeforeExemption']!;
-      totalStampTaxBeforeExemption += stampTaxBeforeExemption;
+
+      totalGrossSalary += gross;
+      totalNetSalary += net;
+      totalSgkEmployeeDeduction += sgkEmployeeDed;
+      totalUnemploymentEmployeeDeduction += unemploymentEmployeeDed;
+      cumulativeIncomeTax += taxRes['tax']!;
+      totalStampTax += stamp;
+      totalSgkEmployerDeduction += sgkEmployerDed;
+      totalUnemploymentEmployerDeduction += unemploymentEmployerDed;
+      totalEmployerCost += employerCost;
+      totalIncomeTaxExemption += taxRes['exemption']!;
+      totalStampTaxExemption += stampEx;
+      totalTaxBeforeExemption += taxRes['taxBeforeExemption']!;
+      totalStampTaxBeforeExemption += stampBefore;
     }
+
     monthlyRows.add(DataRow(cells: [
       const DataCell(Text('Toplam', style: TextStyle(fontWeight: FontWeight.bold))),
       DataCell(Text(_formatCurrency(totalGrossSalary))),
@@ -429,268 +776,108 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       DataCell(Text(_formatCurrency(totalStampTaxExemption))),
       DataCell(Text(_formatCurrency(totalEmployerCost))),
     ]));
+
     setState(() {
       _monthlyRows = monthlyRows;
       _errorMessage = monthlyRows.isNotEmpty ? '' : 'Hesaplama yapılamadı!';
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final borderSide = BorderSide(color: Colors.indigo.withOpacity(0.18), width: 1.5);
+  // --- Sonuç ekranına hazırlık ---
+  List<double> _getNetSalaries(List<DataRow> rows) {
+    final nets = <double>[];
+    for (int i = 0; i < 12 && i < rows.length - 1; i++) {
+      nets.add(_cellToDouble(rows[i].cells[2]));
+    }
+    return nets;
+  }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Brütten Nete Maaş Hesaplama $_selectedYear'),
-        centerTitle: true,
-        backgroundColor: Colors.indigo,
-      ),
-      body: SingleChildScrollView(
-        controller: _verticalScrollController,
-        padding: const EdgeInsets.all(8),
+  double _cellToDouble(DataCell cell) {
+    final text = cell.child is Text ? (cell.child as Text).data ?? '' : '';
+    return double.tryParse(text.replaceAll('.', '').replaceAll(',', '.').replaceAll(' TL', '')) ?? 0;
+  }
+
+  double _getCellNet(DataRow row) => _cellToDouble(row.cells[2]);
+
+  double _calcAverageNet(List<DataRow> rows) {
+    double sum = 0;
+    int n = 0;
+    for (int i = 0; i < 12 && i < rows.length - 1; i++) {
+      sum += _cellToDouble(rows[i].cells[2]); n++;
+    }
+    return n == 0 ? 0 : (sum / n);
+  }
+
+  double _calcSumNet(List<DataRow> rows) {
+    double sum = 0;
+    for (int i = 0; i < 12 && i < rows.length - 1; i++) {
+      sum += _cellToDouble(rows[i].cells[2]);
+    }
+    return sum;
+  }
+
+  double _calcAverageEmployerCost(List<DataRow> rows) {
+    double sum = 0; int n = 0;
+    for (int i = 0; i < 12 && i < rows.length - 1; i++) {
+      sum += _cellToDouble(rows[i].cells.last); n++;
+    }
+    return n == 0 ? 0 : (sum / n);
+  }
+
+  double _calcSumEmployerCost(List<DataRow> rows) {
+    double sum = 0;
+    for (int i = 0; i < 12 && i < rows.length - 1; i++) {
+      sum += _cellToDouble(rows[i].cells.last);
+    }
+    return sum;
+  }
+
+  // === Cupertino Picker ===
+  Future<T?> _showCupertinoPicker<T>({
+    required List<T> items,
+    required int initialIndex,
+    String okText = 'Tamam',
+    String cancelText = 'İptal',
+    Widget Function(T)? itemBuilder,
+  }) async {
+    int sel = initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
+    return showCupertinoModalPopup<T>(
+      context: context,
+      builder: (_) => Container(
+        height: 300,
+        color: Colors.white,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: flutter_painting.Border.all(color: borderSide.color, width: borderSide.width),
-              ),
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            SizedBox(
+              height: 44,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Yıl Seçiniz
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: flutter_painting.Border.all(color: borderSide.color, width: borderSide.width),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Yıl Seçiniz', style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 12)),
-                        DropdownButtonFormField<int>(
-                          value: _selectedYear,
-                          iconEnabledColor: Colors.indigo,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            prefixIcon: Icon(Icons.calendar_today, color: Colors.indigo),
-                          ),
-                          isExpanded: true,
-                          dropdownColor: Colors.white,
-                          items: [2022, 2023, 2024, 2025].map((year) {
-                            return DropdownMenuItem<int>(
-                              value: year,
-                              child: Text('$year', style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 15)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              for (var c in _grossSalaryControllers) {
-                                c.clear();
-                              }
-                              setState(() {
-                                _monthlyRows.clear();
-                                _errorMessage = null;
-                              });
-                              _updateConstants(value);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(cancelText, style: const TextStyle(color: Colors.black87)),
                   ),
-                  // Çalışan Statüsü
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: flutter_painting.Border.all(color: borderSide.color, width: borderSide.width),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Çalışan Statüsü', style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 12)),
-                        DropdownButtonFormField<String>(
-                          value: _employeeStatus,
-                          iconEnabledColor: Colors.indigo,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            prefixIcon: Icon(Icons.person, color: Colors.indigo),
-                          ),
-                          isExpanded: true,
-                          dropdownColor: Colors.white,
-                          items: _employeeStatusOptions.map((status) {
-                            return DropdownMenuItem<String>(
-                              value: status,
-                              child: Text(status, style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 15)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _employeeStatus = value;
-                                _updateConstants(_selectedYear);
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () => Navigator.pop(context, items.isNotEmpty ? items[sel] : null),
+                    child: Text(okText, style: const TextStyle(color: Colors.black87)),
                   ),
-                  // Teşvik Seçiniz
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: flutter_painting.Border.all(color: borderSide.color, width: borderSide.width),
+                ],
+              ),
+            ),
+            const Divider(height: 0),
+            Expanded(
+              child: CupertinoPicker(
+                itemExtent: 30,
+                scrollController: FixedExtentScrollController(initialItem: sel),
+                onSelectedItemChanged: (i) => sel = i,
+                children: [
+                  for (final s in items)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Center(child: itemBuilder?.call(s) ?? Text('$s')),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Teşvik Seçiniz', style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 12)),
-                        DropdownButtonFormField<String>(
-                          value: _selectedIncentive,
-                          iconEnabledColor: Colors.indigo,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            prefixIcon: Icon(Icons.trending_up, color: Colors.indigo),
-                          ),
-                          isExpanded: true,
-                          dropdownColor: Colors.white,
-                          items: _incentiveOptions.map((option) {
-                            return DropdownMenuItem<String>(
-                              value: option,
-                              child: Text(option, style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 15)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _selectedIncentive = value;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  // Ay kutuları (orijinal tasarımda, border dışta)
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 1.7,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemCount: 12,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: flutter_painting.Border.all(color: borderSide.color, width: borderSide.width),
-                        ),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              left: 8, top: 6,
-                              child: Text(
-                                monthNames[index],
-                                style: const TextStyle(
-                                  color: Colors.indigo,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 22, left: 8, right: 8, bottom: 8),
-                              child: TextFormField(
-                                controller: _grossSalaryControllers[index],
-                                decoration: const InputDecoration(
-                                  hintText: 'Brüt Ücret',
-                                  suffix: Text('TL', style: TextStyle(color: Colors.indigo, fontSize: 13)),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 0),
-                                ),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                                ],
-                                onChanged: (value) {
-                                  _autoFillMonths(index);
-                                },
-                                onEditingComplete: () {
-                                  FocusScope.of(context).unfocus();
-                                  if (_grossSalaryControllers[index].text.trim().isNotEmpty) {
-                                    double val = _parseCurrency(_grossSalaryControllers[index].text);
-                                    _grossSalaryControllers[index].text = _formatCurrency(val);
-                                  }
-                                },
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.indigo,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ElevatedButton(
-                      onPressed: _hesapla,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        backgroundColor: Colors.indigo,
-                      ),
-                      child: const Text(
-                        'Hesapla',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -699,18 +886,212 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       ),
     );
   }
+
+  // === UI ===
+  @override
+  Widget build(BuildContext context) {
+    final yearLabel = _pickedYear ? '$_selectedYearInternal' : '';
+    final statusLabel = _pickedStatus ? _employeeStatusInternal : '';
+    final incentiveLabel = _pickedIncentive ? _selectedIncentiveInternal : '';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Brütten Nete Maaş Hesaplama',
+          style: TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          children: [
+            // Seçimler ve aylık alanlar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CupertinoField(
+                    label: 'Yıl Seçiniz',
+                    valueText: yearLabel, // boşsa 'Seçiniz' görünür
+                    onTap: () async {
+                      final idx = _years.indexOf(_selectedYearInternal);
+                      final sel = await _showCupertinoPicker<int>(
+                        items: _years, initialIndex: idx < 0 ? 0 : idx,
+                        itemBuilder: (y) => Text('$y'),
+                      );
+                      if (sel != null) {
+                        for (final c in _gross) { c.clear(); }
+                        setState(() {
+                          _pickedYear = true;
+                          _selectedYearInternal = sel;
+                          _monthlyRows.clear(); _errorMessage = null;
+                        });
+                        _updateConstants(sel);
+                      }
+                    },
+                  ),
+
+                  _CupertinoField(
+                    label: 'Çalışan Statüsü',
+                    valueText: statusLabel,
+                    onTap: () async {
+                      final idx = _employeeStatusOptions.indexOf(_employeeStatusInternal);
+                      final sel = await _showCupertinoPicker<String>(
+                        items: _employeeStatusOptions, initialIndex: idx < 0 ? 0 : idx,
+                      );
+                      if (sel != null) {
+                        setState(() {
+                          _pickedStatus = true;
+                          _employeeStatusInternal = sel;
+                        });
+                        _updateConstants(_selectedYearInternal);
+                      }
+                    },
+                  ),
+
+                  _CupertinoField(
+                    label: 'Teşvik Seçiniz',
+                    valueText: incentiveLabel,
+                    onTap: () async {
+                      final idx = _incentiveOptions.indexOf(_selectedIncentiveInternal);
+                      final sel = await _showCupertinoPicker<String>(
+                        items: _incentiveOptions, initialIndex: idx < 0 ? 0 : idx,
+                      );
+                      if (sel != null) {
+                        setState(() {
+                          _pickedIncentive = true;
+                          _selectedIncentiveInternal = sel;
+                        });
+                      }
+                    },
+                  ),
+
+                  const SizedBox(height: 6),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3, childAspectRatio: 1.7, crossAxisSpacing: 8, mainAxisSpacing: 8,
+                    ),
+                    itemCount: 12,
+                    itemBuilder: (context, i) => _AmountField(
+                      label: monthNames[i],
+                      controller: _gross[i],
+                      onChangedCascade: () => _autoFillMonths(i),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async => await _hesapla(),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      child: const Text('Hesapla'),
+                    ),
+                  ),
+                  if ((_errorMessage ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                  ],
+                ],
+              ),
+            ),
+
+            // Bilgilendirme bölümü üstüne 0.2 kalınlığında divider
+            const Divider(thickness: 0.2, height: 12),
+            const _InfoNotice(),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-// Sonuçlar Sayfası (Kısa ve sadece tablo+paylaşım)
+// --- Bilgilendirme bloğu ---
+class _InfoNotice extends StatelessWidget {
+  const _InfoNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    const maddeler = [
+      'Sosyal Güvenlik Mobil, Herhangi Bir Resmi Kurumun Uygulaması Değildir!',
+      'Yapılan Hesaplamalar Tahmini ve Bilgi Amaçlıdır, Resmi Nitelik Taşımaz ve Herhangi Bir Sorumluluk Doğurmaz!',
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text('Bilgilendirme',
+              style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                fontWeight: FontWeight.w300, color: Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          for (final m in maddeler) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.black26, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(m, style: const TextStyle(
+                    fontWeight: AppW.body, color: Colors.black, fontSize: 12, height: 1.3,
+                  )),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// --- SONUÇLAR SAYFASI ---
 class ResultsScreen extends StatelessWidget {
   final int selectedYear;
   final List<DataRow> monthlyRows;
   final List<String> monthNames;
+  final List<double> monthlyNetSalaries;
+  final double firstMonthNet;
+  final double lastMonthNet;
+  final double avgNet;
+  final double yearlyNet;
+  final double avgEmployerCost;
+  final double yearlyEmployerCost;
+
   const ResultsScreen({
     super.key,
     required this.selectedYear,
     required this.monthlyRows,
     required this.monthNames,
+    required this.monthlyNetSalaries,
+    required this.firstMonthNet,
+    required this.lastMonthNet,
+    required this.avgNet,
+    required this.yearlyNet,
+    required this.avgEmployerCost,
+    required this.yearlyEmployerCost,
   });
 
   Future<void> _shareAsPdf(BuildContext context) async {
@@ -720,8 +1101,9 @@ class ResultsScreen extends StatelessWidget {
     final List<String> pdfHeaders = [
       'Ay', 'Brüt Ücret', 'Net Ücret', 'SGK İşçi Payı', 'İşsizlik İşçi Payı',
       'SGK İşveren Payı', 'İşsizlik İşveren Payı', 'Gelir Vergisi',
-      'Kümülatif GV Matrahı', 'İstisna Öncesi GV', 'Asgari Ücret GV İstisnası',
-      'Damga Vergisi', 'İstisna Öncesi DV', 'D.V. İstisnası', 'Toplam Maliyet',
+      'Kümülatif G.V. Matrahı', 'İstisna Öncesi G.V.', 'Asgari Ücret G.V. İstisnası',
+      'Damga Vergisi', 'İstisna Öncesi D.V.', 'Damga Vergisi İstisnası',
+      'Toplam Maliyet',
     ];
     final List<List<String>> pdfTableRows = [];
     for (var row in monthlyRows) {
@@ -741,7 +1123,7 @@ class ResultsScreen extends StatelessWidget {
         margin: const pw.EdgeInsets.fromLTRB(20, 12, 20, 20),
         build: (pw.Context context) => [
           pw.Text(
-            'Hesaplama Sonuçları - $selectedYear',
+            'Brütten Nete Maaş Hesaplama Sonuçları - $selectedYear',
             style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, font: ttf),
           ),
           pw.SizedBox(height: 8),
@@ -776,35 +1158,50 @@ class ResultsScreen extends StatelessWidget {
       ),
     );
     final output = await getTemporaryDirectory();
-    final file = File("${output.path}/salary_calculation_${DateTime.now().millisecondsSinceEpoch}.pdf");
+    final file = File("${output.path}/brutten_nete_hesaplama_${DateTime.now().millisecondsSinceEpoch}.pdf");
     await file.writeAsBytes(await pdf.save());
-    await Share.shareXFiles([XFile(file.path)], text: 'Hesaplama Sonuçları');
+    await Share.shareXFiles([XFile(file.path)], text: 'Brütten Nete Maaş Hesaplama Sonuçları');
   }
 
   Future<void> _shareAsExcel(BuildContext context) async {
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
     sheet.appendRow([
-      'Ay', 'Brüt Ücret', 'Net Ücret', 'SGK İşçi Payı', 'İşsizlik İşçi Payı', 'SGK İşveren Payı',
-      'İşsizlik İşveren Payı', 'Gelir Vergisi', 'Kümülatif G.V. Matrahı', 'İstisna Öncesi G.V.',
-      'Asgari Ücret G.V. İstisnası', 'Damga Vergisi', 'İstisna Öncesi D.V.', 'Damga Vergisi İstisnası',
+      'Ay', 'Brüt Ücret', 'Net Ücret', 'SGK İşçi Payı', 'İşsizlik İşçi Payı',
+      'SGK İşveren Payı', 'İşsizlik İşveren Payı', 'Gelir Vergisi',
+      'Kümülatif G.V. Matrahı', 'İstisna Öncesi G.V.', 'Asgari Ücret G.V. İstisnası',
+      'Damga Vergisi', 'İstisna Öncesi D.V.', 'Damga Vergisi İstisnası',
       'Toplam Maliyet'
     ]);
     for (var row in monthlyRows) {
-      sheet.appendRow(row.cells.map((cell) => (cell.child as Text).data?.replaceAll(' TL', '') ?? '').toList());
+      sheet.appendRow(row.cells.map((cell) {
+        if (cell.child is Text) {
+          return (cell.child as Text).data?.replaceAll(' TL', '') ?? '';
+        }
+        return '';
+      }).toList());
     }
     final output = await getTemporaryDirectory();
-    final file = File("${output.path}/salary_calculation_${DateTime.now().millisecondsSinceEpoch}.xlsx");
+    final file = File("${output.path}/brutten_nete_hesaplama_${DateTime.now().millisecondsSinceEpoch}.xlsx");
     await file.writeAsBytes(excel.encode()!);
-    await Share.shareXFiles([XFile(file.path)], text: 'Hesaplama Sonuçları');
+    await Share.shareXFiles([XFile(file.path)], text: 'Brütten Nete Maaş Hesaplama Sonuçları');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hesaplama Sonuçları'),
-        backgroundColor: Colors.indigo,
+        title: const Text(
+          'Hesaplama Sonuçları',
+          style: TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          onPressed: () => Navigator.maybePop(context),
+        ),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
@@ -830,45 +1227,485 @@ class ResultsScreen extends StatelessWidget {
                 ),
               ),
             ],
-            icon: const Icon(Icons.share),
+            icon: const Icon(Icons.share, color: Colors.indigo),
           ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(8.0),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columnSpacing: 16,
-            dataRowHeight: 50,
-            headingRowHeight: 56,
-            headingRowColor: MaterialStateProperty.all(Colors.indigo),
-            headingTextStyle: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+        child: Column(
+          children: [
+            CalculationResultTabs(
+              monthlyRows: monthlyRows,
+              monthNames: monthNames,
+              monthlyNetSalaries: monthlyNetSalaries,
+              firstMonthNet: firstMonthNet,
+              lastMonthNet: lastMonthNet,
+              avgNet: avgNet,
+              yearlyNet: yearlyNet,
+              avgEmployerCost: avgEmployerCost,
+              yearlyEmployerCost: yearlyEmployerCost,
             ),
-            columns: const [
-              DataColumn(label: Text('Ay')),
-              DataColumn(label: Text('Brüt Ücret')),
-              DataColumn(label: Text('Net Ücret')),
-              DataColumn(label: Text('SGK İşçi Payı')),
-              DataColumn(label: Text('İşsizlik İşçi Payı')),
-              DataColumn(label: Text('SGK İşveren Payı')),
-              DataColumn(label: Text('İşsizlik İşveren Payı')),
-              DataColumn(label: Text('Gelir Vergisi')),
-              DataColumn(label: Text('Kümülatif G.V. Matrahı')),
-              DataColumn(label: Text('İstisna Öncesi G.V.')),
-              DataColumn(label: Text('Asgari Ücret G.V. İstisnası')),
-              DataColumn(label: Text('Damga Vergisi')),
-              DataColumn(label: Text('İstisna Öncesi D.V.')),
-              DataColumn(label: Text('Damga Vergisi İstisnası')),
-              DataColumn(label: Text('Toplam Maliyet')),
-            ],
-            rows: monthlyRows,
-          ),
+          ],
         ),
       ),
     );
+  }
+}
+
+// --- TABLI-LİSTE-GRAFİK SEKMELERİ ---
+class CalculationResultTabs extends StatefulWidget {
+  final List<DataRow> monthlyRows;
+  final List<String> monthNames;
+  final List<double> monthlyNetSalaries;
+  final double firstMonthNet;
+  final double lastMonthNet;
+  final double avgNet;
+  final double yearlyNet;
+  final double avgEmployerCost;
+  final double yearlyEmployerCost;
+
+  const CalculationResultTabs({
+    Key? key,
+    required this.monthlyRows,
+    required this.monthNames,
+    required this.monthlyNetSalaries,
+    required this.firstMonthNet,
+    required this.lastMonthNet,
+    required this.avgNet,
+    required this.yearlyNet,
+    required this.avgEmployerCost,
+    required this.yearlyEmployerCost,
+  }) : super(key: key);
+
+  @override
+  State<CalculationResultTabs> createState() => _CalculationResultTabsState();
+}
+
+class _CalculationResultTabsState extends State<CalculationResultTabs> {
+  int _selectedTab = 1; // 0: Liste, 1: Tablo, 2: Grafik
+
+  static const double _rowHeight = 50;
+  static const double _headHeight = 56;
+  static const double _tableDivider = 1.0;
+  static const Color _tableDividerColor = Colors.black26;
+
+  // Sabit "Ay" sütunu için dikey kaydırma senkronizasyonu
+  final ScrollController _leftVController = ScrollController();
+  final ScrollController _rightVController = ScrollController();
+  bool _syncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _rightVController.addListener(() {
+      if (_syncing) return;
+      _syncing = true;
+      _leftVController.jumpTo(_rightVController.position.pixels);
+      _syncing = false;
+    });
+    _leftVController.addListener(() {
+      if (_syncing) return;
+      _syncing = true;
+      _rightVController.jumpTo(_leftVController.position.pixels);
+      _syncing = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _leftVController.dispose();
+    _rightVController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Sekme çubuğu — Cupertino Sliding Segmented
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: SizedBox(
+            width: double.infinity,
+            child: CupertinoSlidingSegmentedControl<int>(
+              backgroundColor: Colors.black12.withOpacity(.08),
+              thumbColor: Colors.black12.withOpacity(.20),
+              groupValue: _selectedTab,
+              children: const {
+                0: Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Liste', style: TextStyle(color: Colors.black87))),
+                1: Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Tablo', style: TextStyle(color: Colors.black87))),
+                2: Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Grafik', style: TextStyle(color: Colors.black87))),
+              },
+              onValueChanged: (v) => setState(() => _selectedTab = v ?? 1),
+            ),
+          ),
+        ),
+        if (_selectedTab == 0) _buildListTab()
+        else if (_selectedTab == 1) _buildTableTabFrozenFirstColumn()
+        else _buildChartTab(),
+      ],
+    );
+  }
+
+  /// --- TABLO: “Ay” sütunu sabit (yatayda sabit), dikeyde senkron kayar ---
+  Widget _buildTableTabFrozenFirstColumn() {
+    if (widget.monthlyRows.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final leftHeader = const Text('Ay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14));
+    final rightColumns = const [
+      DataColumn(label: Text('Brüt Ücret')),
+      DataColumn(label: Text('Net Ücret')),
+      DataColumn(label: Text('SGK İşçi Payı')),
+      DataColumn(label: Text('İşsizlik İşçi Payı')),
+      DataColumn(label: Text('SGK İşveren Payı')),
+      DataColumn(label: Text('İşsizlik İşveren Payı')),
+      DataColumn(label: Text('Gelir Vergisi')),
+      DataColumn(label: Text('Kümülatif G.V. Matrahı')),
+      DataColumn(label: Text('İstisna Öncesi G.V.')),
+      DataColumn(label: Text('Asgari Ücret G.V. İstisnası')),
+      DataColumn(label: Text('Damga Vergisi')),
+      DataColumn(label: Text('İstisna Öncesi D.V.')),
+      DataColumn(label: Text('Damga Vergisi İstisnası')),
+      DataColumn(label: Text('Toplam Maliyet')),
+    ];
+
+    // Soldaki sabit kolonun satırlarını hizalı çizgilerle üret
+    final leftRows = <Widget>[];
+    for (int i = 0; i < widget.monthlyRows.length; i++) {
+      final monthCell = widget.monthlyRows[i].cells.first;
+      final isLast = i == widget.monthlyRows.length - 1;
+
+      leftRows.add(Container(
+        height: _rowHeight,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            // BAŞLIK ALTINA ÇİZGİ YOK: ilk satıra üst çizgi eklemiyoruz
+            bottom: !isLast
+                ? const BorderSide(color: _tableDividerColor, width: _tableDivider) // ara çizgiler (sağ tabloyla hizalı)
+                : BorderSide.none, // sondaki toplam satırında altta çizgi yok
+          ),
+        ),
+        child: DefaultTextStyle.merge(
+          style: const TextStyle(color: Colors.black87),
+          child: monthCell.child,
+        ),
+      ));
+    }
+
+    // Sağ tablo satırları (soldaki ilk sütunu atla)
+    final rightRows = widget.monthlyRows.map((r) => DataRow(cells: r.cells.sublist(1))).toList();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Sol sabit sütun (başlık + içerik)
+        Column(
+          children: [
+            Container(
+              height: _headHeight,
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              color: Colors.indigo,
+              child: leftHeader,
+            ),
+            SizedBox(
+              height: _rowHeight * leftRows.length,
+              child: SingleChildScrollView(
+                controller: _leftVController,
+                child: Column(children: leftRows),
+              ),
+            ),
+          ],
+        ),
+
+        // Sağ taraf: yatay + dikey kaydırmalı tablo
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SingleChildScrollView(
+              controller: _rightVController,
+              scrollDirection: Axis.vertical,
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  dividerColor: _tableDividerColor,
+                  dividerTheme: const DividerThemeData(
+                    color: _tableDividerColor,
+                    thickness: _tableDivider,
+                  ),
+                ),
+                child: DataTable(
+                  horizontalMargin: 12, // soldaki padding ile aynı
+                  columnSpacing: 16,
+                  dataRowHeight: _rowHeight,
+                  headingRowHeight: _headHeight,
+                  headingRowColor: const MaterialStatePropertyAll(Colors.indigo),
+                  headingTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  columns: rightColumns,
+                  rows: rightRows,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// --- LİSTE: Sadece Net, Brüt, İşveren Toplam Maliyet ---
+  Widget _buildListTab() {
+    final rows = <Widget>[];
+    for (int i = 0; i < 12 && i < widget.monthlyRows.length - 1; i++) {
+      final row = widget.monthlyRows[i];
+      rows.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Container(
+                width: 28, height: 28,
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
+                alignment: Alignment.center,
+                child: Text('${i+1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 8),
+              Text(widget.monthNames[i], style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+            ]),
+            const SizedBox(height: 6),
+            _infoRow("Net Ücret", row.cells[2]),
+            _infoRow("Brüt Ücret", row.cells[1]),
+            _infoRow("İşveren Toplam Maliyet", row.cells.last),
+            const Divider(height: 18),
+          ],
+        ),
+      ));
+    }
+    final totalRow = widget.monthlyRows.isNotEmpty ? widget.monthlyRows.last : null;
+    if (totalRow != null) {
+      rows.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: const [
+              Icon(Icons.summarize_rounded, color: Colors.black87, size: 28),
+              SizedBox(width: 8),
+              Text("YILLIK TOPLAM ve ORTALAMA", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+            ]),
+            const SizedBox(height: 6),
+            _summaryRow("Yıllık Net Ücret", totalRow.cells[2]),
+            _summaryRow("Aylık Ortalama Net", DataCell(Text(_formatCurrency(widget.avgNet)))),
+            _summaryRow("Yıllık Toplam Maliyet", totalRow.cells.last),
+            _summaryRow("Aylık Ortalama Maliyet", DataCell(Text(_formatCurrency(widget.avgEmployerCost)))),
+          ],
+        ),
+      ));
+    }
+    return ListView(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), children: rows);
+  }
+
+  Widget _infoRow(String label, DataCell cell) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87)),
+          Flexible(child: DefaultTextStyle.merge(style: const TextStyle(color: Colors.black87), child: cell.child)),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, DataCell cell) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+          Flexible(child: DefaultTextStyle.merge(style: const TextStyle(color: Colors.black87), child: cell.child)),
+        ],
+      ),
+    );
+  }
+
+  // ---- Grafik sekmesi (kutusuz & ikonsuz açıklamalar) ----
+  Widget _buildChartTab() {
+    final data = widget.monthlyNetSalaries;
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Aylık Net Ücret Trend Grafiği',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 260,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _LineChartPainter(data, labels: monthlyNamesShort),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _statLine("İlk Ay Net Ücret", widget.firstMonthNet),
+          _statLine("Son Ay Net Ücret", widget.lastMonthNet),
+          _statLine("Ortalama Net Ücret", widget.avgNet),
+          _statLine("Yıllık Toplam Net Ücret", widget.yearlyNet),
+        ],
+      ),
+    );
+  }
+
+  Widget _statLine(String label, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label,
+                style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
+          ),
+          Text(_formatCurrency(value),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black54)),
+        ],
+      ),
+    );
+  }
+
+  List<String> get monthlyNamesShort => const ['O','Ş','M','N','M','H','T','A','E','E','K','A'];
+}
+
+/// Basit çizgi grafik ressamı (paketsiz)
+class _LineChartPainter extends CustomPainter {
+  final List<double> data;
+  final List<String> labels;
+
+  _LineChartPainter(this.data, {required this.labels});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bg = Paint()..color = Colors.white;
+    canvas.drawRect(Offset.zero & size, bg);
+
+    if (data.isEmpty) return;
+
+    // --- Dinamik sol padding: sol eksen etiketlerinin maksimum genişliğini ölç ---
+    final steps = 4;
+    final minVal = data.reduce((a,b)=>a<b?a:b);
+    final maxVal = data.reduce((a,b)=>a>b?a:b);
+    final span = (maxVal - minVal).abs();
+    final safeSpan = span == 0 ? 1 : span;
+
+    TextPainter tp(String s, {TextStyle? style}) {
+      final tp = TextPainter(
+        text: TextSpan(text: s, style: style ?? const TextStyle(fontSize: 10, color: Colors.black87)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      return tp;
+    }
+
+    double maxLabelW = 0;
+    for (int i=0;i<=steps;i++) {
+      final val = (minVal + (i/steps)*safeSpan);
+      final painter = tp(_formatPlain(val));
+      if (painter.width > maxLabelW) maxLabelW = painter.width;
+    }
+
+    final double leftPad = maxLabelW + 10; // etiket + boşluk
+    final double topPad = 16;
+    final double rightPad = 10;
+    final double bottomPad = 26;
+
+    final chartRect = Rect.fromLTWH(
+      leftPad,
+      topPad,
+      size.width - leftPad - rightPad,
+      size.height - topPad - bottomPad,
+    );
+
+    final axis = Paint()
+      ..color = Colors.grey.shade400
+      ..strokeWidth = 1;
+
+    // Eksenler
+    canvas.drawLine(chartRect.bottomLeft, chartRect.topLeft, axis);
+    canvas.drawLine(chartRect.bottomLeft, chartRect.bottomRight, axis);
+
+    // Noktalar ve çizgi
+    final line = Paint()
+      ..color = Colors.black54
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+
+    final fill = Paint()
+      ..color = Colors.black.withOpacity(0.08)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final fillPath = Path();
+
+    final stepX = chartRect.width / (data.length - 1).clamp(1, 999);
+    Offset pointAt(int i) {
+      final x = chartRect.left + i * stepX;
+      final t = (data[i] - minVal) / safeSpan;
+      final y = chartRect.bottom - t * chartRect.height;
+      return Offset(x, y);
+    }
+
+    final first = pointAt(0);
+    path.moveTo(first.dx, first.dy);
+    fillPath.moveTo(chartRect.left, chartRect.bottom);
+    fillPath.lineTo(first.dx, first.dy);
+
+    for (int i=1;i<data.length;i++) {
+      final p = pointAt(i);
+      path.lineTo(p.dx, p.dy);
+      fillPath.lineTo(p.dx, p.dy);
+    }
+    fillPath.lineTo(chartRect.right, chartRect.bottom);
+    fillPath.close();
+
+    canvas.drawPath(fillPath, fill);
+    canvas.drawPath(path, line);
+
+    // Nokta işaretleri
+    final dot = Paint()..color = Colors.black87;
+    for (int i=0;i<data.length;i++) {
+      final p = pointAt(i);
+      canvas.drawCircle(p, 3, dot);
+    }
+
+    // Alt etiketler
+    for (int i=0;i<data.length;i++) {
+      final p = pointAt(i);
+      final t = tp(labels[i % labels.length]);
+      t.paint(canvas, Offset(p.dx - t.width/2, chartRect.bottom + 4));
+    }
+
+    // Sol ölçek (etiketleri eksenin SOLUNA, sığacak şekilde)
+    for (int i=0;i<=steps;i++) {
+      final y = chartRect.bottom - (i/steps) * chartRect.height;
+      // grid
+      canvas.drawLine(
+        Offset(chartRect.left, y),
+        Offset(chartRect.right, y),
+        Paint()..color = Colors.grey.withOpacity(0.25)..strokeWidth = 1,
+      );
+      // label
+      final val = (minVal + (i/steps)*safeSpan);
+      final labelPainter = tp(_formatPlain(val));
+      labelPainter.paint(canvas, Offset(chartRect.left - 6 - labelPainter.width, y - labelPainter.height/2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
+    return oldDelegate.data != data;
   }
 }

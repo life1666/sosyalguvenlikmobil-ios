@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
@@ -7,10 +8,115 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import '../sonhesaplama/sonhesaplama.dart';
+
+/// =================== GLOBAL STIL & KNOB'LAR ===================
+
+const double kPageHPad = 12.0;
+const double kTextScale = 1.00;
+const Color kTextColor = Colors.black;
+
+// Divider (global)
+const double kDividerThickness = 0.2;
+const double kDividerSpace = 2.0;
+
+// Form alanı çerçevesi
+const double kFieldBorderWidth = 0.2;
+const double kFieldBorderRadius = 10.0;
+const Color kFieldBorderColor = Colors.black87;
+const Color kFieldFocusColor = Colors.black87;
+
+class AppW {
+  static const appBarTitle = FontWeight.w700;
+  static const heading = FontWeight.w500;
+  static const body = FontWeight.w400;
+  static const minor = FontWeight.w300;
+  static const tableHead = FontWeight.w600;
+}
+
+extension AppText on BuildContext {
+  TextStyle get sFormLabel => Theme.of(this).textTheme.titleLarge!;
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const NettenBruteApp());
+}
+
+/// ----------------------------------------------
+///  TEMA
+/// ----------------------------------------------
+ThemeData get uygulamaTemasi {
+  final double sizeTitleLg = 16.5 * kTextScale;
+  final double sizeTitleMd = 15 * kTextScale;
+  final double sizeBody = 13.5 * kTextScale;
+  final double sizeSmall = 12.5 * kTextScale;
+  final double sizeAppBar = 20.5 * kTextScale;
+
+  return ThemeData(
+    primarySwatch: Colors.indigo,
+    scaffoldBackgroundColor: Colors.grey[100],
+    appBarTheme: AppBarTheme(
+      titleTextStyle: TextStyle(
+        fontSize: sizeAppBar,
+        fontWeight: AppW.appBarTitle,
+        color: Colors.white,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+    ),
+    textTheme: TextTheme(
+      titleLarge: TextStyle(
+        fontSize: sizeTitleLg,
+        fontWeight: AppW.heading,
+        color: kTextColor,
+        height: 1.25,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+      bodyLarge: TextStyle(
+        fontSize: sizeBody,
+        fontWeight: AppW.body,
+        color: Colors.black87,
+        height: 1.45,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+      labelLarge: TextStyle(
+        fontSize: sizeBody,
+        fontWeight: AppW.body,
+        color: Colors.black87,
+        fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
+      ),
+    ),
+    dividerTheme: const DividerThemeData(
+      color: Colors.black,
+      thickness: kDividerThickness,
+      space: kDividerSpace,
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      isDense: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+      ),
+      hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    ),
+  );
 }
 
 class NettenBruteApp extends StatelessWidget {
@@ -21,15 +127,7 @@ class NettenBruteApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Netten Brüte Maaş Hesaplama',
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.grey[100],
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(fontSize: 14, color: Colors.black87),
-          bodyMedium: TextStyle(fontSize: 12, color: Colors.black54),
-          headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),
-        ),
-      ),
+      theme: uygulamaTemasi,
       home: const NettenBruteScreen(),
     );
   }
@@ -191,6 +289,23 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
     return '${formatter.format(value)} TL';
   }
 
+  /// TL'siz ama aynı nokta/virgül kuralı
+  String _formatPlain(double n) {
+    final neg = n < 0;
+    n = n.abs();
+    final fixed = n.toStringAsFixed(2);
+    final parts = fixed.split('.');
+    String intPart = parts[0];
+    final frac = parts[1];
+    final buf = StringBuffer();
+    for (int i = 0; i < intPart.length; i++) {
+      final posFromEnd = intPart.length - i;
+      buf.write(intPart[i]);
+      if (posFromEnd > 1 && posFromEnd % 3 == 1) buf.write('.');
+    }
+    return '${neg ? '-' : ''}${buf.toString()},$frac';
+  }
+
   double roundTo2(double value) {
     return double.parse(value.toStringAsFixed(2));
   }
@@ -202,7 +317,7 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
       }
     } else {
       double value = _parseCurrency(_netSalaryControllers[startIndex].text);
-      String formatted = _formatCurrency(value);
+      String formatted = _formatPlain(value);
       for (int i = startIndex + 1; i < 12; i++) {
         _netSalaryControllers[i].text = formatted;
       }
@@ -401,7 +516,7 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
     return true;
   }
 
-  void _hesapla() {
+  Future<void> _hesapla() async {
     setState(() {
       _errorMessage = null;
       _monthlyRows.clear();
@@ -411,10 +526,10 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
       return;
     }
 
-    _showHesaplamaSonucu();
+    await _showHesaplamaSonucu();
   }
 
-  void _showHesaplamaSonucu() {
+  Future<void> _showHesaplamaSonucu() async {
     for (var controller in _netSalaryControllers) {
       if (controller.text.trim().isNotEmpty) {
         double val = _parseCurrency(controller.text);
@@ -425,10 +540,38 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
           });
           return;
         }
-        controller.text = _formatCurrency(val);
+        controller.text = _formatPlain(val); // Giriş alanı TL'siz kalır
       }
     }
     _calculateGrossSalaryForYear();
+    
+    // Son hesaplamalara kaydet
+    try {
+      final veriler = <String, dynamic>{
+        'yil': _selectedYear,
+        'calisanDurumu': _employeeStatus,
+        'tesvik': _selectedIncentive,
+      };
+      
+      final sonuclar = <String, String>{
+        'Yıl': _selectedYear.toString(),
+        'Hesaplama Türü': 'Netten Brüte Maaş Hesaplama',
+      };
+      
+      final sonHesaplama = SonHesaplama(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        hesaplamaTuru: 'Netten Brüte Maaş Hesaplama',
+        tarihSaat: DateTime.now(),
+        veriler: veriler,
+        sonuclar: sonuclar,
+        ozet: 'Netten brüte maaş hesaplaması tamamlandı',
+      );
+      
+      await SonHesaplamalarDeposu.ekle(sonHesaplama);
+    } catch (e) {
+      debugPrint('Son hesaplama kaydedilirken hata: $e');
+    }
+    
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ResultsScreen(
@@ -595,176 +738,148 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
     });
   }
 
+  Future<T?> _showCupertinoPicker<T>({
+    required List<T> items,
+    required int initialIndex,
+    String okText = 'Tamam',
+    String cancelText = 'İptal',
+    Widget Function(T)? itemBuilder,
+  }) async {
+    int sel = initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
+    return showCupertinoModalPopup<T>(
+      context: context,
+      builder: (_) => Container(
+        height: 300,
+        color: Colors.white,
+        child: Column(
+          children: [
+            SizedBox(
+              height: 44,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(cancelText, style: const TextStyle(color: Colors.black87)),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () => Navigator.pop(context, items.isNotEmpty ? items[sel] : null),
+                    child: Text(okText, style: const TextStyle(color: Colors.black87)),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: CupertinoPicker(
+                scrollController: FixedExtentScrollController(initialItem: sel),
+                itemExtent: 32,
+                onSelectedItemChanged: (int index) {
+                  sel = index;
+                },
+                children: items.map((item) {
+                  if (itemBuilder != null) {
+                    return Center(child: itemBuilder(item));
+                  }
+                  return Center(child: Text('$item', style: const TextStyle(color: Colors.black87)));
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final borderSide = BorderSide(color: Colors.indigo.withOpacity(0.18), width: 1.5);
+    final List<int> _years = [2022, 2023, 2024, 2025];
+    final String yearLabel = _selectedYear.toString();
+    final String statusLabel = _employeeStatus;
+    final String incentiveLabel = _selectedIncentive;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Netten Brüte Maaş Hesaplama $_selectedYear'),
-        centerTitle: true,
-        backgroundColor: Colors.indigo,
+        title: const Text(
+          'Netten Brüte Maaş Hesaplama',
+          style: TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          onPressed: () => Navigator.maybePop(context),
+        ),
       ),
       body: SingleChildScrollView(
         controller: _verticalScrollController,
         padding: const EdgeInsets.all(8),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: borderSide.color, width: borderSide.width),
-              ),
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(12.0),
+            // Seçimler ve aylık alanlar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Yıl Seçiniz
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: borderSide.color, width: borderSide.width),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Yıl Seçiniz', style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 12)),
-                        DropdownButtonFormField<int>(
-                          value: _selectedYear,
-                          iconEnabledColor: Colors.indigo,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            prefixIcon: Icon(Icons.calendar_today, color: Colors.indigo),
-                          ),
-                          isExpanded: true,
-                          dropdownColor: Colors.white,
-                          items: [2022, 2023, 2024, 2025].map((year) {
-                            return DropdownMenuItem<int>(
-                              value: year,
-                              child: Text('$year', style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 15)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              for (var c in _netSalaryControllers) {
-                                c.clear();
-                              }
-                              setState(() {
-                                _monthlyRows.clear();
-                                _errorMessage = null;
-                              });
-                              _updateConstants(value);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                  _CupertinoField(
+                    label: 'Yıl Seçiniz',
+                    valueText: yearLabel,
+                    onTap: () async {
+                      final idx = _years.indexOf(_selectedYear);
+                      final sel = await _showCupertinoPicker<int>(
+                        items: _years,
+                        initialIndex: idx < 0 ? 0 : idx,
+                        itemBuilder: (y) => Text('$y'),
+                      );
+                      if (sel != null) {
+                        for (var c in _netSalaryControllers) {
+                          c.clear();
+                        }
+                        setState(() {
+                          _monthlyRows.clear();
+                          _errorMessage = null;
+                        });
+                        _updateConstants(sel);
+                      }
+                    },
                   ),
-                  // Çalışan Statüsü
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: borderSide.color, width: borderSide.width),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Çalışan Statüsü', style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 12)),
-                        DropdownButtonFormField<String>(
-                          value: _employeeStatus,
-                          iconEnabledColor: Colors.indigo,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            prefixIcon: Icon(Icons.person, color: Colors.indigo),
-                          ),
-                          isExpanded: true,
-                          dropdownColor: Colors.white,
-                          items: _employeeStatusOptions.map((status) {
-                            return DropdownMenuItem<String>(
-                              value: status,
-                              child: Text(status, style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 15)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _employeeStatus = value;
-                                _updateConstants(_selectedYear);
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                  _CupertinoField(
+                    label: 'Çalışan Statüsü',
+                    valueText: statusLabel,
+                    onTap: () async {
+                      final idx = _employeeStatusOptions.indexOf(_employeeStatus);
+                      final sel = await _showCupertinoPicker<String>(
+                        items: _employeeStatusOptions,
+                        initialIndex: idx < 0 ? 0 : idx,
+                      );
+                      if (sel != null) {
+                        setState(() {
+                          _employeeStatus = sel;
+                          _updateConstants(_selectedYear);
+                        });
+                      }
+                    },
                   ),
-                  // Teşvik Seçiniz
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: borderSide.color, width: borderSide.width),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Teşvik Seçiniz', style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 12)),
-                        DropdownButtonFormField<String>(
-                          value: _selectedIncentive,
-                          iconEnabledColor: Colors.indigo,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            prefixIcon: Icon(Icons.trending_up, color: Colors.indigo),
-                          ),
-                          isExpanded: true,
-                          dropdownColor: Colors.white,
-                          items: _incentiveOptions.map((option) {
-                            return DropdownMenuItem<String>(
-                              value: option,
-                              child: Text(option, style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 15)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _selectedIncentive = value;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                  _CupertinoField(
+                    label: 'Teşvik Seçiniz',
+                    valueText: incentiveLabel,
+                    onTap: () async {
+                      final idx = _incentiveOptions.indexOf(_selectedIncentive);
+                      final sel = await _showCupertinoPicker<String>(
+                        items: _incentiveOptions,
+                        initialIndex: idx < 0 ? 0 : idx,
+                      );
+                      if (sel != null) {
+                        setState(() {
+                          _selectedIncentive = sel;
+                        });
+                      }
+                    },
                   ),
-                  const SizedBox(height: 14),
-                  // Ay kutuları
+                  const SizedBox(height: 6),
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -775,81 +890,25 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
                       mainAxisSpacing: 8,
                     ),
                     itemCount: 12,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: borderSide.color, width: borderSide.width),
-                        ),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              left: 8,
-                              top: 6,
-                              child: Text(
-                                monthNames[index],
-                                style: const TextStyle(
-                                  color: Colors.indigo,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 22, left: 8, right: 8, bottom: 8),
-                              child: TextFormField(
-                                controller: _netSalaryControllers[index],
-                                decoration: const InputDecoration(
-                                  hintText: 'Net Ücret',
-                                  suffix: Text('TL', style: TextStyle(color: Colors.indigo, fontSize: 13)),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 0),
-                                ),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                                ],
-                                onChanged: (value) {
-                                  _autoFillMonths(index);
-                                },
-                                onEditingComplete: () {
-                                  FocusScope.of(context).unfocus();
-                                  if (_netSalaryControllers[index].text.trim().isNotEmpty) {
-                                    double val = _parseCurrency(_netSalaryControllers[index].text);
-                                    _netSalaryControllers[index].text = _formatCurrency(val);
-                                  }
-                                },
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.indigo,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    itemBuilder: (context, i) => _AmountField(
+                      label: monthNames[i],
+                      controller: _netSalaryControllers[i],
+                      onChangedCascade: () => _autoFillMonths(i),
+                    ),
                   ),
-                  const SizedBox(height: 18),
-                  Container(
+                  const SizedBox(height: 14),
+                  SizedBox(
                     width: double.infinity,
-                    margin: const EdgeInsets.symmetric(vertical: 4),
                     child: ElevatedButton(
-                      onPressed: _hesapla,
+                      onPressed: () async => await _hesapla(),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      child: const Text(
-                        'Hesapla',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
+                      child: const Text('Hesapla'),
                     ),
                   ),
                 ],
@@ -859,6 +918,157 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
         ),
       ),
     );
+  }
+}
+
+/// ===== Cupertino tarzı başlık+"kutucuk" alan (modal picker açar) =====
+class _CupertinoField extends StatelessWidget {
+  final String label;
+  final String valueText; // boş ise 'Seçiniz' gösterilecek
+  final VoidCallback onTap;
+  final bool enabled;
+
+  const _CupertinoField({
+    required this.label,
+    required this.valueText,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isPlaceholder = valueText.trim().isEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: context.sFormLabel),
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: enabled ? onTap : null,
+            child: Opacity(
+              opacity: enabled ? 1 : 0.6,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                    borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                    borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
+                  ),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isPlaceholder ? 'Seçiniz' : valueText,
+                        style: TextStyle(
+                          color: isPlaceholder ? Colors.grey[700] : Colors.black87,
+                          fontWeight: AppW.body,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ===== Ücret alanı (iç metin TL'siz, sağda sabit 'TL' suffix) =====
+class _AmountField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final VoidCallback onChangedCascade;
+
+  const _AmountField({
+    required this.label,
+    required this.controller,
+    required this.onChangedCascade,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 8,
+            top: 6,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 22, left: 8, right: 8, bottom: 6),
+            child: TextFormField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Net Ücret',
+                isCollapsed: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                border: InputBorder.none,
+                suffix: Text('TL', style: TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+              maxLines: 1,
+              textAlign: TextAlign.right,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+              onChanged: (_) => onChangedCascade(),
+              onEditingComplete: () {
+                FocusScope.of(context).unfocus();
+                if (controller.text.trim().isNotEmpty) {
+                  final val = _parseCurrencyForAmountField(controller.text);
+                  controller.text = _formatPlainForAmountField(val);
+                }
+              },
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _parseCurrencyForAmountField(String text) {
+    if (text.trim().isEmpty) return 0.0;
+    String t = text.replaceAll(' TL', '').replaceAll('.', '').replaceAll(',', '.').trim();
+    return double.tryParse(t) ?? 0.0;
+  }
+
+  String _formatPlainForAmountField(double n) {
+    final neg = n < 0;
+    n = n.abs();
+    final fixed = n.toStringAsFixed(2);
+    final parts = fixed.split('.');
+    String intPart = parts[0];
+    final frac = parts[1];
+    final buf = StringBuffer();
+    for (int i = 0; i < intPart.length; i++) {
+      final posFromEnd = intPart.length - i;
+      buf.write(intPart[i]);
+      if (posFromEnd > 1 && posFromEnd % 3 == 1) buf.write('.');
+    }
+    return '${neg ? '-' : ''}${buf.toString()},$frac';
   }
 }
 
@@ -964,8 +1174,17 @@ class ResultsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hesaplama Sonuçları'),
-        backgroundColor: Colors.indigo,
+        title: const Text(
+          'Hesaplama Sonuçları',
+          style: TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          onPressed: () => Navigator.maybePop(context),
+        ),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
@@ -991,7 +1210,7 @@ class ResultsScreen extends StatelessWidget {
                 ),
               ),
             ],
-            icon: const Icon(Icons.share),
+            icon: const Icon(Icons.share, color: Colors.indigo),
           ),
         ],
       ),

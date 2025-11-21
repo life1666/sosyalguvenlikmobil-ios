@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
-// ✅ Makale model sınıfı
+// --- Makale listeleri (aynı klasörde) ---
+import 'calisan_makaleler.dart';
+import 'emeklilik_makaleler.dart';
+import 'isveren_makaleler.dart';
+
+/// =======================
+///  MODEL
+/// =======================
 class Makale {
   final String title;
   final String content;
@@ -23,7 +31,182 @@ class Makale {
   }
 }
 
-// ✅ Makale detay sayfası
+/// =======================
+///  LİSTE + SEKME EKRANI
+/// =======================
+class MakalelerView extends StatefulWidget {
+  const MakalelerView({super.key});
+
+  @override
+  State<MakalelerView> createState() => _MakalelerViewState();
+}
+
+class _MakalelerViewState extends State<MakalelerView> {
+  String? _selectedKategori;
+
+  final List<_MakaleKategori> _kategoriler = [
+    _MakaleKategori(
+      baslik: 'Çalışan',
+      liste: calisanMakaleler,
+    ),
+    _MakaleKategori(
+      baslik: 'Emeklilik',
+      liste: emeklilikMakaleler,
+    ),
+    _MakaleKategori(
+      baslik: 'İşveren',
+      liste: isverenMakaleler,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedKategori = _kategoriler[0].baslik; // İlk kategoriyi seçili yap
+  }
+
+  _MakaleKategori? get _aktifKategori {
+    return _kategoriler.firstWhere(
+      (k) => k.baslik == _selectedKategori,
+      orElse: () => _kategoriler[0],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Makaleler',
+          style: TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
+      body: Column(
+        children: [
+          // Cupertino Segmented Control
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: CupertinoSlidingSegmentedControl<String>(
+              groupValue: _selectedKategori,
+              backgroundColor: Colors.indigo.withOpacity(0.06),
+              thumbColor: Colors.white,
+              children: {
+                for (final k in _kategoriler)
+                  k.baslik: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Text(
+                      '${k.baslik} (${k.liste.length})',
+                      style: TextStyle(
+                        color: _selectedKategori == k.baslik ? Colors.indigo : Colors.black87,
+                        fontWeight: _selectedKategori == k.baslik ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+              },
+              onValueChanged: (value) {
+                setState(() {
+                  _selectedKategori = value;
+                });
+              },
+            ),
+          ),
+          const Divider(height: 1, color: Color(0x1F000000)),
+          // İÇERİK
+          Expanded(
+            child: _aktifKategori != null
+                ? _MakaleListe(kategori: _aktifKategori!, tt: tt)
+                : const Center(child: Text('Kategori seçiniz')),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MakaleKategori {
+  final String baslik;
+  final List<Makale> liste;
+  _MakaleKategori({
+    required this.baslik,
+    required this.liste,
+  });
+}
+
+/// =======================
+///  SADE LİSTE (hesaplamalar ekranı gibi)
+/// =======================
+class _MakaleListe extends StatelessWidget {
+  final _MakaleKategori kategori;
+  final TextTheme tt;
+  const _MakaleListe({required this.kategori, required this.tt});
+
+  @override
+  Widget build(BuildContext context) {
+    if (kategori.liste.isEmpty) {
+      return const Center(child: Text('Bu kategoride henüz içerik yok.'));
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: kategori.liste.length,
+      separatorBuilder: (_, __) => const Divider(),
+      itemBuilder: (context, i) {
+        final m = kategori.liste[i];
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => MakaleDetailScreen(makale: m)),
+              );
+            },
+            splashColor: Colors.indigo.withOpacity(0.2),
+            highlightColor: Colors.indigo.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      m.title,
+                      style: tt.bodyMedium,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.black38,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static String _preview(String raw) {
+    final first = raw.split('\n').firstWhere((e) => e.trim().isNotEmpty, orElse: () => '');
+    return first.length > 80 ? '${first.substring(0, 80)}…' : first;
+  }
+}
+
+/// =======================
+///  DETAY EKRANI
+/// =======================
 class MakaleDetailScreen extends StatefulWidget {
   final Makale makale;
 
@@ -35,24 +218,23 @@ class MakaleDetailScreen extends StatefulWidget {
 
 class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.makale.title),
-        backgroundColor: Colors.indigo,
+        title: Text(
+          widget.makale.title,
+          style: const TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          onPressed: () => Navigator.maybePop(context),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: SingleChildScrollView(
           child: Center(
             child: ConstrainedBox(
@@ -60,18 +242,7 @@ class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Text(
-                      widget.makale.title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  // Başlığı sayfa içinde tekrar göstermeyelim; AppBar’da var.
                   ..._buildParagraphs(),
                 ],
               ),
@@ -83,10 +254,8 @@ class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
   }
 
   List<Widget> _buildParagraphs() {
-    List<Widget> children = [];
-
-    for (int i = 0; i < widget.makale.paragraphs.length; i++) {
-      final paragraph = widget.makale.paragraphs[i];
+    final List<Widget> children = [];
+    for (final paragraph in widget.makale.paragraphs) {
       final isTitle = paragraph.length < 50 &&
           (paragraph.startsWith(RegExp(r'\d+\.\s')) ||
               paragraph.startsWith(RegExp(r'\d+\.\d+\s')));
@@ -98,24 +267,20 @@ class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
               ? Text(
             paragraph,
             style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
               color: Colors.black87,
             ),
-            textAlign: TextAlign.left,
           )
               : RichText(
             textAlign: TextAlign.justify,
             text: TextSpan(
               children: [
-                const WidgetSpan(
-                  child: SizedBox(width: 16.0),
-                ),
+                const WidgetSpan(child: SizedBox(width: 16.0)),
                 TextSpan(
                   text: paragraph,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.normal,
                     color: Colors.black87,
                   ),
                 ),
