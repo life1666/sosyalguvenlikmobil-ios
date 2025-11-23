@@ -60,11 +60,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDXAQ1PQDzI33EzX9wTHcNCtA_eQ6LZGko',
-    appId: '1:100925070763:ios:6c64eec5bb71f711f9c6ee',
+    appId: '1:100925070763:ios:2fe2bcc38bb95ceef9c6ee',
     messagingSenderId: '100925070763',
     projectId: 'sosyal-guvenlik-cepte-61d36',
     storageBucket: 'sosyal-guvenlik-cepte-61d36.firebasestorage.app',
-    iosBundleId: 'com.example.src',
+    iosBundleId: 'com.sosyalguvenlik.mobil',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
