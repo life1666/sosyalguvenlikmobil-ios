@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '100925070763',
     projectId: 'sosyal-guvenlik-cepte-61d36',
     storageBucket: 'sosyal-guvenlik-cepte-61d36.firebasestorage.app',
-    iosBundleId: 'com.example.src',
+    iosBundleId: 'com.sosyalguvenlik.mobil',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
