@@ -509,3 +509,5 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
 
 
 
+
+

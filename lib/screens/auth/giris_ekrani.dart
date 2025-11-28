@@ -69,9 +69,17 @@ class _GirisEkraniState extends State<GirisEkrani> {
     }
   }
 
-  // --- Apple ile giriş ---
+// --- Apple ile giriş ---
   Future<void> _appleIleGirisYap() async {
     try {
+      // Sadece iOS'ta çalışsın (emniyet için)
+      if (!Platform.isIOS) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Apple ile giriş sadece iOS cihazlarda kullanılabilir.')),
+        );
+        return;
+      }
+
       final rawNonce = _generateNonce();
       final nonce = _sha256ofString(rawNonce);
 
@@ -83,8 +91,15 @@ class _GirisEkraniState extends State<GirisEkrani> {
         nonce: nonce,
       );
 
+      // Güvenlik için null kontrolü
+      if (appleCred.identityToken == null || appleCred.authorizationCode == null) {
+        throw Exception('Apple kimlik bilgisi eksik (token/code null).');
+      }
+
+      // 🔥 ÖNEMLİ KISIM: accessToken = authorizationCode
       final oauthCredential = OAuthProvider('apple.com').credential(
         idToken: appleCred.identityToken,
+        accessToken: appleCred.authorizationCode, // <-- EKLEDİK
         rawNonce: rawNonce,
       );
 
@@ -97,9 +112,11 @@ class _GirisEkraniState extends State<GirisEkrani> {
       }
 
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => AnaEkran()));
+        context,
+        MaterialPageRoute(builder: (_) => AnaEkran()),
+      );
     } on SignInWithAppleAuthorizationException catch (e) {
-      if (e.code == AuthorizationErrorCode.canceled) return; // kullanıcı iptal etti
+      if (e.code == AuthorizationErrorCode.canceled) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Apple yetkilendirme hatası: ${e.message}')),
       );
@@ -109,6 +126,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
       );
     }
   }
+
 
   Future<void> _sifremiUnuttum() async {
     if (_emailController.text.trim().isEmpty) {
