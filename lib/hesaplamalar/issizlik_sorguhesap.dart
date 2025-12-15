@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -512,6 +513,7 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenOpen('issizlik_maasi_opened');
 
     // --- Otomatik kopyalama: 1. Ay -> 2,3,4. Ay (formatlanmış metinle) ---
     kazanc1.addListener(() {

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== SGK SÖZLÜK MODELİ ===================
 
@@ -1523,6 +1524,12 @@ class SozlukHomePage extends StatefulWidget {
 class _SozlukHomePageState extends State<SozlukHomePage> {
   final ScrollController _scrollCtrl = ScrollController();
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('sozluk_opened');
+  }
 
   List<DictEntry> get _filtered {
     if (_query.trim().isEmpty) return _sortedAll;

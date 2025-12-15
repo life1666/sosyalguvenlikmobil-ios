@@ -18,6 +18,10 @@ import '../../sozluk/sozluk.dart';
 import '../../sonhesaplama/sonhesaplama.dart';
 import '../../mevzuat/asgariucret.dart';
 import '../../mevzuat/mevzuat.dart';
+import '../../utils/analytics_helper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:async';
 
 
 class AnaEkran extends StatefulWidget {
@@ -32,6 +36,12 @@ class _AnaEkranState extends State<AnaEkran> {
 
   final PageController _bannerController = PageController();
   int _currentBanner = 0;
+  int _mesajSayisi = 0;
+  StreamSubscription<QuerySnapshot>? _mesajStreamSubscription;
+
+  final _firestore = FirebaseFirestore.instance;
+  final String adminUID = 'yicHOHSjaPXH6sLwyc48ulCnai32';
+  final String mevzuatUzmaniUID = 'jBEoEbfgjJUHklmfmrJqsrIBETF2';
 
   static const String playStoreLink =
       'https://play.google.com/store/apps/details?id=com.sosyalguvenlik.mobil';
@@ -43,8 +53,214 @@ class _AnaEkranState extends State<AnaEkran> {
     FirebaseAuth.instance.authStateChanges().listen((user) {
       if (!mounted) return;
       setState(() => _kullanici = user);
+      _mesajSayisiniGuncelle();
     });
     _loadAppVersion();
+    _mesajSayisiniGuncelle();
+    AnalyticsHelper.logScreenOpen('ana_ekran_opened');
+  }
+
+  @override
+  void dispose() {
+    _mesajStreamSubscription?.cancel();
+    super.dispose();
+  }
+
+  bool _isAdmin(User? user) {
+    if (user == null) return false;
+    return user.uid == adminUID || user.uid == mevzuatUzmaniUID;
+  }
+
+  void _mesajSayisiniGuncelle() {
+    _mesajStreamSubscription?.cancel();
+    
+    if (_kullanici == null) {
+      setState(() => _mesajSayisi = 0);
+      return;
+    }
+
+    if (_isAdmin(_kullanici)) {
+      // Admin için: okunmamış mesaj sayısı
+      _mesajStreamSubscription = _firestore
+          .collection('messages')
+          .where('read', isEqualTo: false)
+          .snapshots()
+          .listen((snapshot) {
+        if (mounted) {
+          setState(() {
+            _mesajSayisi = snapshot.docs.length;
+          });
+        }
+      });
+    } else {
+      // Normal kullanıcı için: okunmamış cevap sayısı
+      _mesajStreamSubscription = _firestore
+          .collection('messages')
+          .where('userId', isEqualTo: _kullanici!.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (mounted) {
+          int okunmamisCevap = 0;
+          for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final response = data['response'] as String?;
+            final responses = data['responses'] as List<dynamic>?;
+            final read = data['read'] as bool? ?? false;
+            
+            if (!read && ((response != null && response.isNotEmpty) || (responses != null && responses.isNotEmpty))) {
+              okunmamisCevap++;
+            }
+          }
+          setState(() {
+            _mesajSayisi = okunmamisCevap;
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _mesajlariOkunduIsaretle() async {
+    if (_kullanici == null) return;
+
+    setState(() {
+      _mesajSayisi = 0;
+    });
+
+    try {
+      final batch = _firestore.batch();
+      
+      if (_isAdmin(_kullanici)) {
+        final snapshot = await _firestore
+            .collection('messages')
+            .where('read', isEqualTo: false)
+            .get();
+        
+        for (var doc in snapshot.docs) {
+          batch.update(doc.reference, {'read': true});
+        }
+      } else {
+        final snapshot = await _firestore
+            .collection('messages')
+            .where('userId', isEqualTo: _kullanici!.uid)
+            .get();
+        
+        for (var doc in snapshot.docs) {
+          batch.update(doc.reference, {'read': true});
+        }
+      }
+      
+      await batch.commit();
+      
+      // Stream'in güncellenmesi için kısa bir gecikme
+      await Future.delayed(Duration(milliseconds: 2000));
+      if (mounted) {
+        _mesajSayisiniGuncelle();
+      }
+    } catch (e) {
+      debugPrint('Mesaj okundu işaretleme hatası: $e');
+    }
+  }
+
+  void _showMesajBildirimDialog() {
+    AnalyticsHelper.logCustomEvent('notification_bell_tapped');
+    
+    if (_mesajSayisi == 0) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          contentPadding: EdgeInsets.all(20),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.notifications_none, size: 48, color: Colors.grey[400]),
+              SizedBox(height: 16),
+              Text(
+                'Yeni bildirim yok',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Henüz yeni mesaj veya cevap bulunmuyor.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                AnalyticsHelper.logCustomEvent('notification_dialog_closed');
+                Navigator.pop(context);
+              },
+              child: Text('Tamam'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final mesaj = _isAdmin(_kullanici)
+        ? '$_mesajSayisi yeni mesajınız var'
+        : '$_mesajSayisi mesajınıza cevap geldi';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        contentPadding: EdgeInsets.all(20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.notifications_active, size: 48, color: Colors.indigo),
+            SizedBox(height: 16),
+            Text(
+              mesaj,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              AnalyticsHelper.logCustomEvent('notification_dialog_closed');
+              Navigator.pop(context);
+            },
+            child: Text('Kapat'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              AnalyticsHelper.logCustomEvent('notification_dialog_view_messages');
+              Navigator.pop(context);
+              _mesajlariOkunduIsaretle();
+              if (_isAdmin(_kullanici)) {
+                Navigator.pushNamed(context, '/mesajlar');
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => IletisimEkrani()),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Mesajları Gör'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _loadAppVersion() async {
@@ -220,6 +436,42 @@ class _AnaEkranState extends State<AnaEkran> {
           icon: const Icon(Icons.menu, color: Colors.indigo),
           onPressed: () => _showFullScreenMenu(context),
         ),
+        actions: [
+          if (_kullanici != null)
+            Stack(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.notifications_outlined, color: Colors.indigo),
+                  onPressed: _showMesajBildirimDialog,
+                ),
+                if (_mesajSayisi > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '$_mesajSayisi',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+        ],
       ),
 
       body: CustomScrollView(

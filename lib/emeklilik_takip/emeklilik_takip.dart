@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../screens/hesaplamalar_ekrani.dart';
+import '../utils/analytics_helper.dart';
 
 void main() {
   runApp(const EmeklilikTakipApp());
@@ -53,6 +54,7 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenOpen('emeklilik_takip_opened');
     _loadRetirementData();
   }
 

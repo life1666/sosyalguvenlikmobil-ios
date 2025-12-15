@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -480,6 +481,7 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenOpen('rapor_parasi_opened');
     // 1. ay brüt ve gün değerlerini diğerlerine aynen yansıt
     grossSalary1.addListener(_syncFromFirstMonthSalary);
     workDays1.addListener(_syncFromFirstMonthDays);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -434,6 +435,12 @@ class CompensationCalculatorScreen extends StatefulWidget {
 
 class _CompensationCalculatorScreenState
     extends State<CompensationCalculatorScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('kidem_hesap_opened');
+  }
+
   String? selectedExitCode;
   String? startGun;
   String? startAy;

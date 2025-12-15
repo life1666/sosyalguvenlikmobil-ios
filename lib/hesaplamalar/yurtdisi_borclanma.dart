@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -302,6 +303,12 @@ class YurtDisiBorclanmaHesaplamaScreen extends StatefulWidget {
 }
 
 class _YurtDisiBorclanmaHesaplamaScreenState extends State<YurtDisiBorclanmaHesaplamaScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('yurtdisi_borclanma_opened');
+  }
+
   final TextEditingController _gunController = TextEditingController();
 
   // Hesaplama parametreleri (AYNEN KORUNDU)

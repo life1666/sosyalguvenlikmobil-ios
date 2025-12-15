@@ -9,7 +9,9 @@ import 'screens/yanmenu/iletisim_ekrani.dart';
 import 'screens/admin/mesajlar_ekrani.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
+// import 'package:shared_preferences/shared_preferences.dart'; // Removed - no longer needed for splash screen
 import 'mesaitakip/mesaitakip.dart'; // OvertimeCalendarPage burada
 import 'package:flutter/gestures.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,22 +23,40 @@ void main() async {
 
   // CV şablonlarını kaydet
   registerTemplates();
-  print('✅ CV şablonları yüklendi');
+  debugPrint('✅ CV şablonları yüklendi');
 
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('✅ Firebase initialized');
+    debugPrint('✅ Firebase initialized');
+    
+    // Crashlytics setup
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+    
+    // Crashlytics'i sadece release modda aktif et
+    if (kDebugMode) {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
+    } else {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    }
   } catch (e) {
-    print('❌ Firebase init hatası: $e');
+    debugPrint('❌ Firebase init hatası: $e');
+    FirebaseCrashlytics.instance.recordError(e, StackTrace.current);
   }
 
   try {
     await initializeDateFormatting('tr_TR', null);
-    print('✅ Tarih formatı yüklendi');
+    debugPrint('✅ Tarih formatı yüklendi');
   } catch (e) {
-    print('❌ Date format hatası: $e');
+    debugPrint('❌ Date format hatası: $e');
+    FirebaseCrashlytics.instance.recordError(e, StackTrace.current);
   }
 
   runApp(SgkBilgiPlatformu());
@@ -87,7 +107,7 @@ class SgkBilgiPlatformu extends StatelessWidget {
         },
       ),
 
-      home: IlkYuklemeKontrolEkrani(),
+      home: AnaEkran(), // Directly opens AnaEkran without splash screen
       routes: {
         '/giris': (context) => GirisEkrani(),
         '/iletisim': (context) => IletisimEkrani(),
@@ -95,53 +115,5 @@ class SgkBilgiPlatformu extends StatelessWidget {
         '/mesai': (_) => const OvertimeCalendarPage(), // eğer rota olarak kullanacaksan
       },
     );
-  }
-}
-    class IlkYuklemeKontrolEkrani extends StatefulWidget {
-  @override
-  State<IlkYuklemeKontrolEkrani> createState() => _IlkYuklemeKontrolEkraniState();
-}
-
-class _IlkYuklemeKontrolEkraniState extends State<IlkYuklemeKontrolEkrani> {
-  bool _kontrolYapildi = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _kontrolVeYonlendir();
-  }
-
-  Future<void> _kontrolVeYonlendir() async {
-    final prefs = await SharedPreferences.getInstance();
-    bool dahaOnceGosterildi = prefs.getBool('kayit_ekrani_gosterildi') ?? false;
-    final _kullanici = FirebaseAuth.instance.currentUser;
-
-    if (!dahaOnceGosterildi) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => GirisEkrani()),
-        );
-        setState(() {
-          _kontrolYapildi = true;
-        });
-      });
-      await prefs.setBool('kayit_ekrani_gosterildi', true);
-    } else {
-      setState(() {
-        _kontrolYapildi = true;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final _kullanici = FirebaseAuth.instance.currentUser;
-    if (!_kontrolYapildi) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-    return _kullanici == null ? AnaEkran() : AnaEkran();
   }
 }

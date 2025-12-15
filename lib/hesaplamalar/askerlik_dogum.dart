@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -524,6 +525,12 @@ class BorclanmaHesaplamaScreen extends StatefulWidget {
 }
 
 class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('askerlik_dogum_borclanma_opened');
+  }
+
   // Sabitler
   final double _asgariAylikGelir = 26005.50;
   final double _ustLimitGelir = 169035.75;

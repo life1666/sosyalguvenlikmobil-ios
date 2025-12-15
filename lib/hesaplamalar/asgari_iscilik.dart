@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR ===================
 
@@ -412,6 +413,12 @@ class HesaplamaSayfasi extends StatefulWidget {
 }
 
 class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('asgari_iscilik_opened');
+  }
+
   // ==== HESAPLAMA MANTIĞI – ENTEGRE ====
   DateTime? baslangicTarihi;
   DateTime? bitisTarihi;

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'mesaihesaplama.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/analytics_helper.dart';
 
 class AppScrollBehavior extends MaterialScrollBehavior {
   @override
@@ -189,6 +190,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenOpen('mesai_takip_opened');
     _focusedDay = DateTime.now();
     _selectedDay = null;
     _resultsYear = _focusedDay.year;

@@ -8,6 +8,7 @@ import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -392,6 +393,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenOpen('brutten_nete_opened');
     _updateConstants(_selectedYearInternal);
   }
 

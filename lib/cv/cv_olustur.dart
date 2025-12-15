@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'cv_helpers.dart';
 import 'cv_sablon.dart';
+import '../utils/analytics_helper.dart';
 
 // Not: Bu main() fonksiyonu sadece bu dosyayı tek başına test etmek içindir.
 // Gerçek uygulama lib/main.dart'tan başlar.
@@ -538,6 +539,7 @@ class _CvBuilderPageState extends State<CvBuilderPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenOpen('cv_olustur_opened');
     // Controller'ları oluştur
     _titleCtrl = TextEditingController();
     _emailCtrl = TextEditingController();

@@ -9,6 +9,7 @@ import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB'LAR ===================
 
@@ -171,6 +172,7 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenOpen('netten_brute_opened');
     _updateConstants(_selectedYear);
   }
 

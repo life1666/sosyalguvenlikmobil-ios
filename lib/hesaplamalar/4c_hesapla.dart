@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../emeklilik_takip/emeklilik_takip.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL KNOB’LAR ===================
 
@@ -448,6 +449,12 @@ class EmeklilikHesaplamaSayfasi extends StatefulWidget {
 }
 
 class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('emeklilik_4c_opened');
+  }
+
   final _formKey = GlobalKey<FormState>();
 
   DateTime? dogumTarihi;

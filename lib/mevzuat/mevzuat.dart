@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../utils/analytics_helper.dart';
 
-class MevzuatSayfasi extends StatelessWidget {
+class MevzuatSayfasi extends StatefulWidget {
   const MevzuatSayfasi({super.key});
+
+  @override
+  State<MevzuatSayfasi> createState() => _MevzuatSayfasiState();
+}
+
+class _MevzuatSayfasiState extends State<MevzuatSayfasi> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('mevzuat_opened');
+  }
 
   // Çalışma hayatına dair kanunlar ve yönetmelikler
   static const List<Map<String, dynamic>> mevzuatListesi = [

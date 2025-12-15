@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
+import '../utils/analytics_helper.dart';
 
-class AsgariUcretSayfasi extends StatelessWidget {
+class AsgariUcretSayfasi extends StatefulWidget {
   const AsgariUcretSayfasi({super.key});
+
+  @override
+  State<AsgariUcretSayfasi> createState() => _AsgariUcretSayfasiState();
+}
+
+class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('asgari_ucret_opened');
+  }
 
   // Tarih aralıklarına göre asgari ücret verileri
   static const List<Map<String, dynamic>> asgariUcretler = [
@@ -39,7 +51,7 @@ class AsgariUcretSayfasi extends StatelessWidget {
     // 2022
     {
       'tarihAraligi': '01.07.2022-31.12.2022',
-      'gunluk': 250.20,
+      'gunluk': 215.70,
       'aylik': 6471.00,
       'aylikNet': 5500.35,
       'artisOrani': 29.3,
@@ -53,130 +65,96 @@ class AsgariUcretSayfasi extends StatelessWidget {
     },
     // 2021
     {
-      'tarihAraligi': '01.07.2021-31.12.2021',
+      'tarihAraligi': '01.01.2021-31.12.2021',
       'gunluk': 130.50,
       'aylik': 3577.50,
-      'aylikNet': 2557.59,
+      'aylikNet': 2825.90,
       'artisOrani': 21.6,
-    },
-    {
-      'tarihAraligi': '01.01.2021-30.06.2021',
-      'gunluk': 107.40,
-      'aylik': 2943.00,
-      'aylikNet': 2103.98,
-      'artisOrani': 15.0,
     },
     // 2020
     {
-      'tarihAraligi': '01.07.2020-31.12.2020',
-      'gunluk': 93.30,
-      'aylik': 2799.00,
-      'aylikNet': 2685.00,
-      'artisOrani': 26.1,
-    },
-    {
-      'tarihAraligi': '01.01.2020-30.06.2020',
-      'gunluk': 74.00,
-      'aylik': 2220.00,
-      'aylikNet': 2020.00,
-      'artisOrani': 14.2,
+      'tarihAraligi': '01.01.2020-31.12.2020',
+      'gunluk': 98.10,
+      'aylik': 2943.00,
+      'aylikNet': 2324.71,
+      'artisOrani': 15.0,
     },
     // 2019
     {
-      'tarihAraligi': '01.07.2019-31.12.2019',
-      'gunluk': 64.80,
+      'tarihAraligi': '01.01.2019-31.12.2019',
+      'gunluk': 85.28,
       'aylik': 2558.40,
       'aylikNet': 1829.03,
-      'artisOrani': 7.9,
-    },
-    {
-      'tarihAraligi': '01.01.2019-30.06.2019',
-      'gunluk': 60.10,
-      'aylik': 1803.00,
-      'aylikNet': 1890.00,
-      'artisOrani': 26.1,
+      'artisOrani': 2174.64,
     },
     // 2018
     {
-      'tarihAraligi': '01.07.2018-31.12.2018',
-      'gunluk': 55.80,
-      'aylik': 1674.00,
-      'aylikNet': 1603.00,
-      'artisOrani': 6.1,
+      'tarihAraligi': '01.01.2018-31.12.2018',
+      'gunluk': 67.65,
+      'aylik': 2029.50,
+      'aylikNet': 1603.12,
+      'artisOrani': 14.20,
     },
-    {
-      'tarihAraligi': '01.01.2018-30.06.2018',
-      'gunluk': 52.60,
-      'aylik': 1578.00,
-      'aylikNet': 1404.00,
-      'artisOrani': 4.1,
-    },
+
     // 2017
     {
-      'tarihAraligi': '01.07.2017-31.12.2017',
-      'gunluk': 50.50,
-      'aylik': 1515.00,
-      'aylikNet': 1404.00,
-      'artisOrani': 4.1,
-    },
-    {
-      'tarihAraligi': '01.01.2017-30.06.2017',
-      'gunluk': 48.50,
-      'aylik': 1455.00,
-      'aylikNet': 1300.00,
-      'artisOrani': 4.1,
+      'tarihAraligi': '01.01.2017-31.12.2017',
+      'gunluk': 59.25,
+      'aylik': 1777.50,
+      'aylikNet': 1404.06,
+      'artisOrani': 7.9,
     },
     // 2016
     {
       'tarihAraligi': '01.01.2016-31.12.2016',
       'gunluk': 54.90,
       'aylik': 1647.00,
-      'aylikNet': 1300.00,
+      'aylikNet': 1300.99,
       'artisOrani': 29.3,
     },
     // 2015
     {
       'tarihAraligi': '01.07.2015-31.12.2015',
-      'gunluk': 42.50,
-      'aylik': 1275.00,
-      'aylikNet': 1001.00,
-      'artisOrani': 6.1,
+      'gunluk': 42.45,
+      'aylik': 1273.50,
+      'aylikNet': 1000.54,
+      'artisOrani': 6.0,
     },
     {
       'tarihAraligi': '01.01.2015-30.06.2015',
       'gunluk': 40.05,
       'aylik': 1201.50,
-      'aylikNet': 950.00,
-      'artisOrani': 4.1,
+      'aylikNet': 949.07,
+      'artisOrani': 6.0,
     },
     // 2014
     {
       'tarihAraligi': '01.07.2014-31.12.2014',
-      'gunluk': 38.45,
-      'aylik': 1153.50,
-      'aylikNet': 891.00,
-      'artisOrani': 4.1,
+      'gunluk': 37.80,
+      'aylik': 1134.00,
+      'aylikNet': 891.03,
+      'artisOrani': 5.9,
     },
     {
       'tarihAraligi': '01.01.2014-30.06.2014',
-      'gunluk': 36.90,
-      'aylik': 1107.00,
+      'gunluk': 35.70,
+      'aylik': 1071.00,
       'aylikNet': 846.00,
-      'artisOrani': 4.1,
+      'artisOrani': 4.8,
     },
     // 2013
     {
       'tarihAraligi': '01.07.2013-31.12.2013',
-      'gunluk': 35.40,
-      'aylik': 1062.00,
-      'aylikNet': 803.00,
-      'artisOrani': 4.1,
+      'gunluk': 34.05,
+      'aylik': 1021.50,
+      'aylikNet': 803.68,
+      'artisOrani': 4.4,
     },
     {
       'tarihAraligi': '01.01.2013-30.06.2013',
-      'gunluk': 34.00,
-      'aylik': 1020.00,
-      'aylikNet': 773.00,
+      'gunluk': 32.62,
+      'aylik': 978.60,
+      'aylikNet': 773.01,
       'artisOrani': 4.1,
     },
     // 2012
@@ -184,29 +162,29 @@ class AsgariUcretSayfasi extends StatelessWidget {
       'tarihAraligi': '01.07.2012-31.12.2012',
       'gunluk': 31.35,
       'aylik': 940.50,
-      'aylikNet': 701.00,
+      'aylikNet': 739.79,
       'artisOrani': 6.1,
     },
     {
       'tarihAraligi': '01.01.2012-30.06.2012',
       'gunluk': 29.55,
       'aylik': 886.50,
-      'aylikNet': 663.00,
-      'artisOrani': 4.1,
+      'aylikNet': 701.13,
+      'artisOrani': 5.9,
     },
     // 2011
     {
       'tarihAraligi': '01.07.2011-31.12.2011',
       'gunluk': 27.90,
       'aylik': 837.00,
-      'aylikNet': 623.00,
+      'aylikNet': 658.95,
       'artisOrani': 5.1,
     },
     {
       'tarihAraligi': '01.01.2011-30.06.2011',
       'gunluk': 26.55,
       'aylik': 796.50,
-      'aylikNet': 594.00,
+      'aylikNet': 629.96,
       'artisOrani': 4.7,
     },
     // 2010
@@ -214,48 +192,48 @@ class AsgariUcretSayfasi extends StatelessWidget {
       'tarihAraligi': '01.07.2010-31.12.2010',
       'gunluk': 25.35,
       'aylik': 760.50,
-      'aylikNet': 567.00,
+      'aylikNet': 599.12,
       'artisOrani': 4.3,
     },
     {
       'tarihAraligi': '01.01.2010-30.06.2010',
       'gunluk': 24.30,
       'aylik': 729.00,
-      'aylikNet': 544.00,
-      'artisOrani': 4.9,
+      'aylikNet': 576.57,
+      'artisOrani': 5.2,
     },
     // 2009
     {
       'tarihAraligi': '01.07.2009-31.12.2009',
       'gunluk': 23.10,
       'aylik': 693.00,
-      'aylikNet': 517.00,
+      'aylikNet': 546.48,
       'artisOrani': 4.1,
     },
     {
       'tarihAraligi': '01.01.2009-30.06.2009',
       'gunluk': 22.20,
       'aylik': 666.00,
-      'aylikNet': 497.00,
-      'artisOrani': 4.5,
+      'aylikNet': 527.13,
+      'artisOrani': 4.3,
     },
     // 2008
     {
       'tarihAraligi': '01.07.2008-31.12.2008',
       'gunluk': 21.29,
       'aylik': 638.70,
-      'aylikNet': 476.00,
+      'aylikNet': 503.26,
       'artisOrani': 5.0,
     },
     {
       'tarihAraligi': '01.01.2008-30.06.2008',
       'gunluk': 20.28,
       'aylik': 608.40,
-      'aylikNet': 454.00,
+      'aylikNet': 481.55,
       'artisOrani': 4.0,
     },
     // 2007
-    {
+    /*{
       'tarihAraligi': '01.07.2007-31.12.2007',
       'gunluk': 19.50,
       'aylik': 585.00,
@@ -284,7 +262,7 @@ class AsgariUcretSayfasi extends StatelessWidget {
       'aylik': 488.70,
       'aylikNet': 365.00,
       'artisOrani': null,
-    },
+    },*/
   ];
 
   String _formatPara(double tutar) {
@@ -573,4 +551,3 @@ class AsgariUcretSayfasi extends StatelessWidget {
     );
   }
 }
-

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -321,6 +322,12 @@ class YillikUcretliIzinSayfasi extends StatefulWidget {
 }
 
 class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('yillik_izin_opened');
+  }
+
   String? sigortaKolu;
   String? day, month, year;
 

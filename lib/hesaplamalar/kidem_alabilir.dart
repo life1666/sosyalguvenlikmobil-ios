@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import '../sonhesaplama/sonhesaplama.dart';
+import '../utils/analytics_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -370,6 +371,12 @@ class KidemTazminatiScreen extends StatefulWidget {
 }
 
 class _KidemTazminatiScreenState extends State<KidemTazminatiScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.logScreenOpen('kidem_tazminati_opened');
+  }
+
   // Tarih
   String? _gun;
   String? _ay; // Türkçe ad

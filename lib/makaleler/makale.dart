@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'calisan_makaleler.dart';
 import 'emeklilik_makaleler.dart';
 import 'isveren_makaleler.dart';
+import '../utils/analytics_helper.dart';
 
 /// =======================
 ///  MODEL
@@ -62,6 +63,7 @@ class _MakalelerViewState extends State<MakalelerView> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenOpen('makaleler_opened');
     _selectedKategori = _kategoriler[0].baslik; // İlk kategoriyi seçili yap
   }
 
