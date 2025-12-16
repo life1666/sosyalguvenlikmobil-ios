@@ -317,7 +317,8 @@ class _AnaEkranState extends State<AnaEkran> {
 
   Future<void> _rateApp() async => _launchURL(playStoreLink);
 
-  // Banner butonlarına tıklayınca ne olacak?
+  // Banner kaldırıldı - bu fonksiyon artık kullanılmıyor
+  /*
   VoidCallback _buildBannerAction(BannerItem item) {
     // Başlıkta "CV Oluştur" geçiyorsa CV ekranına git
     if (item.title.contains('CV Oluştur') || item.title.contains('CV+')) {
@@ -382,9 +383,11 @@ class _AnaEkranState extends State<AnaEkran> {
       );
     };
   }
+  */
   // ▲▲▲ EKLEME SONU ▲▲▲
 
-  // --- Banner verileri (değişmedi) ---
+  // --- Banner verileri kaldırıldı ---
+  /*
   final List<BannerItem> bannerItems = const [
     BannerItem(
       title: "Yeni CV Oluştur özelliği geldi!",
@@ -415,6 +418,7 @@ class _AnaEkranState extends State<AnaEkran> {
       color: Colors.indigo,
     ),
   ];
+  */
 
   // Ana menü kartları – Makaleler ve Asgari Ücret için SVG eklendi
   final List<MenuItemData> menuItems = [
@@ -517,56 +521,10 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
           ),
 
-          // Banner kaldırıldı - yerine Sık Kullanılanlar eklendi
-          // SliverToBoxAdapter(
-            child: SizedBox(
-              height: 160,
-              child: PageView.builder(
-                controller: _bannerController,
-                itemCount: bannerItems.length,
-                onPageChanged: (i) => setState(() => _currentBanner = i),
-                itemBuilder: (context, index) {
-                  final item = bannerItems[index];
-                  final onPressed = _buildBannerAction(item); // ← aksiyonu üret
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Stack(
-                      children: [
-                        BannerCard(
-                          item: item,
-                          onPressed: onPressed, // ← butona ver
-                        ),
-                        Positioned(
-                          bottom: 8,
-                          left: 0,
-                          right: 0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              bannerItems.length,
-                                  (dotIndex) => AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                margin: const EdgeInsets.symmetric(horizontal: 3),
-                                width: _currentBanner == dotIndex ? 10 : 8,
-                                height: _currentBanner == dotIndex ? 10 : 8,
-                                decoration: BoxDecoration(
-                                  color: _currentBanner == dotIndex
-                                      ? item.color
-                                      : Colors.grey.shade400,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ), */
+          // Sık Kullanılanlar
+          SliverToBoxAdapter(
+            child: _SikKullanilanlar(),
+          ),
 
           // Hızlı İşlemler Başlığı
           SliverToBoxAdapter(
@@ -1314,102 +1272,9 @@ class _SikKullanilanlar extends StatelessWidget {
   }
 }
 
-// Banner kaldırıldı - gerekirse geri açılabilir
-/*
-// Banner kaldırıldı - gerekirse geri açılabilir
-/*
-class BannerCard extends StatelessWidget {
-  final BannerItem item;
-  final VoidCallback onPressed;
+// Banner kaldırıldı - gerekirse geri açılabilir (BannerCard ve BannerItem class'ları yorum içinde)
 
-  const BannerCard({
-    super.key,
-    required this.item,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      elevation: 1.5,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [item.color.withOpacity(.12), item.color.withOpacity(.08)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          border: Border.all(color: Colors.black12.withOpacity(.05)),
-        ),
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Expanded(
-              child: DefaultTextStyle(
-                style: const TextStyle(color: Colors.black87),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      item.title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: _darken(item.color, .15),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.description,
-                      style: const TextStyle(fontSize: 12, color: Colors.black54),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: onPressed,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: item.color,
-                        minimumSize: const Size(0, 34),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: Text(item.buttonText, style: const TextStyle(fontSize: 12)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              height: 52,
-              width: 52,
-              decoration: BoxDecoration(
-                color: item.color.withOpacity(.12),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(item.icon, color: item.color, size: 30),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _darken(Color c, double amount) {
-    final hsl = HSLColor.fromColor(c);
-    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
-    return hslDark.toColor();
-  }
-}
-
+// Model class'ları - bunlar aktif kalmalı
 class BannerItem {
   final String title;
   final String description;
@@ -1425,7 +1290,6 @@ class BannerItem {
     required this.color,
   });
 }
-*/
 
 class MenuItemData {
   final String title;
