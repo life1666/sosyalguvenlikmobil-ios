@@ -36,18 +36,85 @@ class _IletisimEkraniState extends State<IletisimEkrani> {
   Future<void> _sorumlulukDurumunuKontrolEt() async {
     final prefs = await SharedPreferences.getInstance();
     final kabulEdildi = prefs.getBool('_sorumlulukKabulEdildi') ?? false;
-    setState(() {
-      _sorumlulukKabulEdildi = kabulEdildi;
-    });
+    
+    if (!kabulEdildi) {
+      // İlk açılışta uyarı dialog'u göster
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showUyariDialog();
+      });
+    } else {
+      setState(() {
+        _sorumlulukKabulEdildi = true;
+      });
+    }
   }
 
-  Future<void> _sorumlulukKabulEt() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('_sorumlulukKabulEdildi', true);
-    setState(() {
-      _sorumlulukKabulEdildi = true;
-    });
-    AnalyticsHelper.logCustomEvent('disclaimer_accepted');
+  Future<void> _showUyariDialog() async {
+    final onay = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          width: double.maxFinite,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 48),
+              SizedBox(height: 16),
+              Text(
+                "Önemli Uyarı",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange[700],
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                "Bu uygulama resmi bir kurum (SGK, İşkur vs.) uygulaması değildir. Gönderdiğiniz mesajlar resmi bir kurum tarafından değil, uygulama geliştiricileri tarafından alınmaktadır.",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[800],
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('_sorumlulukKabulEdildi', true);
+                setState(() {
+                  _sorumlulukKabulEdildi = true;
+                });
+                AnalyticsHelper.logCustomEvent('disclaimer_accepted');
+                Navigator.pop(context, true);
+              },
+              icon: Icon(Icons.check_circle, color: Colors.white, size: 18),
+              label: Text(
+                "Okudum, Anladım",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[700],
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _mesajGonder() async {
@@ -59,6 +126,7 @@ class _IletisimEkraniState extends State<IletisimEkrani> {
     }
 
     if (!_sorumlulukKabulEdildi) {
+      _showUyariDialog();
       return;
     }
 
@@ -436,92 +504,33 @@ class _IletisimEkraniState extends State<IletisimEkrani> {
                     children: [
                       Expanded(
                         child: Container(
-                          constraints: BoxConstraints(
-                            minHeight: 50,
-                            maxHeight: 120,
-                          ),
+                          constraints: BoxConstraints(maxHeight: 120),
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: Colors.grey[300]!),
                           ),
-                          child: _sorumlulukKabulEdildi
-                              ? TextField(
-                                  controller: _mesajController,
-                                  maxLines: null,
-                                  minLines: 1,
-                                  textInputAction: TextInputAction.newline,
-                                  decoration: InputDecoration(
-                                    hintText: "Mesajınızı yazın...",
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
-                                    ),
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey[400],
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                )
-                              : Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.warning_amber_rounded,
-                                            color: Colors.orange[700],
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              "Bu uygulama resmi bir kurum (SGK, İşkur vs.) uygulaması değildir. Gönderdiğiniz mesajlar resmi bir kurum tarafından değil, uygulama geliştiricileri tarafından alınmaktadır.",
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[800],
-                                                height: 1.4,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 8),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton.icon(
-                                          onPressed: _sorumlulukKabulEt,
-                                          icon: Icon(
-                                            Icons.check_circle,
-                                            color: Colors.white,
-                                            size: 16,
-                                          ),
-                                          label: Text(
-                                            "Okudum, Anladım",
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.orange[700],
-                                            foregroundColor: Colors.white,
-                                            padding: EdgeInsets.symmetric(vertical: 10),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                          child: TextField(
+                            controller: _mesajController,
+                            maxLines: null,
+                            minLines: 1,
+                            textInputAction: TextInputAction.newline,
+                            decoration: InputDecoration(
+                              hintText: _sorumlulukKabulEdildi
+                                  ? "Mesajınızı yazın..."
+                                  : "Önce uyarıyı onaylayın",
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              hintStyle: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                              ),
+                            ),
+                            enabled: _sorumlulukKabulEdildi,
+                          ),
                         ),
                       ),
                       SizedBox(width: 8),
