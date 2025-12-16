@@ -11,7 +11,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
-// import 'package:shared_preferences/shared_preferences.dart'; // Removed - no longer needed for splash screen
+import 'package:shared_preferences/shared_preferences.dart';
 import 'mesaitakip/mesaitakip.dart'; // OvertimeCalendarPage burada
 import 'package:flutter/gestures.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -107,13 +107,65 @@ class SgkBilgiPlatformu extends StatelessWidget {
         },
       ),
 
-      home: AnaEkran(), // Directly opens AnaEkran without splash screen
+      home: AnaEkran(),
       routes: {
         '/giris': (context) => GirisEkrani(),
         '/iletisim': (context) => IletisimEkrani(),
         '/mesajlar': (context) => MesajlarEkrani(),
-        '/mesai': (_) => const OvertimeCalendarPage(), // eğer rota olarak kullanacaksan
+        '/mesai': (_) => const OvertimeCalendarPage(),
       },
     );
   }
 }
+
+// IlkYuklemeKontrolEkrani removed - app now opens directly to AnaEkran
+/*
+class IlkYuklemeKontrolEkrani extends StatefulWidget {
+  @override
+  State<IlkYuklemeKontrolEkrani> createState() => _IlkYuklemeKontrolEkraniState();
+}
+
+class _IlkYuklemeKontrolEkraniState extends State<IlkYuklemeKontrolEkrani> {
+  bool _kontrolYapildi = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _kontrolVeYonlendir();
+  }
+
+  Future<void> _kontrolVeYonlendir() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool dahaOnceGosterildi = prefs.getBool('kayit_ekrani_gosterildi') ?? false;
+    final _kullanici = FirebaseAuth.instance.currentUser;
+
+    if (!dahaOnceGosterildi) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => GirisEkrani()),
+        );
+        setState(() {
+          _kontrolYapildi = true;
+        });
+      });
+      await prefs.setBool('kayit_ekrani_gosterildi', true);
+    } else {
+      setState(() {
+        _kontrolYapildi = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final _kullanici = FirebaseAuth.instance.currentUser;
+    if (!_kontrolYapildi) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return _kullanici == null ? AnaEkran() : AnaEkran();
+  }
+}
+*/
