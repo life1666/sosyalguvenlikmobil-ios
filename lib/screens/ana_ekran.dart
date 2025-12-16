@@ -22,6 +22,8 @@ import '../../utils/analytics_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 class AnaEkran extends StatefulWidget {
@@ -34,10 +36,12 @@ class _AnaEkranState extends State<AnaEkran> {
   User? _kullanici;
   String _appVersion = 'Bilinmiyor';
 
-  final PageController _bannerController = PageController();
-  int _currentBanner = 0;
+  // Banner kaldırıldı
+  // final PageController _bannerController = PageController();
+  // int _currentBanner = 0;
   int _mesajSayisi = 0;
   StreamSubscription<QuerySnapshot>? _mesajStreamSubscription;
+  List<Map<String, dynamic>> _sonKullanilanlar = [];
 
   final _firestore = FirebaseFirestore.instance;
   final String adminUID = 'yicHOHSjaPXH6sLwyc48ulCnai32';
@@ -57,7 +61,24 @@ class _AnaEkranState extends State<AnaEkran> {
     });
     _loadAppVersion();
     _mesajSayisiniGuncelle();
+    _sonKullanilanlariYukle();
     AnalyticsHelper.logScreenOpen('ana_ekran_opened');
+  }
+
+  Future<void> _sonKullanilanlariYukle() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString('son_kullanilanlar') ?? '[]';
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      setState(() {
+        _sonKullanilanlar = list.map((e) => Map<String, dynamic>.from(e)).toList();
+      });
+    } catch (e) {
+      // Parse hatası varsa boş liste
+      setState(() {
+        _sonKullanilanlar = [];
+      });
+    }
   }
 
   @override
@@ -496,8 +517,8 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
           ),
 
-          // Banner
-          SliverToBoxAdapter(
+          // Banner kaldırıldı - yerine Sık Kullanılanlar eklendi
+          // SliverToBoxAdapter(
             child: SizedBox(
               height: 160,
               child: PageView.builder(
@@ -545,22 +566,42 @@ class _AnaEkranState extends State<AnaEkran> {
                 },
               ),
             ),
+          ), */
+
+          // Hızlı İşlemler Başlığı
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+              child: Text(
+                'Hızlı İşlemler',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ),
           ),
 
-          // Kart Grid
-
+          // Ana 4 Kategori (2x2 Grid)
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 2.35,
+                childAspectRatio: 1.1,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
               ),
               delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                  final item = menuItems[index];
+                  final top4Items = [
+                    menuItems[0], // Hesaplamalar
+                    menuItems[1], // Emeklilik Takip
+                    menuItems[2], // Mesai Takip
+                    menuItems[3], // CV Oluştur
+                  ];
+                  final item = top4Items[index];
                   return _HomeCard(
                     title: item.title,
                     subtitle: item.desc,
@@ -616,7 +657,64 @@ class _AnaEkranState extends State<AnaEkran> {
                     },
                   );
                 },
-                childCount: menuItems.length,
+                childCount: 4, // Sadece 4 ana kategori
+              ),
+            ),
+          ),
+
+          // Tüm Özellikler Butonu
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    AnalyticsHelper.logCustomEvent('all_features_tapped');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Tüm Özellikler ekranı açılacak')),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.indigo.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.apps, color: Colors.indigo),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tüm Özellikler',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Makaleler, Mevzuat, Sözlük ve daha fazlası',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: Colors.grey[400]),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -1139,14 +1237,95 @@ class _SonHesaplamalarBlockState extends State<_SonHesaplamalarBlock> {
   }
 }
 
+// Sık Kullanılanlar Widget
+class _SikKullanilanlar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final popularItems = [
+      {'title': 'Brütten Nete', 'icon': Icons.calculate, 'route': 'brutten_nete'},
+      {'title': 'Kıdem Tazminatı', 'icon': Icons.work_history, 'route': 'kidem'},
+      {'title': '4A Emeklilik', 'icon': Icons.event, 'route': '4a_emeklilik'},
+      {'title': 'Yıllık İzin', 'icon': Icons.beach_access, 'route': 'yillik_izin'},
+      {'title': 'Rapor Parası', 'icon': Icons.local_hospital, 'route': 'rapor'},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '🔥 Sık Kullanılanlar',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey[800],
+            ),
+          ),
+          SizedBox(height: 10),
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: popularItems.length,
+              separatorBuilder: (_, __) => SizedBox(width: 10),
+              itemBuilder: (context, i) {
+                final item = popularItems[i];
+                return InkWell(
+                  borderRadius: BorderRadius.circular(22),
+                  onTap: () {
+                    AnalyticsHelper.logCustomEvent('quick_access_tapped', parameters: {
+                      'feature': item['route'] as String,
+                    });
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HesaplamalarEkrani()),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(22),
+                      color: Colors.indigo.withOpacity(0.08),
+                      border: Border.all(color: Colors.indigo.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(item['icon'] as IconData, size: 18, color: Colors.indigo),
+                        SizedBox(width: 8),
+                        Text(
+                          item['title'] as String,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.indigo[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Banner kaldırıldı - gerekirse geri açılabilir
+/*
+// Banner kaldırıldı - gerekirse geri açılabilir
+/*
 class BannerCard extends StatelessWidget {
   final BannerItem item;
-  final VoidCallback onPressed;  // YENİ
+  final VoidCallback onPressed;
 
   const BannerCard({
     super.key,
     required this.item,
-    required this.onPressed,      // YENİ
+    required this.onPressed,
   });
 
   @override
@@ -1193,7 +1372,7 @@ class BannerCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     FilledButton(
-                      onPressed: onPressed,   // YENİ: dışarıdan gelen callback
+                      onPressed: onPressed,
                       style: FilledButton.styleFrom(
                         backgroundColor: item.color,
                         minimumSize: const Size(0, 34),
@@ -1231,7 +1410,6 @@ class BannerCard extends StatelessWidget {
   }
 }
 
-
 class BannerItem {
   final String title;
   final String description;
@@ -1247,6 +1425,7 @@ class BannerItem {
     required this.color,
   });
 }
+*/
 
 class MenuItemData {
   final String title;
