@@ -24,6 +24,11 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../hesaplamalar/4a_hesapla.dart';
+import '../../hesaplamalar/kidem_hesap.dart';
+import '../../hesaplamalar/issizlik_sorguhesap.dart';
+import '../../hesaplamalar/rapor_parasi.dart';
+import '../../hesaplamalar/brutten_nete.dart';
 
 
 class AnaEkran extends StatefulWidget {
@@ -420,6 +425,29 @@ class _AnaEkranState extends State<AnaEkran> {
   ];
   */
 
+  // Helper method for feature tiles in modal bottom sheet
+  Widget _buildFeatureTile(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
+    return ListTile(
+      leading: Container(
+        padding: EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 24),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+        ),
+      ),
+      trailing: Icon(Icons.chevron_right, color: Colors.grey),
+      onTap: onTap,
+    );
+  }
+
   // Ana menü kartları – Makaleler ve Asgari Ücret için SVG eklendi
   final List<MenuItemData> menuItems = [
     MenuItemData("Hesaplamalar", Icons.calculate, Colors.indigo,
@@ -630,8 +658,85 @@ class _AnaEkranState extends State<AnaEkran> {
                   borderRadius: BorderRadius.circular(16),
                   onTap: () {
                     AnalyticsHelper.logCustomEvent('all_features_tapped');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Tüm Özellikler ekranı açılacak')),
+                    // Tüm özellikler ekranını aç (Makaleler, Mevzuat, Sözlük, Asgari Ücret)
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        padding: EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tüm Özellikler',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            _buildFeatureTile(
+                              context,
+                              'Makaleler',
+                              Icons.library_books,
+                              Colors.purple,
+                              () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const MakalelerView()),
+                                );
+                              },
+                            ),
+                            _buildFeatureTile(
+                              context,
+                              'Mevzuat',
+                              Icons.gavel,
+                              Colors.red,
+                              () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const MevzuatSayfasi()),
+                                );
+                              },
+                            ),
+                            _buildFeatureTile(
+                              context,
+                              'Sözlük',
+                              Icons.menu_book,
+                              Colors.teal,
+                              () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SozlukHomePage()),
+                                );
+                              },
+                            ),
+                            _buildFeatureTile(
+                              context,
+                              'Asgari Ücret',
+                              Icons.account_balance_wallet,
+                              Colors.brown,
+                              () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()),
+                                );
+                              },
+                            ),
+                            SizedBox(height: 10),
+                          ],
+                        ),
+                      ),
                     );
                   },
                   child: Container(
@@ -1200,11 +1305,11 @@ class _SikKullanilanlar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final popularItems = [
-      {'title': 'Brütten Nete', 'icon': Icons.calculate, 'route': 'brutten_nete'},
-      {'title': 'Kıdem Tazminatı', 'icon': Icons.work_history, 'route': 'kidem'},
-      {'title': '4A Emeklilik', 'icon': Icons.event, 'route': '4a_emeklilik'},
-      {'title': 'Yıllık İzin', 'icon': Icons.beach_access, 'route': 'yillik_izin'},
-      {'title': 'Rapor Parası', 'icon': Icons.local_hospital, 'route': 'rapor'},
+      {'title': 'Emeklilik Hesaplama', 'icon': Icons.event, 'route': 'emeklilik', 'screen': 'emeklilik_4a'},
+      {'title': 'Kıdem İhbar Tazminatı', 'icon': Icons.work_history, 'route': 'kidem', 'screen': 'kidem_ihbar'},
+      {'title': 'İşsizlik Maaşı', 'icon': Icons.money_off, 'route': 'issizlik', 'screen': 'issizlik'},
+      {'title': 'Rapor Parası', 'icon': Icons.local_hospital, 'route': 'rapor', 'screen': 'rapor'},
+      {'title': 'Brütten Nete', 'icon': Icons.calculate, 'route': 'brutten_nete', 'screen': 'brutten_nete'},
     ];
 
     return Padding(
@@ -1232,13 +1337,44 @@ class _SikKullanilanlar extends StatelessWidget {
                 return InkWell(
                   borderRadius: BorderRadius.circular(22),
                   onTap: () {
+                    final screen = item['screen'] as String;
                     AnalyticsHelper.logCustomEvent('quick_access_tapped', parameters: {
                       'feature': item['route'] as String,
                     });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const HesaplamalarEkrani()),
-                    );
+                    
+                    // Her hesaplama için doğru ekrana yönlendir
+                    if (screen == 'emeklilik_4a') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4aSayfasi()),
+                      );
+                    } else if (screen == 'kidem_ihbar') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CompensationCalculatorScreen()),
+                      );
+                    } else if (screen == 'issizlik') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()),
+                      );
+                    } else if (screen == 'rapor') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RaporParasiScreen()),
+                      );
+                    } else if (screen == 'brutten_nete') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => SalaryCalculatorScreen()),
+                      );
+                    } else {
+                      // Fallback: Hesaplamalar ekranına git
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HesaplamalarEkrani()),
+                      );
+                    }
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
