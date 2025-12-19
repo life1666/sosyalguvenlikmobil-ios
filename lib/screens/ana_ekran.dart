@@ -37,6 +37,8 @@ import '../../hesaplamalar/brutten_nete.dart';
 import '../../hesaplamalar/netten_brute.dart';
 import '../../hesaplamalar/askerlik_dogum.dart';
 import '../../hesaplamalar/yurtdisi_borclanma.dart';
+import '../../hesaplamalar/asgari_iscilik.dart';
+import '../../hesaplamalar/yillik_izin.dart';
 
 // ==================== MODELS ====================
 class FeatureItem {
@@ -575,6 +577,19 @@ class _AnaEkranState extends State<AnaEkran> {
               ),
             ],
           ),
+          // Asgari İşçilik Hesaplama
+          FeatureItem(
+            title: 'Asgari İşçilik Hesaplama',
+            subtitle: 'Asgari işçilik matrahı ve prim hesaplama',
+            icon: Icons.handyman,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'asgari_iscilik'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HesaplamaSayfasi()),
+              );
+            },
+          ),
         ],
       ),
       Category(
@@ -720,6 +735,18 @@ class _AnaEkranState extends State<AnaEkran> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const RaporParasiScreen()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Yıllık İzin Süresi Hesaplama',
+            subtitle: 'Yıllık ücretli izin süresi hesaplama',
+            icon: Icons.beach_access,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'yillik_izin'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const YillikUcretliIzinSayfasi()),
               );
             },
           ),
