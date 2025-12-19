@@ -25,10 +25,18 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../hesaplamalar/4a_hesapla.dart';
+import '../../hesaplamalar/4b_hesapla.dart';
+import '../../hesaplamalar/4c_hesapla.dart';
+import '../../hesaplamalar/askerlik_dogum.dart';
+import '../../hesaplamalar/yurtdisi_borclanma.dart';
 import '../../hesaplamalar/kidem_hesap.dart';
+import '../../hesaplamalar/kidem_alabilir.dart';
 import '../../hesaplamalar/issizlik_sorguhesap.dart';
 import '../../hesaplamalar/rapor_parasi.dart';
 import '../../hesaplamalar/brutten_nete.dart';
+import '../../hesaplamalar/netten_brute.dart';
+import '../../hesaplamalar/askerlik_dogum.dart';
+import '../../hesaplamalar/yurtdisi_borclanma.dart';
 
 // ==================== MODELS ====================
 class FeatureItem {
@@ -37,12 +45,16 @@ class FeatureItem {
   final IconData icon;
   final VoidCallback? onTap;
   final Color? color;
+  final bool hasSubItems;
+  final List<FeatureItem>? subItems;
   const FeatureItem({
     required this.title,
     this.subtitle,
     required this.icon,
     this.onTap,
     this.color,
+    this.hasSubItems = false,
+    this.subItems,
   });
 }
 
@@ -1183,7 +1195,7 @@ class _SearchBar extends StatelessWidget {
 //   }
 // }
 
-// Kategori kartı - gradient ve shadow ile
+// Kategori kartı - gradient ve shadow ile (ikon sol üstte)
 class _CategoryCard extends StatelessWidget {
   final Category category;
   final VoidCallback onTap;
@@ -1237,45 +1249,48 @@ class _CategoryCard extends StatelessWidget {
           splashColor: category.color.withOpacity(.12),
           highlightColor: category.color.withOpacity(.06),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            child: Row(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: category.color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(child: iconWidget),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
+                // İkon sol üstte, başlık yanında
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: category.color.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(child: iconWidget),
+                    ),
+                    const SizedBox(width: 12),
+                    // Başlık yanında
+                    Expanded(
+                      child: Text(
                         category.title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: category.title == "Emeklilik Takip" ? 14 : 15,
+                        style: const TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        category.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Açıklama alt kısımda
+                Text(
+                  category.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
                   ),
                 ),
               ],
@@ -1287,57 +1302,94 @@ class _CategoryCard extends StatelessWidget {
   }
 }
 
-// Kategori ekranı - kategori içindeki özellikleri gösterir
-class CategoryScreen extends StatelessWidget {
+// Kategori ekranı - kategori içindeki özellikleri gösterir (genişletilebilir)
+class CategoryScreen extends StatefulWidget {
   final Category category;
   const CategoryScreen({super.key, required this.category});
+
+  @override
+  State<CategoryScreen> createState() => _CategoryScreenState();
+}
+
+class _CategoryScreenState extends State<CategoryScreen> {
+  int? _openIndex;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(category.title),
+        title: Text(widget.category.title),
         backgroundColor: Colors.indigo,
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: category.items.length,
+        itemCount: widget.category.items.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
-          final item = category.items[i];
-          return Material(
+          final item = widget.category.items[i];
+          final isOpen = _openIndex == i;
+          
+          return Card(
             elevation: 1,
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: Colors.white,
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: ListTile(
-                leading: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: (item.color ?? category.color).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (item.color ?? widget.category.color).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      item.icon,
+                      color: item.color ?? widget.category.color,
+                      size: 24,
+                    ),
                   ),
-                  child: Icon(
-                    item.icon,
-                    color: item.color ?? category.color,
-                    size: 24,
+                  title: Text(
+                    item.title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
+                  subtitle: item.subtitle != null ? Text(item.subtitle!) : null,
+                  trailing: item.hasSubItems
+                      ? Icon(
+                          isOpen ? Icons.expand_less : Icons.expand_more,
+                          color: Colors.grey,
+                        )
+                      : const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: item.hasSubItems
+                      ? () {
+                          setState(() {
+                            _openIndex = isOpen ? null : i;
+                          });
+                        }
+                      : item.onTap ??
+                          () => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('"${item.title}" (yakında)')),
+                              ),
                 ),
-                title: Text(
-                  item.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: item.subtitle != null ? Text(item.subtitle!) : null,
-                trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                onTap: item.onTap ??
-                    () => ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('"${item.title}" (yakında)')),
+                if (item.hasSubItems && isOpen && item.subItems != null)
+                  ...item.subItems!.map(
+                    (subItem) => Padding(
+                      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                      child: ListTile(
+                        leading: Icon(subItem.icon, size: 20, color: Colors.grey[600]),
+                        title: Text(
+                          subItem.title,
+                          style: TextStyle(fontSize: 14, color: Colors.grey[800]),
                         ),
-              ),
+                        trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                        onTap: subItem.onTap ??
+                            () => ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('"${subItem.title}" (yakında)')),
+                                ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           );
         },
@@ -1385,16 +1437,41 @@ class AllFeaturesScreen extends StatelessWidget {
               subtitle: Text(cat.description),
               children: cat.items
                   .map(
-                    (it) => ListTile(
-                      leading: Icon(it.icon, color: it.color ?? cat.color),
-                      title: Text(it.title),
-                      subtitle: it.subtitle != null ? Text(it.subtitle!) : null,
-                      trailing: const Icon(Icons.chevron_right, size: 20),
-                      onTap: it.onTap ??
-                          () => ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('"${it.title}" (yakında)')),
-                              ),
-                    ),
+                    (it) {
+                      if (it.hasSubItems && it.subItems != null) {
+                        // Alt öğeleri olan item için ExpansionTile
+                        return ExpansionTile(
+                          leading: Icon(it.icon, color: it.color ?? cat.color, size: 20),
+                          title: Text(it.title, style: const TextStyle(fontSize: 14)),
+                          subtitle: it.subtitle != null ? Text(it.subtitle!, style: const TextStyle(fontSize: 12)) : null,
+                          children: it.subItems!
+                              .map(
+                                (subItem) => ListTile(
+                                  leading: Icon(subItem.icon, size: 18, color: Colors.grey[600]),
+                                  title: Text(subItem.title, style: const TextStyle(fontSize: 13)),
+                                  trailing: const Icon(Icons.chevron_right, size: 18),
+                                  onTap: subItem.onTap ??
+                                      () => ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('"${subItem.title}" (yakında)')),
+                                          ),
+                                ),
+                              )
+                              .toList(),
+                        );
+                      } else {
+                        // Normal item
+                        return ListTile(
+                          leading: Icon(it.icon, color: it.color ?? cat.color, size: 20),
+                          title: Text(it.title, style: const TextStyle(fontSize: 14)),
+                          subtitle: it.subtitle != null ? Text(it.subtitle!, style: const TextStyle(fontSize: 12)) : null,
+                          trailing: const Icon(Icons.chevron_right, size: 20),
+                          onTap: it.onTap ??
+                              () => ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('"${it.title}" (yakında)')),
+                                  ),
+                        );
+                      }
+                    },
                   )
                   .toList(),
             ),
@@ -1655,6 +1732,11 @@ class _SikKullanilanlar extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => SalaryCalculatorScreen()),
+                      );
+                    } else if (screen == 'emeklilik_takip') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()),
                       );
                     } else {
                       // Fallback: Hesaplamalar ekranına git
