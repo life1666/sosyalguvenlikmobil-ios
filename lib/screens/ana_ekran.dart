@@ -559,7 +559,7 @@ class _AnaEkranState extends State<AnaEkran> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
               child: Text(
-                'Hızlı İşlemler',
+                '⚡ Hızlı İşlemler',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -742,13 +742,26 @@ class _AnaEkranState extends State<AnaEkran> {
                   child: Container(
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.indigo.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.indigo.withOpacity(0.2)),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.indigo,
+                          Colors.purple.shade600,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.indigo.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.apps, color: Colors.indigo),
+                        Icon(Icons.apps, color: Colors.white),
                         SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -759,7 +772,7 @@ class _AnaEkranState extends State<AnaEkran> {
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.grey[800],
+                                  color: Colors.white,
                                 ),
                               ),
                               SizedBox(height: 2),
@@ -767,13 +780,23 @@ class _AnaEkranState extends State<AnaEkran> {
                                 'Makaleler, Mevzuat, Sözlük ve daha fazlası',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: Colors.white.withOpacity(0.9),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right, color: Colors.grey[400]),
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: Duration(milliseconds: 1500),
+                          curve: Curves.easeInOut,
+                          builder: (context, value, child) {
+                            return Transform.translate(
+                              offset: Offset(value * 3, 0),
+                              child: Icon(Icons.chevron_right, color: Colors.white),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -782,10 +805,25 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
           ),
 
+          // Son Hesaplamalar Başlığı
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+              child: Text(
+                '🕐 Son Hesaplamalar',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ),
+          ),
+
           // Son Aktiviteler
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
               child: _SonHesaplamalarBlock(),
             ),
           ),
@@ -1090,51 +1128,78 @@ class _HomeCard extends StatelessWidget {
         : Icon(icon, color: color, size: 42);
 
     return Material(
-      color: Colors.white,
-      elevation: 1.5,
+      elevation: 2,
       borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        splashColor: Colors.indigo.withOpacity(.08),
-        highlightColor: Colors.indigo.withOpacity(.04),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: [
-              SizedBox(width: 42, height: 42, child: Center(child: iconWidget)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: title == "Emeklilik Takip" ? 14 : 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withOpacity(0.08),
+              color.withOpacity(0.04),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          splashColor: color.withOpacity(.12),
+          highlightColor: color.withOpacity(.06),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(child: iconWidget),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        subtitle!,
+                        title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.black54,
+                        style: TextStyle(
+                          fontSize: title == "Emeklilik Takip" ? 14 : 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
                         ),
                       ),
-                    ]
-                  ],
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ]
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1204,24 +1269,19 @@ class _SonHesaplamalarBlockState extends State<_SonHesaplamalarBlock> {
             ? Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Son Hesaplamalar',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.grey[600],
-                              size: 20,
-                            ),
-                          ],
-                        ),
-            const SizedBox(height: 8),
+            // Başlık kaldırıldı - artık üstte ayrı başlık var
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Spacer(),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.grey[600],
+                  size: 20,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
                         ..._hesaplamalar.map(
                           (hesaplama) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1270,29 +1330,57 @@ class _SonHesaplamalarBlockState extends State<_SonHesaplamalarBlock> {
             ),
           ],
         )
-            : Row(
-          children: [
-            const Icon(Icons.info_outline_rounded, color: Colors.indigo),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Text(
-                            'Henüz hesaplama bulunmuyor. Hızlıca bir hesaplama yapmak için butona dokun.',
-                style: TextStyle(fontSize: 13),
+            : Container(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.calculate_outlined,
+                size: 120,
+                color: Colors.indigo.withOpacity(0.3),
               ),
-            ),
-            const SizedBox(width: 10),
-            TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const HesaplamalarEkrani(),
-                              ),
-                            );
-                          },
-                          child: const Text('Hesapla'),
-                        ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                'Henüz Hesaplama Yok',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'İlk hesaplamanızı yapın ve burada görün!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HesaplamalarEkrani(),
+                    ),
+                  );
+                },
+                icon: Icon(Icons.calculate_rounded),
+                label: Text('Hemen Hesapla'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
                     ),
         ),
       ),
@@ -1320,7 +1408,7 @@ class _SikKullanilanlar extends StatelessWidget {
           Text(
             '🔥 Sık Kullanılanlar',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Colors.grey[800],
             ),
@@ -1328,11 +1416,13 @@ class _SikKullanilanlar extends StatelessWidget {
           SizedBox(height: 10),
           SizedBox(
             height: 44,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: popularItems.length,
-              separatorBuilder: (_, __) => SizedBox(width: 10),
-              itemBuilder: (context, i) {
+            child: Stack(
+              children: [
+                ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: popularItems.length,
+                  separatorBuilder: (_, __) => SizedBox(width: 10),
+                  itemBuilder: (context, i) {
                 final item = popularItems[i];
                 return InkWell(
                   borderRadius: BorderRadius.circular(22),
@@ -1399,7 +1489,29 @@ class _SikKullanilanlar extends StatelessWidget {
                     ),
                   ),
                 );
-              },
+                  },
+                ),
+                // Sağda fade gradient efekti (scroll göstergesi)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 30,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Colors.white.withOpacity(0.0),
+                          Colors.white.withOpacity(0.8),
+                          Colors.white,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
