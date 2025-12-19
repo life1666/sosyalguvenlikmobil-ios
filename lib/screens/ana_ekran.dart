@@ -1406,6 +1406,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.indigo),
           onPressed: () => Navigator.pop(context),
         ),
+        leadingWidth: 56, // Geri butonu için sabit genişlik
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -1593,6 +1594,7 @@ class AllFeaturesScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.indigo),
           onPressed: () => Navigator.pop(context),
         ),
+        leadingWidth: 56, // Geri butonu için sabit genişlik
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
