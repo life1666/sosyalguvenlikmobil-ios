@@ -2237,11 +2237,12 @@ class _SikKullanilanlar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final popularItems = [
-      {'title': 'Emeklilik Hesaplama', 'icon': Icons.event, 'route': 'emeklilik', 'screen': 'emeklilik_4a'},
-      {'title': 'Kıdem İhbar Tazminatı', 'icon': Icons.work_history, 'route': 'kidem', 'screen': 'kidem_ihbar'},
-      {'title': 'İşsizlik Maaşı', 'icon': Icons.money_off, 'route': 'issizlik', 'screen': 'issizlik'},
-      {'title': 'Rapor Parası', 'icon': Icons.local_hospital, 'route': 'rapor', 'screen': 'rapor'},
-      {'title': 'Brütten Nete', 'icon': Icons.calculate, 'route': 'brutten_nete', 'screen': 'brutten_nete'},
+      {'title': 'Emeklilik Hesaplama', 'route': 'emeklilik', 'screen': 'emeklilik_4a'},
+      {'title': 'CV Oluştur', 'route': 'cv_olustur', 'screen': 'cv_olustur'},
+      {'title': 'Kıdem İhbar Tazminatı', 'route': 'kidem', 'screen': 'kidem_ihbar'},
+      {'title': 'İşsizlik Maaşı', 'route': 'issizlik', 'screen': 'issizlik'},
+      {'title': 'Rapor Parası', 'route': 'rapor', 'screen': 'rapor'},
+      {'title': 'Brütten Nete', 'route': 'brutten_nete', 'screen': 'brutten_nete'},
     ];
 
     return Padding(
@@ -2302,6 +2303,11 @@ class _SikKullanilanlar extends StatelessWidget {
                         context,
                         MaterialPageRoute(builder: (_) => SalaryCalculatorScreen()),
                       );
+                    } else if (screen == 'cv_olustur') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CvApp()),
+                      );
                     } else if (screen == 'emeklilik_takip') {
                       Navigator.push(
                         context,
@@ -2322,19 +2328,12 @@ class _SikKullanilanlar extends StatelessWidget {
                       color: Colors.indigo.withOpacity(0.08),
                       border: Border.all(color: Colors.indigo.withOpacity(0.2)),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(item['icon'] as IconData, size: 18, color: Colors.indigo),
-                        SizedBox(width: 8),
-                        Text(
-                          item['title'] as String,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.indigo[700],
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      item['title'] as String,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.indigo[700],
+                      ),
                     ),
                   ),
                 );
