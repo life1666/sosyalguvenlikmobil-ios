@@ -492,67 +492,146 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
-  // Kategorize edilmiş özellikler
+  // Kategorize edilmiş özellikler - YENİ YAPILANDIRMA
   List<Category> get categories {
     return [
       Category(
-        title: 'Hesaplamalar',
-        description: 'Emeklilik, Kıdem, İhbar tazminatı ve tüm hesaplamalar',
-        icon: Icons.calculate,
+        title: 'Emeklilik&SGK',
+        description: 'Emeklilik hesaplama ve SGK prim borçlanma işlemleri',
+        icon: Icons.account_balance,
         color: Colors.indigo,
         svgPath: 'assets/hesaplama.svg',
         items: [
+          // Emeklilik Hesaplama - alt butonları var
           FeatureItem(
             title: 'Emeklilik Hesaplama',
-            subtitle: '4/a (SSK) Emeklilik',
+            subtitle: '4/a, 4/b, 4/c emeklilik hesaplama seçenekleri',
             icon: Icons.event,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_4a'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4aSayfasi()),
-              );
-            },
+            hasSubItems: true,
+            subItems: [
+              FeatureItem(
+                title: '4/a (SSK) Emeklilik Hesaplama',
+                icon: Icons.calculate,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_4a'});
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4aSayfasi()),
+                  );
+                },
+              ),
+              FeatureItem(
+                title: '4/b (Bağ-kur) Emeklilik Hesaplama',
+                icon: Icons.calculate,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_4b'});
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4bSayfasi()),
+                  );
+                },
+              ),
+              FeatureItem(
+                title: '4/c (Memur) Emeklilik Hesaplama',
+                icon: Icons.calculate,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_4c'});
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => EmeklilikHesaplamaSayfasi()),
+                  );
+                },
+              ),
+            ],
           ),
+          // SGK Prim Borçlanma Tutarı Hesaplama - alt butonları var
           FeatureItem(
-            title: 'Kıdem - İhbar Tazminatı',
-            subtitle: 'Kıdem ve ihbar tazminatı hesaplama',
+            title: 'SGK Prim Borçlanma Tutarı Hesaplama',
+            subtitle: 'Askerlik, doğum ve yurt dışı borçlanma',
+            icon: Icons.account_balance,
+            hasSubItems: true,
+            subItems: [
+              FeatureItem(
+                title: 'Askerlik, Doğum ve Diğer Borçlanmaların Prim Tutarı Hesaplama',
+                icon: Icons.calculate,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'borclanma'});
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BorclanmaHesaplamaScreen()),
+                  );
+                },
+              ),
+              FeatureItem(
+                title: 'Yurt Dışı Borçlanması Prim Tutarı Hesaplama',
+                icon: Icons.calculate,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'yurtdisi_borclanma'});
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const YurtDisiBorclanmaHesaplamaScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+      Category(
+        title: 'Tazminatlar',
+        description: 'Kıdem ve ihbar tazminatı işlemleri',
+        icon: Icons.receipt_long,
+        color: Colors.indigo,
+        svgPath: 'assets/emeklilik.svg',
+        items: [
+          // Kıdem İhbar Tazminatı İşlemleri - alt butonları var
+          FeatureItem(
+            title: 'Kıdem İhbar Tazminatı İşlemleri',
+            subtitle: 'Kıdem ve ihbar tazminatı hesaplama ve sorgulama',
             icon: Icons.work_history,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_ihbar'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CompensationCalculatorScreen()),
-              );
-            },
+            hasSubItems: true,
+            subItems: [
+              FeatureItem(
+                title: 'Kıdem - İhbar Tazminatı Hesaplama',
+                icon: Icons.calculate,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_ihbar'});
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CompensationCalculatorScreen()),
+                  );
+                },
+              ),
+              FeatureItem(
+                title: 'SGK\'dan Kıdem Tazminatı Alabilir Yazısı Sorgulama',
+                icon: Icons.search,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_alabilir'});
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Theme(
+                        data: Theme.of(context),
+                        child: const KidemTazminatiScreen(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
+        ],
+      ),
+      Category(
+        title: 'Maaş&Mesai',
+        description: 'Brüt-net maaş, mesai takip ve asgari ücret',
+        icon: Icons.payments,
+        color: Colors.green,
+        svgPath: 'assets/maasmesai.svg',
+        items: [
           FeatureItem(
-            title: 'İşsizlik Maaşı',
-            subtitle: 'İşsizlik maaşı hesaplama',
-            icon: Icons.money_off,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()),
-              );
-            },
-          ),
-          FeatureItem(
-            title: 'Rapor Parası',
-            subtitle: 'Rapor parası hesaplama',
-            icon: Icons.local_hospital,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'rapor'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RaporParasiScreen()),
-              );
-            },
-          ),
-          FeatureItem(
-            title: 'Brütten Nete',
-            subtitle: 'Maaş hesaplama',
+            title: 'Brütten Nete Maaş Hesaplama',
+            subtitle: 'Brüt maaştan net maaş hesaplama',
             icon: Icons.swap_horiz,
             onTap: () {
               AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'brutten_nete'});
@@ -563,47 +642,17 @@ class _AnaEkranState extends State<AnaEkran> {
             },
           ),
           FeatureItem(
-            title: 'Tüm Hesaplamalar',
-            subtitle: 'Diğer hesaplama araçları',
-            icon: Icons.calculate,
+            title: 'Netten Brüte Maaş Hesaplama',
+            subtitle: 'Net maaştan brüt maaş hesaplama',
+            icon: Icons.swap_vert,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'all_calculations'});
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'netten_brute'});
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const HesaplamalarEkrani()),
+                MaterialPageRoute(builder: (_) => const NettenBruteScreen()),
               );
             },
           ),
-        ],
-      ),
-      Category(
-        title: 'Emeklilik Takip',
-        description: 'Anlık emeklilik takibi ve hesaplamalar',
-        icon: Icons.track_changes,
-        color: Colors.indigo,
-        svgPath: 'assets/emeklilik.svg',
-        items: [
-          FeatureItem(
-            title: 'Emeklilik Takip',
-            subtitle: 'Emeklilik durumunu takip et',
-            icon: Icons.track_changes,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_takip'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()),
-              );
-            },
-          ),
-        ],
-      ),
-      Category(
-        title: 'Mesai Takip',
-        description: 'Günlük mesailerini takip et ve hesapla',
-        icon: Icons.access_time,
-        color: Colors.green,
-        svgPath: 'assets/maasmesai.svg',
-        items: [
           FeatureItem(
             title: 'Mesai Takip',
             subtitle: 'Günlük mesai takibi',
@@ -613,24 +662,64 @@ class _AnaEkranState extends State<AnaEkran> {
               Navigator.of(context).pushNamed('/mesai');
             },
           ),
+          FeatureItem(
+            title: 'Asgari Ücret',
+            subtitle: 'Güncel asgari ücret bilgileri',
+            icon: Icons.account_balance_wallet,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'asgari_ucret'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()),
+              );
+            },
+          ),
         ],
       ),
       Category(
-        title: 'CV Oluştur',
-        description: 'Hazır CV şablonları ile profesyonel CV oluştur',
-        icon: Icons.description,
+        title: 'Ödenekler&Haklar',
+        description: 'İşsizlik maaşı, rapor parası ve diğer ödenekler',
+        icon: Icons.volunteer_activism,
         color: Colors.orange,
         svgPath: 'assets/cv.svg',
         items: [
+          // İşsizlik Maaşı İşlemleri - alt butonları var
           FeatureItem(
-            title: 'CV Oluştur',
-            subtitle: 'Profesyonel CV şablonları',
-            icon: Icons.description,
+            title: 'İşsizlik Maaşı İşlemleri',
+            subtitle: 'İşsizlik maaşı hesaplama ve başvuru',
+            icon: Icons.work_off,
+            hasSubItems: true,
+            subItems: [
+              FeatureItem(
+                title: 'İşsizlik Maaşı Hesaplama',
+                icon: Icons.calculate,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik'});
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()),
+                  );
+                },
+              ),
+              FeatureItem(
+                title: 'İşsizlik Maaşı Başvurusu',
+                icon: Icons.description,
+                onTap: () {
+                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik_basvuru'});
+                  launchUrl(Uri.parse('https://www.iskur.gov.tr/'), mode: LaunchMode.externalApplication);
+                },
+              ),
+            ],
+          ),
+          FeatureItem(
+            title: 'Rapor Parası Hesaplama',
+            subtitle: 'Rapor parası hesaplama',
+            icon: Icons.local_hospital,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'cv_olustur'});
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'rapor'});
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CvApp()),
+                MaterialPageRoute(builder: (_) => const RaporParasiScreen()),
               );
             },
           ),
@@ -638,7 +727,7 @@ class _AnaEkranState extends State<AnaEkran> {
       ),
       Category(
         title: 'Bilgi Merkezi',
-        description: 'Mevzuat, sözlük, makaleler ve asgari ücret',
+        description: 'Mevzuat, sözlük, makaleler',
         icon: Icons.menu_book,
         color: Colors.purple,
         svgPath: 'assets/makale.svg',
@@ -676,18 +765,6 @@ class _AnaEkranState extends State<AnaEkran> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SozlukHomePage()),
-              );
-            },
-          ),
-          FeatureItem(
-            title: 'Asgari Ücret',
-            subtitle: 'Güncel asgari ücret bilgileri',
-            icon: Icons.account_balance_wallet,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'asgari_ucret'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()),
               );
             },
           ),
