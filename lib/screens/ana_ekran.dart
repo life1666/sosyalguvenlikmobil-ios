@@ -612,41 +612,36 @@ class _AnaEkranState extends State<AnaEkran> {
         color: Colors.red,
         svgPath: 'assets/emeklilik.svg',
         items: [
-          // Kıdem İhbar Tazminatı İşlemleri - alt butonları var
+          // Kıdem - İhbar Tazminatı Hesaplama
           FeatureItem(
-            title: 'Kıdem İhbar Tazminatı İşlemleri',
-            subtitle: 'Kıdem ve ihbar tazminatı hesaplama ve sorgulama',
-            icon: Icons.work_history,
-            hasSubItems: true,
-            subItems: [
-              FeatureItem(
-                title: 'Kıdem - İhbar Tazminatı Hesaplama',
-                icon: Icons.calculate,
-                onTap: () {
-                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_ihbar'});
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CompensationCalculatorScreen()),
-                  );
-                },
-              ),
-              FeatureItem(
-                title: 'SGK\'dan Kıdem Tazminatı Alabilir Yazısı Sorgulama',
-                icon: Icons.search,
-                onTap: () {
-                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_alabilir'});
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => Theme(
-                        data: Theme.of(context),
-                        child: const KidemTazminatiScreen(),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
+            title: 'Kıdem - İhbar Tazminatı Hesaplama',
+            subtitle: 'Kıdem ve ihbar tazminatı hesaplama',
+            icon: Icons.calculate,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_ihbar'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CompensationCalculatorScreen()),
+              );
+            },
+          ),
+          // SGK'dan Kıdem Tazminatı Alabilir Yazısı Sorgulama
+          FeatureItem(
+            title: 'SGK\'dan Kıdem Tazminatı Alabilir Yazısı Sorgulama',
+            subtitle: 'Kıdem tazminatı sorgulama',
+            icon: Icons.search,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_alabilir'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => Theme(
+                    data: Theme.of(context),
+                    child: const KidemTazminatiScreen(),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
