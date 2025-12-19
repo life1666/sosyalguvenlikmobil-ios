@@ -1046,7 +1046,7 @@ class _AnaEkranState extends State<AnaEkran> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-              child: _SonHesaplamalarBlock(),
+              child: _SonHesaplamalarBlock(categories: categories),
             ),
           ),
         ],
@@ -2066,7 +2066,8 @@ class _AllFeaturesScreenState extends State<AllFeaturesScreen> {
 }
 
 class _SonHesaplamalarBlock extends StatefulWidget {
-  const _SonHesaplamalarBlock({Key? key}) : super(key: key);
+  final List<Category> categories;
+  const _SonHesaplamalarBlock({Key? key, required this.categories}) : super(key: key);
 
   @override
   State<_SonHesaplamalarBlock> createState() => _SonHesaplamalarBlockState();
@@ -2223,7 +2224,7 @@ class _SonHesaplamalarBlockState extends State<_SonHesaplamalarBlock> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AllFeaturesScreen(categories: categories),
+                      builder: (_) => AllFeaturesScreen(categories: widget.categories),
                     ),
                   );
                 },
