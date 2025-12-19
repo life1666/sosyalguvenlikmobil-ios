@@ -1348,10 +1348,10 @@ class _CategoryCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         category.title,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: Colors.black87,
                         ),
@@ -1395,8 +1395,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.category.title),
-        backgroundColor: Colors.indigo,
+        title: Text(
+          widget.category.title,
+          style: const TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.indigo),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -1573,8 +1582,17 @@ class AllFeaturesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tüm Özellikler'),
-        backgroundColor: Colors.indigo,
+        title: const Text(
+          'Tüm Özellikler',
+          style: TextStyle(color: Colors.indigo),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.indigo),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
