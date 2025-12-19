@@ -2205,10 +2205,11 @@ class _SonHesaplamalarBlockState extends State<_SonHesaplamalarBlock> {
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: () {
+                  AnalyticsHelper.logCustomEvent('all_features_tapped');
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const HesaplamalarEkrani(),
+                      builder: (_) => AllFeaturesScreen(categories: categories),
                     ),
                   );
                 },
@@ -2328,11 +2329,14 @@ class _SikKullanilanlar extends StatelessWidget {
                       color: Colors.indigo.withOpacity(0.08),
                       border: Border.all(color: Colors.indigo.withOpacity(0.2)),
                     ),
-                    child: Text(
-                      item['title'] as String,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.indigo[700],
+                    child: Center(
+                      child: Text(
+                        item['title'] as String,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.indigo[700],
+                        ),
                       ),
                     ),
                   ),
