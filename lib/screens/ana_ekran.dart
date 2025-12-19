@@ -1426,14 +1426,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
           widget.category.title,
           style: const TextStyle(color: Colors.indigo),
         ),
-        centerTitle: true,
+        centerTitle: false, // Başlık sola hizalı (geri okunun yanında)
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.indigo),
           onPressed: () => Navigator.pop(context),
         ),
-        leadingWidth: 56, // Geri butonu için sabit genişlik
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
