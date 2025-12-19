@@ -609,7 +609,7 @@ class _AnaEkranState extends State<AnaEkran> {
         title: 'Tazminatlar',
         description: 'Kıdem ve ihbar tazminatı işlemleri',
         icon: Icons.receipt_long,
-        color: Colors.indigo,
+        color: Colors.red,
         svgPath: 'assets/emeklilik.svg',
         items: [
           // Kıdem İhbar Tazminatı İşlemleri - alt butonları var
