@@ -1406,63 +1406,152 @@ class _CategoryScreenState extends State<CategoryScreen> {
           final item = widget.category.items[i];
           final isOpen = _openIndex == i;
           
-          return Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
+          final itemColor = item.color ?? widget.category.color;
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  itemColor.withOpacity(0.08),
+                  itemColor.withOpacity(0.04),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: itemColor.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               children: [
-                ListTile(
-                  leading: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: (item.color ?? widget.category.color).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      item.icon,
-                      color: item.color ?? widget.category.color,
-                      size: 24,
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: item.hasSubItems
+                        ? () {
+                            setState(() {
+                              _openIndex = isOpen ? null : i;
+                            });
+                          }
+                        : item.onTap ??
+                            () => ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('"${item.title}" (yakında)')),
+                                ),
+                    splashColor: itemColor.withOpacity(0.12),
+                    highlightColor: itemColor.withOpacity(0.06),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: itemColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              item.icon,
+                              color: itemColor,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                if (item.subtitle != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      item.subtitle!,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            item.hasSubItems
+                                ? (isOpen ? Icons.expand_less : Icons.expand_more)
+                                : Icons.chevron_right,
+                            color: Colors.grey[600],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  title: Text(
-                    item.title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: item.subtitle != null ? Text(item.subtitle!) : null,
-                  trailing: item.hasSubItems
-                      ? Icon(
-                          isOpen ? Icons.expand_less : Icons.expand_more,
-                          color: Colors.grey,
-                        )
-                      : const Icon(Icons.chevron_right, color: Colors.grey),
-                  onTap: item.hasSubItems
-                      ? () {
-                          setState(() {
-                            _openIndex = isOpen ? null : i;
-                          });
-                        }
-                      : item.onTap ??
-                          () => ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('"${item.title}" (yakında)')),
-                              ),
                 ),
                 if (item.hasSubItems && isOpen && item.subItems != null)
                   ...item.subItems!.map(
                     (subItem) => Padding(
-                      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-                      child: ListTile(
-                        leading: Icon(subItem.icon, size: 20, color: Colors.grey[600]),
-                        title: Text(
-                          subItem.title,
-                          style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                        ),
-                        trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
-                        onTap: subItem.onTap ??
-                            () => ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('"${subItem.title}" (yakında)')),
+                      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 8),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: subItem.onTap ??
+                              () => ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('"${subItem.title}" (yakında)')),
+                                  ),
+                          splashColor: itemColor.withOpacity(0.08),
+                          highlightColor: itemColor.withOpacity(0.04),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: itemColor.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    subItem.icon,
+                                    size: 18,
+                                    color: itemColor,
+                                  ),
                                 ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    subItem.title,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  size: 18,
+                                  color: Colors.grey[400],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1492,60 +1581,214 @@ class AllFeaturesScreen extends StatelessWidget {
         itemCount: categories.length,
         itemBuilder: (context, i) {
           final cat = categories[i];
-          return Card(
+          return Container(
             margin: const EdgeInsets.only(bottom: 12),
-            elevation: 2,
-            shape: RoundedRectangleBorder(
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  cat.color.withOpacity(0.08),
+                  cat.color.withOpacity(0.04),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: cat.color.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: ExpansionTile(
               leading: Container(
-                padding: EdgeInsets.all(8),
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: cat.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: cat.color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(cat.icon, color: cat.color),
+                child: Icon(cat.icon, color: cat.color, size: 24),
               ),
               title: Text(
                 cat.title,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
               ),
-              subtitle: Text(cat.description),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  cat.description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
               children: cat.items
                   .map(
                     (it) {
+                      final itemColor = it.color ?? cat.color;
                       if (it.hasSubItems && it.subItems != null) {
                         // Alt öğeleri olan item için ExpansionTile
-                        return ExpansionTile(
-                          leading: Icon(it.icon, color: it.color ?? cat.color, size: 20),
-                          title: Text(it.title, style: const TextStyle(fontSize: 14)),
-                          subtitle: it.subtitle != null ? Text(it.subtitle!, style: const TextStyle(fontSize: 12)) : null,
-                          children: it.subItems!
-                              .map(
-                                (subItem) => ListTile(
-                                  leading: Icon(subItem.icon, size: 18, color: Colors.grey[600]),
-                                  title: Text(subItem.title, style: const TextStyle(fontSize: 13)),
-                                  trailing: const Icon(Icons.chevron_right, size: 18),
-                                  onTap: subItem.onTap ??
-                                      () => ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('"${subItem.title}" (yakında)')),
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: itemColor.withOpacity(0.05),
+                          ),
+                          child: ExpansionTile(
+                            leading: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: itemColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(it.icon, size: 18, color: itemColor),
+                            ),
+                            title: Text(
+                              it.title,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: it.subtitle != null
+                                ? Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      it.subtitle!,
+                                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                    ),
+                                  )
+                                : null,
+                            children: it.subItems!
+                                .map(
+                                  (subItem) => Padding(
+                                    padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        onTap: subItem.onTap ??
+                                            () => ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(content: Text('"${subItem.title}" (yakında)')),
+                                                ),
+                                        splashColor: itemColor.withOpacity(0.08),
+                                        highlightColor: itemColor.withOpacity(0.04),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 32,
+                                                height: 32,
+                                                decoration: BoxDecoration(
+                                                  color: itemColor.withOpacity(0.08),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Icon(
+                                                  subItem.icon,
+                                                  size: 16,
+                                                  color: itemColor,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  subItem.title,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.grey[800],
+                                                  ),
+                                                ),
+                                              ),
+                                              Icon(
+                                                Icons.chevron_right,
+                                                size: 16,
+                                                color: Colors.grey[400],
+                                              ),
+                                            ],
                                           ),
-                                ),
-                              )
-                              .toList(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                         );
                       } else {
                         // Normal item
-                        return ListTile(
-                          leading: Icon(it.icon, color: it.color ?? cat.color, size: 20),
-                          title: Text(it.title, style: const TextStyle(fontSize: 14)),
-                          subtitle: it.subtitle != null ? Text(it.subtitle!, style: const TextStyle(fontSize: 12)) : null,
-                          trailing: const Icon(Icons.chevron_right, size: 20),
-                          onTap: it.onTap ??
-                              () => ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('"${it.title}" (yakında)')),
-                                  ),
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: it.onTap ??
+                                  () => ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('"${it.title}" (yakında)')),
+                                      ),
+                              splashColor: itemColor.withOpacity(0.08),
+                              highlightColor: itemColor.withOpacity(0.04),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: itemColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        it.icon,
+                                        color: itemColor,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            it.title,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                          if (it.subtitle != null)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 2),
+                                              child: Text(
+                                                it.subtitle!,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right,
+                                      size: 20,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         );
                       }
                     },
