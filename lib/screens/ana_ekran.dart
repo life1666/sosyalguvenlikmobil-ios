@@ -30,6 +30,38 @@ import '../../hesaplamalar/issizlik_sorguhesap.dart';
 import '../../hesaplamalar/rapor_parasi.dart';
 import '../../hesaplamalar/brutten_nete.dart';
 
+// ==================== MODELS ====================
+class FeatureItem {
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color? color;
+  const FeatureItem({
+    required this.title,
+    this.subtitle,
+    required this.icon,
+    this.onTap,
+    this.color,
+  });
+}
+
+class Category {
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color color;
+  final List<FeatureItem> items;
+  final String? svgPath;
+  const Category({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.color,
+    required this.items,
+    this.svgPath,
+  });
+}
 
 class AnaEkran extends StatefulWidget {
   @override
@@ -448,29 +480,211 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
-  // Ana menü kartları – Makaleler ve Asgari Ücret için SVG eklendi
-  final List<MenuItemData> menuItems = [
-    MenuItemData("Hesaplamalar", Icons.calculate, Colors.indigo,
-        desc: "Emeklilik, Kıdem ve İhbar tazminat", svgPath: 'assets/hesaplama.svg'),
-    MenuItemData("Emeklilik Takip", Icons.track_changes, Colors.indigo,
-        desc: "Anlık emeklilik takibi", svgPath: 'assets/emeklilik.svg'),
-    MenuItemData("Mesai Takip", Icons.access_time, Colors.green,
-        desc: "Günlük mesailerini takip et", svgPath: 'assets/maasmesai.svg'),
-    MenuItemData("CV Oluştur", Icons.description, Colors.orange,
-        desc: "Hazır Cv şablonları", svgPath: 'assets/cv.svg'),
-    MenuItemData("İK+", Icons.people_alt, Colors.blue,
-        desc: "İnsan kaynakları araçları", svgPath: 'assets/ik.svg'),
-    MenuItemData("Makaleler", Icons.library_books, Colors.purple,
-        desc: "Uzman yazıları", svgPath: 'assets/makale.svg'),
-    MenuItemData("Mevzuat", Icons.gavel, Colors.red,
-        desc: "Kanun & yönetmelik", svgPath: 'assets/mevzuat.svg'),
-    MenuItemData("Sözlük", Icons.menu_book, Colors.teal,
-        desc: "Terimler", svgPath: 'assets/sozluk.svg'),
-    MenuItemData("Asgari Ücret", Icons.account_balance_wallet, Colors.brown,
-        desc: "Güncel veriler", svgPath: 'assets/asgari.svg'),
-    MenuItemData("Hatırlatıcılar", Icons.alarm, Colors.indigo,
-        desc: "Tarih uyarıları", svgPath: 'assets/hatirlatma.svg'),
-  ];
+  // Kategorize edilmiş özellikler
+  List<Category> get categories {
+    return [
+      Category(
+        title: 'Hesaplamalar',
+        description: 'Emeklilik, Kıdem, İhbar tazminatı ve tüm hesaplamalar',
+        icon: Icons.calculate,
+        color: Colors.indigo,
+        svgPath: 'assets/hesaplama.svg',
+        items: [
+          FeatureItem(
+            title: 'Emeklilik Hesaplama',
+            subtitle: '4/a (SSK) Emeklilik',
+            icon: Icons.event,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_4a'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4aSayfasi()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Kıdem - İhbar Tazminatı',
+            subtitle: 'Kıdem ve ihbar tazminatı hesaplama',
+            icon: Icons.work_history,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_ihbar'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CompensationCalculatorScreen()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'İşsizlik Maaşı',
+            subtitle: 'İşsizlik maaşı hesaplama',
+            icon: Icons.money_off,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Rapor Parası',
+            subtitle: 'Rapor parası hesaplama',
+            icon: Icons.local_hospital,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'rapor'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RaporParasiScreen()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Brütten Nete',
+            subtitle: 'Maaş hesaplama',
+            icon: Icons.swap_horiz,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'brutten_nete'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => SalaryCalculatorScreen()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Tüm Hesaplamalar',
+            subtitle: 'Diğer hesaplama araçları',
+            icon: Icons.calculate,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'all_calculations'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HesaplamalarEkrani()),
+              );
+            },
+          ),
+        ],
+      ),
+      Category(
+        title: 'Emeklilik Takip',
+        description: 'Anlık emeklilik takibi ve hesaplamalar',
+        icon: Icons.track_changes,
+        color: Colors.indigo,
+        svgPath: 'assets/emeklilik.svg',
+        items: [
+          FeatureItem(
+            title: 'Emeklilik Takip',
+            subtitle: 'Emeklilik durumunu takip et',
+            icon: Icons.track_changes,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_takip'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()),
+              );
+            },
+          ),
+        ],
+      ),
+      Category(
+        title: 'Mesai Takip',
+        description: 'Günlük mesailerini takip et ve hesapla',
+        icon: Icons.access_time,
+        color: Colors.green,
+        svgPath: 'assets/maasmesai.svg',
+        items: [
+          FeatureItem(
+            title: 'Mesai Takip',
+            subtitle: 'Günlük mesai takibi',
+            icon: Icons.access_time,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'mesai_takip'});
+              Navigator.of(context).pushNamed('/mesai');
+            },
+          ),
+        ],
+      ),
+      Category(
+        title: 'CV Oluştur',
+        description: 'Hazır CV şablonları ile profesyonel CV oluştur',
+        icon: Icons.description,
+        color: Colors.orange,
+        svgPath: 'assets/cv.svg',
+        items: [
+          FeatureItem(
+            title: 'CV Oluştur',
+            subtitle: 'Profesyonel CV şablonları',
+            icon: Icons.description,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'cv_olustur'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CvApp()),
+              );
+            },
+          ),
+        ],
+      ),
+      Category(
+        title: 'Bilgi Merkezi',
+        description: 'Mevzuat, sözlük, makaleler ve asgari ücret',
+        icon: Icons.menu_book,
+        color: Colors.purple,
+        svgPath: 'assets/makale.svg',
+        items: [
+          FeatureItem(
+            title: 'Makaleler',
+            subtitle: 'Uzman yazıları ve rehberler',
+            icon: Icons.library_books,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'makaleler'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MakalelerView()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Mevzuat',
+            subtitle: 'Kanun ve yönetmelikler',
+            icon: Icons.gavel,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'mevzuat'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MevzuatSayfasi()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Sözlük',
+            subtitle: 'Terimler ve açıklamalar',
+            icon: Icons.menu_book,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'sozluk'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SozlukHomePage()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Asgari Ücret',
+            subtitle: 'Güncel asgari ücret bilgileri',
+            icon: Icons.account_balance_wallet,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'asgari_ucret'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()),
+              );
+            },
+          ),
+        ],
+      ),
+    ];
+  }
+
+  // Eski menuItems kaldırıldı - artık categories kullanılıyor
 
   @override
   Widget build(BuildContext context) {
@@ -580,66 +794,19 @@ class _AnaEkranState extends State<AnaEkran> {
                 mainAxisSpacing: 12,
               ),
               delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                  final top4Items = [
-                    menuItems[0], // Hesaplamalar
-                    menuItems[1], // Emeklilik Takip
-                    menuItems[2], // Mesai Takip
-                    menuItems[3], // CV Oluştur
-                  ];
-                  final item = top4Items[index];
-                  return _HomeCard(
-                    title: item.title,
-                    subtitle: item.desc,
-                    icon: item.icon,
-                    svgPath: item.svgPath,
-                    color: item.color,
+                (context, index) {
+                  final top4 = categories.take(4).toList();
+                  final category = top4[index];
+                  return _CategoryCard(
+                    category: category,
                     onTap: () {
-                      if (item.title == "Hesaplamalar") {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const HesaplamalarEkrani()),
-                        );
-                      } else if (item.title == "Makaleler") {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MakalelerView()),
-                        );
-                      } else if (item.title == "Mesai Takip") {
-                        Navigator.of(context).pushNamed('/mesai');
-
-                      } else if (item.title == "CV Oluştur") {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CvApp()),
-                        );
-
-                      } else if (item.title == "Emeklilik Takip") {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()),
-                        );
-
-                      } else if (item.title == "Sözlük") {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const SozlukHomePage()),
-                        );
-                      } else if (item.title == "Asgari Ücret") {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()),
-                        );
-                      } else if (item.title == "Mevzuat") {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MevzuatSayfasi()),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${item.title} ekranı yakında eklenecek')),
-                        );
-                      }
+                      AnalyticsHelper.logCustomEvent('category_tapped', parameters: {'category': category.title});
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CategoryScreen(category: category),
+                        ),
+                      );
                     },
                   );
                 },
@@ -658,84 +825,10 @@ class _AnaEkranState extends State<AnaEkran> {
                   borderRadius: BorderRadius.circular(16),
                   onTap: () {
                     AnalyticsHelper.logCustomEvent('all_features_tapped');
-                    // Tüm özellikler ekranını aç (Makaleler, Mevzuat, Sözlük, Asgari Ücret)
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                        padding: EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tüm Özellikler',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            _buildFeatureTile(
-                              context,
-                              'Makaleler',
-                              Icons.library_books,
-                              Colors.purple,
-                              () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const MakalelerView()),
-                                );
-                              },
-                            ),
-                            _buildFeatureTile(
-                              context,
-                              'Mevzuat',
-                              Icons.gavel,
-                              Colors.red,
-                              () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const MevzuatSayfasi()),
-                                );
-                              },
-                            ),
-                            _buildFeatureTile(
-                              context,
-                              'Sözlük',
-                              Icons.menu_book,
-                              Colors.teal,
-                              () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const SozlukHomePage()),
-                                );
-                              },
-                            ),
-                            _buildFeatureTile(
-                              context,
-                              'Asgari Ücret',
-                              Icons.account_balance_wallet,
-                              Colors.brown,
-                              () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()),
-                                );
-                              },
-                            ),
-                            SizedBox(height: 10),
-                          ],
-                        ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AllFeaturesScreen(categories: categories),
                       ),
                     );
                   },
@@ -1090,42 +1183,31 @@ class _SearchBar extends StatelessWidget {
 //   }
 // }
 
-class _HomeCard extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final IconData? icon;
-  final String? svgPath;
-  final Color color;
+// Kategori kartı - gradient ve shadow ile
+class _CategoryCard extends StatelessWidget {
+  final Category category;
   final VoidCallback onTap;
 
-  const _HomeCard({
-    Key? key,
-    required this.title,
-    this.subtitle,
-    this.icon,
-    this.svgPath,
-    required this.color,
+  const _CategoryCard({
+    required this.category,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Çerçevesiz, 42x42 alanda ikon
-    final Widget iconWidget = (svgPath != null)
+    final Widget iconWidget = (category.svgPath != null)
         ? SvgPicture.asset(
-      svgPath!,
-      width: 42,
-      height: 42,
-      fit: BoxFit.contain,
-      allowDrawingOutsideViewBox: true,
-      // colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-      errorBuilder: (ctx, err, stack) {
-        debugPrint('SVG HATASI ($svgPath): $err');
-        return Icon(icon ?? Icons.image_not_supported_outlined,
-            size: 42, color: color);
-      },
-    )
-        : Icon(icon, color: color, size: 42);
+            category.svgPath!,
+            width: 42,
+            height: 42,
+            fit: BoxFit.contain,
+            allowDrawingOutsideViewBox: true,
+            errorBuilder: (ctx, err, stack) {
+              debugPrint('SVG HATASI (${category.svgPath}): $err');
+              return Icon(category.icon, size: 42, color: category.color);
+            },
+          )
+        : Icon(category.icon, color: category.color, size: 42);
 
     return Material(
       elevation: 2,
@@ -1137,13 +1219,13 @@ class _HomeCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withOpacity(0.08),
-              color.withOpacity(0.04),
+              category.color.withOpacity(0.08),
+              category.color.withOpacity(0.04),
             ],
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.1),
+              color: category.color.withOpacity(0.1),
               blurRadius: 8,
               offset: Offset(0, 2),
             ),
@@ -1152,8 +1234,8 @@ class _HomeCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          splashColor: color.withOpacity(.12),
-          highlightColor: color.withOpacity(.06),
+          splashColor: category.color.withOpacity(.12),
+          highlightColor: category.color.withOpacity(.06),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
@@ -1162,7 +1244,7 @@ class _HomeCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: category.color.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(child: iconWidget),
@@ -1174,27 +1256,25 @@ class _HomeCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        category.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: title == "Emeklilik Takip" ? 14 : 15,
+                          fontSize: category.title == "Emeklilik Takip" ? 14 : 15,
                           fontWeight: FontWeight.w700,
                           color: Colors.black87,
                         ),
                       ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black54,
-                          ),
+                      const SizedBox(height: 2),
+                      Text(
+                        category.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
                         ),
-                      ]
+                      ),
                     ],
                   ),
                 ),
@@ -1202,6 +1282,124 @@ class _HomeCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Kategori ekranı - kategori içindeki özellikleri gösterir
+class CategoryScreen extends StatelessWidget {
+  final Category category;
+  const CategoryScreen({super.key, required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(category.title),
+        backgroundColor: Colors.indigo,
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: category.items.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) {
+          final item = category.items[i];
+          return Material(
+            elevation: 1,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.white,
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: (item.color ?? category.color).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    item.icon,
+                    color: item.color ?? category.color,
+                    size: 24,
+                  ),
+                ),
+                title: Text(
+                  item.title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: item.subtitle != null ? Text(item.subtitle!) : null,
+                trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                onTap: item.onTap ??
+                    () => ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('"${item.title}" (yakında)')),
+                        ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Tüm özellikler ekranı - ExpansionTile ile
+class AllFeaturesScreen extends StatelessWidget {
+  final List<Category> categories;
+  const AllFeaturesScreen({super.key, required this.categories});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tüm Özellikler'),
+        backgroundColor: Colors.indigo,
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: categories.length,
+        itemBuilder: (context, i) {
+          final cat = categories[i];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ExpansionTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cat.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(cat.icon, color: cat.color),
+              ),
+              title: Text(
+                cat.title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(cat.description),
+              children: cat.items
+                  .map(
+                    (it) => ListTile(
+                      leading: Icon(it.icon, color: it.color ?? cat.color),
+                      title: Text(it.title),
+                      subtitle: it.subtitle != null ? Text(it.subtitle!) : null,
+                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      onTap: it.onTap ??
+                          () => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('"${it.title}" (yakında)')),
+                              ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          );
+        },
       ),
     );
   }
