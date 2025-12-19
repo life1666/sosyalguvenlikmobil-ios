@@ -590,6 +590,19 @@ class _AnaEkranState extends State<AnaEkran> {
               );
             },
           ),
+          // Emeklilik Takip
+          FeatureItem(
+            title: 'Emeklilik Takip',
+            subtitle: 'Emeklilik durumunu takip et',
+            icon: Icons.track_changes,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_takip'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()),
+              );
+            },
+          ),
         ],
       ),
       Category(
@@ -1624,8 +1637,13 @@ class AllFeaturesScreen extends StatelessWidget {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: categories.length,
+        itemCount: categories.length + 1, // +1 for "Diğer Özellikler" section
         itemBuilder: (context, i) {
+          // Son item "Diğer Özellikler" bölümü
+          if (i == categories.length) {
+            return _buildDigerOzelliklerSection(context);
+          }
+          
           final cat = categories[i];
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
