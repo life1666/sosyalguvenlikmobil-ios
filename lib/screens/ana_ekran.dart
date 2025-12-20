@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -100,6 +101,8 @@ class _AnaEkranState extends State<AnaEkran> {
 
   static const String playStoreLink =
       'https://play.google.com/store/apps/details?id=com.sosyalguvenlik.mobil';
+  static const String appStoreLink =
+      'https://apps.apple.com/tr/app/sosyal-güvenlik-mobil/id6739000000';
 
   @override
   void initState() {
@@ -388,7 +391,10 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
-  Future<void> _rateApp() async => _launchURL(playStoreLink);
+  Future<void> _rateApp() async {
+    final url = Platform.isIOS ? appStoreLink : playStoreLink;
+    await _launchURL(url);
+  }
 
   // Banner kaldırıldı - bu fonksiyon artık kullanılmıyor
   /*
