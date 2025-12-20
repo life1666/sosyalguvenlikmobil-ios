@@ -1146,7 +1146,7 @@ class _AnaEkranState extends State<AnaEkran> {
                             Align(
                               alignment: Alignment.centerLeft,
                               child: IconButton(
-                              icon: const Icon(Icons.close_rounded, color: Colors.indigo),
+                              icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
                                 onPressed: () => Navigator.pop(ctx),
                               ),
                             ),
