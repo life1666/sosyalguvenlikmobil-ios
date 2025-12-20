@@ -89,6 +89,22 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
     }
   }
 
+  Future<void> _mesajlariOkunduIsaretle(List<QueryDocumentSnapshot> messages) async {
+    try {
+      final batch = _firestore.batch();
+      for (var doc in messages) {
+        final data = doc.data() as Map<String, dynamic>;
+        final read = data['read'] as bool? ?? false;
+        if (!read) {
+          batch.update(doc.reference, {'read': true});
+        }
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Mesaj okundu işaretleme hatası: $e');
+    }
+  }
+
   Future<void> _mesajSil(String messageId) async {
     final onay = await showDialog<bool>(
       context: context,
@@ -125,6 +141,9 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
 
   void _showThreadDetail(String email, List<QueryDocumentSnapshot> messages) {
     final cevapController = TextEditingController();
+    
+    // Mesaj detayı açıldığında okunmamış mesajları okundu işaretle
+    _mesajlariOkunduIsaretle(messages);
     
     showModalBottomSheet(
       context: context,

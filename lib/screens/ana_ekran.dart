@@ -157,37 +157,59 @@ class _AnaEkranState extends State<AnaEkran> {
           .collection('messages')
           .where('read', isEqualTo: false)
           .snapshots()
-          .listen((snapshot) {
-        if (mounted) {
-          setState(() {
-            _mesajSayisi = snapshot.docs.length;
-          });
-        }
-      });
+          .listen(
+        (snapshot) {
+          if (mounted) {
+            setState(() {
+              _mesajSayisi = snapshot.docs.length;
+            });
+            debugPrint('Admin mesaj sayısı güncellendi: ${_mesajSayisi}');
+          }
+        },
+        onError: (error) {
+          debugPrint('Mesaj stream hatası: $error');
+          if (mounted) {
+            setState(() {
+              _mesajSayisi = 0;
+            });
+          }
+        },
+      );
     } else {
       // Normal kullanıcı için: okunmamış cevap sayısı
       _mesajStreamSubscription = _firestore
           .collection('messages')
           .where('userId', isEqualTo: _kullanici!.uid)
           .snapshots()
-          .listen((snapshot) {
-        if (mounted) {
-          int okunmamisCevap = 0;
-          for (var doc in snapshot.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final response = data['response'] as String?;
-            final responses = data['responses'] as List<dynamic>?;
-            final read = data['read'] as bool? ?? false;
-            
-            if (!read && ((response != null && response.isNotEmpty) || (responses != null && responses.isNotEmpty))) {
-              okunmamisCevap++;
+          .listen(
+        (snapshot) {
+          if (mounted) {
+            int okunmamisCevap = 0;
+            for (var doc in snapshot.docs) {
+              final data = doc.data() as Map<String, dynamic>;
+              final response = data['response'] as String?;
+              final responses = data['responses'] as List<dynamic>?;
+              final read = data['read'] as bool? ?? false;
+              
+              if (!read && ((response != null && response.isNotEmpty) || (responses != null && responses.isNotEmpty))) {
+                okunmamisCevap++;
+              }
             }
+            setState(() {
+              _mesajSayisi = okunmamisCevap;
+            });
+            debugPrint('Kullanıcı okunmamış cevap sayısı güncellendi: ${_mesajSayisi}');
           }
-          setState(() {
-            _mesajSayisi = okunmamisCevap;
-          });
-        }
-      });
+        },
+        onError: (error) {
+          debugPrint('Mesaj stream hatası: $error');
+          if (mounted) {
+            setState(() {
+              _mesajSayisi = 0;
+            });
+          }
+        },
+      );
     }
   }
 
