@@ -2357,7 +2357,7 @@ class _SikKullanilanlar extends StatelessWidget {
               children: [
                 ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  scrollPhysics: const BouncingScrollPhysics(),
+                  physics: const BouncingScrollPhysics(),
                   itemCount: popularItems.length,
                   separatorBuilder: (_, __) => SizedBox(width: 10),
                   itemBuilder: (context, i) {
