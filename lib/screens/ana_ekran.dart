@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../makaleler/makale.dart';
@@ -116,7 +117,39 @@ class _AnaEkranState extends State<AnaEkran> {
     _loadAppVersion();
     _mesajSayisiniGuncelle();
     _sonKullanilanlariYukle();
+    _checkAndRequestReview();
     AnalyticsHelper.logScreenOpen('ana_ekran_opened');
+  }
+
+  Future<void> _checkAndRequestReview() async {
+    // Sadece Android için in-app review
+    if (!Platform.isAndroid) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final launchCount = prefs.getInt('app_launch_count') ?? 0;
+      final hasRequestedReview = prefs.getBool('has_requested_review') ?? false;
+
+      // 3. girişten sonra ve daha önce istenmemişse
+      if (launchCount >= 3 && !hasRequestedReview) {
+        final InAppReview inAppReview = InAppReview.instance;
+        
+        if (await inAppReview.isAvailable()) {
+          // Kısa bir gecikme sonrası göster (kullanıcı uygulamayı görsün)
+          await Future.delayed(const Duration(seconds: 2));
+          
+          if (mounted) {
+            await inAppReview.requestReview();
+            await prefs.setBool('has_requested_review', true);
+          }
+        }
+      } else {
+        // Giriş sayısını artır
+        await prefs.setInt('app_launch_count', launchCount + 1);
+      }
+    } catch (e) {
+      debugPrint('In-app review hatası: $e');
+    }
   }
 
   Future<void> _sonKullanilanlariYukle() async {
