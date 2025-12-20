@@ -130,22 +130,28 @@ class _AnaEkranState extends State<AnaEkran> {
       final launchCount = prefs.getInt('app_launch_count') ?? 0;
       final hasRequestedReview = prefs.getBool('has_requested_review') ?? false;
 
-      // 3. girişten sonra ve daha önce istenmemişse
-      if (launchCount >= 3 && !hasRequestedReview) {
-        final InAppReview inAppReview = InAppReview.instance;
+      // Giriş sayısını artır
+      await prefs.setInt('app_launch_count', launchCount + 1);
+
+      // Kombine yaklaşım: 3. girişten sonra VE en az 1 hesaplama yapılmışsa
+      if (launchCount + 1 >= 3 && !hasRequestedReview) {
+        // Son hesaplamaları kontrol et
+        final hesaplamalar = await SonHesaplamalarDeposu.listele();
         
-        if (await inAppReview.isAvailable()) {
-          // Kısa bir gecikme sonrası göster (kullanıcı uygulamayı görsün)
-          await Future.delayed(const Duration(seconds: 2));
+        // En az 1 başarılı hesaplama yapılmışsa review iste
+        if (hesaplamalar.isNotEmpty) {
+          final InAppReview inAppReview = InAppReview.instance;
           
-          if (mounted) {
-            await inAppReview.requestReview();
-            await prefs.setBool('has_requested_review', true);
+          if (await inAppReview.isAvailable()) {
+            // Kısa bir gecikme sonrası göster (kullanıcı uygulamayı görsün)
+            await Future.delayed(const Duration(seconds: 2));
+            
+            if (mounted) {
+              await inAppReview.requestReview();
+              await prefs.setBool('has_requested_review', true);
+            }
           }
         }
-      } else {
-        // Giriş sayısını artır
-        await prefs.setInt('app_launch_count', launchCount + 1);
       }
     } catch (e) {
       debugPrint('In-app review hatası: $e');
