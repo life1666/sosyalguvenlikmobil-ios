@@ -1188,6 +1188,14 @@ class _AnaEkranState extends State<AnaEkran> {
                           _social(const FaIcon(FontAwesomeIcons.youtube, size: 24, color: Colors.red), () {
                             _launchURL('https://www.youtube.com/@sosyalguvenlikmobil');
                           }),
+                          const SizedBox(width: 10),
+                          _social(const FaIcon(FontAwesomeIcons.xTwitter, size: 24, color: Colors.black), () {
+                            _launchURL('https://x.com/sgmobil_?s=21');
+                          }),
+                          const SizedBox(width: 10),
+                          _social(const FaIcon(FontAwesomeIcons.tiktok, size: 24, color: Color(0xFF000000)), () {
+                            _launchURL('https://www.tiktok.com/@sosyalguvenlikmobil?_r=1&_t=ZS-92OAfxvb3Vh');
+                          }),
                         ],
                       ),
                     ),
