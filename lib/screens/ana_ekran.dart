@@ -102,7 +102,7 @@ class _AnaEkranState extends State<AnaEkran> {
   static const String playStoreLink =
       'https://play.google.com/store/apps/details?id=com.sosyalguvenlik.mobil';
   static const String appStoreLink =
-      'https://apps.apple.com/tr/app/sosyal-güvenlik-mobil/id6739000000';
+      'https://apps.apple.com/tr/app/sosyal-g%C3%BCvenlik-mobil/id6752835301';
 
   @override
   void initState() {
