@@ -1107,7 +1107,7 @@ class _AnaEkranState extends State<AnaEkran> {
           _MenuAction(Icons.privacy_tip, 'KVKK', () {
             Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => KvkkEkrani()));
           }),
-          if (_kullanici?.uid == 'yicHOHSjaPXH6sLwyc48ulCnai32')
+          if (_isAdmin(_kullanici))
             _MenuAction(Icons.message, 'Gelen Mesajlar', () {
               Navigator.of(ctx).pushNamed('/mesajlar');
             }),
