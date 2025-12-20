@@ -846,7 +846,7 @@ class _AnaEkranState extends State<AnaEkran> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.dehaze_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.menu_rounded, color: Colors.indigo, size: 28),
           onPressed: () => _showFullScreenMenu(context),
         ),
         actions: [
