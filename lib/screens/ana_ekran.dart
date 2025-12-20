@@ -1077,13 +1077,33 @@ class _AnaEkranState extends State<AnaEkran> {
                           builder: (context, value, child) {
                             return Transform.translate(
                               offset: Offset(value * 3, 0),
-                              child: Icon(Icons.chevron_right, color: Colors.white),
-                            );
-                          },
-                        ),
-                      ],
+                              child: Icon(Icons.chevron_right, color: Colors.white                  ),
+                );
+                  },
+                ),
+                // Scroll indicator (sağda fade effect)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 30,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Colors.white.withOpacity(0.0),
+                          Colors.white.withOpacity(0.8),
+                          Colors.white,
+                        ],
+                      ),
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
                 ),
               ),
             ),
@@ -2308,12 +2328,13 @@ class _SikKullanilanlar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final popularItems = [
-      {'title': 'Emeklilik Hesaplama', 'route': 'emeklilik', 'screen': 'emeklilik_4a'},
-      {'title': 'CV Oluştur', 'route': 'cv_olustur', 'screen': 'cv_olustur'},
-      {'title': 'Kıdem İhbar Tazminatı', 'route': 'kidem', 'screen': 'kidem_ihbar'},
-      {'title': 'İşsizlik Maaşı', 'route': 'issizlik', 'screen': 'issizlik'},
-      {'title': 'Rapor Parası', 'route': 'rapor', 'screen': 'rapor'},
-      {'title': 'Brütten Nete', 'route': 'brutten_nete', 'screen': 'brutten_nete'},
+      {'title': 'Emeklilik Hesaplama', 'route': 'emeklilik', 'screen': 'emeklilik_4a', 'icon': Icons.calculate_rounded},
+      {'title': 'Emeklilik Takip', 'route': 'emeklilik_takip', 'screen': 'emeklilik_takip', 'icon': Icons.track_changes_rounded},
+      {'title': 'CV Oluştur', 'route': 'cv_olustur', 'screen': 'cv_olustur', 'icon': Icons.description_rounded},
+      {'title': 'Kıdem İhbar Tazminatı', 'route': 'kidem', 'screen': 'kidem_ihbar', 'icon': Icons.receipt_long_rounded},
+      {'title': 'İşsizlik Maaşı', 'route': 'issizlik', 'screen': 'issizlik', 'icon': Icons.work_outline_rounded},
+      {'title': 'Rapor Parası', 'route': 'rapor', 'screen': 'rapor', 'icon': Icons.local_hospital_rounded},
+      {'title': 'Brütten Nete', 'route': 'brutten_nete', 'screen': 'brutten_nete', 'icon': Icons.swap_horiz_rounded},
     ];
 
     return Padding(
@@ -2322,7 +2343,7 @@ class _SikKullanilanlar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '🔥 Sık Kullanılanlar',
+            '⭐ Öne Çıkanlar',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -2331,17 +2352,19 @@ class _SikKullanilanlar extends StatelessWidget {
           ),
           SizedBox(height: 10),
           SizedBox(
-            height: 44,
+            height: 48,
             child: Stack(
               children: [
                 ListView.separated(
                   scrollDirection: Axis.horizontal,
+                  scrollPhysics: const BouncingScrollPhysics(),
                   itemCount: popularItems.length,
                   separatorBuilder: (_, __) => SizedBox(width: 10),
                   itemBuilder: (context, i) {
                 final item = popularItems[i];
+                final icon = item['icon'] as IconData? ?? Icons.star_rounded;
                 return InkWell(
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(24),
                   onTap: () {
                     final screen = item['screen'] as String;
                     AnalyticsHelper.logCustomEvent('quick_access_tapped', parameters: {
@@ -2393,21 +2416,43 @@ class _SikKullanilanlar extends StatelessWidget {
                     }
                   },
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      color: Colors.indigo.withOpacity(0.08),
-                      border: Border.all(color: Colors.indigo.withOpacity(0.2)),
+                      borderRadius: BorderRadius.circular(24),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.indigo.withOpacity(0.12),
+                          Colors.indigo.withOpacity(0.06),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.indigo.withOpacity(0.08),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Center(
-                      child: Text(
-                        item['title'] as String,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          icon,
+                          size: 18,
                           color: Colors.indigo[700],
                         ),
-                      ),
+                        SizedBox(width: 6),
+                        Text(
+                          item['title'] as String,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.indigo[700],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
