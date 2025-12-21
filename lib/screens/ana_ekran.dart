@@ -1077,33 +1077,13 @@ class _AnaEkranState extends State<AnaEkran> {
                           builder: (context, value, child) {
                             return Transform.translate(
                               offset: Offset(value * 3, 0),
-                              child: Icon(Icons.chevron_right, color: Colors.white                  ),
-                );
-                  },
-                ),
-                // Scroll indicator (sağda fade effect)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 30,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          Colors.white.withOpacity(0.0),
-                          Colors.white.withOpacity(0.8),
-                          Colors.white,
-                        ],
-                      ),
+                              child: Icon(Icons.chevron_right, color: Colors.white),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
                 ),
               ),
             ),
