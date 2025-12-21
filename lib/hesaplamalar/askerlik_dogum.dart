@@ -705,6 +705,11 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
         );
         
         await SonHesaplamalarDeposu.ekle(sonHesaplama);
+        
+        // Firebase Analytics: Hesaplama tamamlandı
+        AnalyticsHelper.logCalculation('askerlik_dogum_borclanma', parameters: {
+          'hesaplama_turu': 'Askerlik/Doğum Borçlanma',
+        });
       } catch (e) {
         debugPrint('Son hesaplama kaydedilirken hata: $e');
       }

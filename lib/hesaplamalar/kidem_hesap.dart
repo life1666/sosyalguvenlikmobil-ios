@@ -778,6 +778,11 @@ class _CompensationCalculatorScreenState
         );
         
         await SonHesaplamalarDeposu.ekle(sonHesaplama);
+        
+        // Firebase Analytics: Hesaplama tamamlandı
+        AnalyticsHelper.logCalculation('kidem_ihbar_tazminati', parameters: {
+          'hesaplama_turu': 'Kıdem - İhbar Tazminatı',
+        });
       } catch (e) {
         debugPrint('Son hesaplama kaydedilirken hata: $e');
       }

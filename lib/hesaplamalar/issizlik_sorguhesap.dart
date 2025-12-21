@@ -896,6 +896,11 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
         );
         
         await SonHesaplamalarDeposu.ekle(sonHesaplama);
+        
+        // Firebase Analytics: Hesaplama tamamlandı
+        AnalyticsHelper.logCalculation('issizlik_maasi', parameters: {
+          'hesaplama_turu': 'İşsizlik Maaşı',
+        });
       } catch (e) {
         debugPrint('Son hesaplama kaydedilirken hata: $e');
       }

@@ -826,6 +826,11 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
       );
       
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
+      
+      // Firebase Analytics: Hesaplama tamamlandı
+      AnalyticsHelper.logCalculation('asgari_iscilik', parameters: {
+        'hesaplama_turu': 'Asgari İşçilik',
+      });
     } catch (e) {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }

@@ -611,6 +611,11 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       );
       
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
+      
+      // Firebase Analytics: Hesaplama tamamlandı
+      AnalyticsHelper.logCalculation('brutten_nete', parameters: {
+        'hesaplama_turu': 'Brütten Nete Maaş',
+      });
     } catch (e) {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }

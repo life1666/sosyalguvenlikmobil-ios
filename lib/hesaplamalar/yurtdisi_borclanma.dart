@@ -427,6 +427,11 @@ class _YurtDisiBorclanmaHesaplamaScreenState extends State<YurtDisiBorclanmaHesa
       );
       
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
+      
+      // Firebase Analytics: Hesaplama tamamlandı
+      AnalyticsHelper.logCalculation('yurtdisi_borclanma', parameters: {
+        'hesaplama_turu': 'Yurt Dışı Borçlanma',
+      });
     } catch (e) {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }

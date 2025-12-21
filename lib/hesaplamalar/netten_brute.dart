@@ -570,6 +570,11 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
       );
       
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
+      
+      // Firebase Analytics: Hesaplama tamamlandı
+      AnalyticsHelper.logCalculation('netten_brute', parameters: {
+        'hesaplama_turu': 'Netten Brüte Maaş',
+      });
     } catch (e) {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }

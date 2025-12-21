@@ -1021,6 +1021,12 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
       );
       
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
+      
+      // Firebase Analytics: Hesaplama tamamlandı
+      AnalyticsHelper.logCalculation('emeklilik_4c', parameters: {
+        'hesaplama_turu': '4/c (Memur) Emeklilik',
+        'emekli_durumu': hesaplamaSonucu!['emekliMi']['durum'] ?? 'bilinmiyor',
+      });
     } catch (e) {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }

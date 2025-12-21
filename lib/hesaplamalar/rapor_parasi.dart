@@ -843,6 +843,11 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       );
       
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
+      
+      // Firebase Analytics: Hesaplama tamamlandı
+      AnalyticsHelper.logCalculation('rapor_parasi', parameters: {
+        'hesaplama_turu': 'Rapor Parası',
+      });
     } catch (e) {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }

@@ -679,6 +679,11 @@ class _KidemTazminatiScreenState extends State<KidemTazminatiScreen> {
         );
         
         await SonHesaplamalarDeposu.ekle(sonHesaplama);
+        
+        // Firebase Analytics: Hesaplama tamamlandı
+        AnalyticsHelper.logCalculation('kidem_tazminati_alabilir', parameters: {
+          'hesaplama_turu': 'Kıdem Tazminatı Alabilir Yazısı',
+        });
       } catch (e) {
         debugPrint('Son hesaplama kaydedilirken hata: $e');
       }

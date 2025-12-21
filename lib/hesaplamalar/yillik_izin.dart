@@ -545,6 +545,11 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
       );
       
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
+      
+      // Firebase Analytics: Hesaplama tamamlandı
+      AnalyticsHelper.logCalculation('yillik_izin', parameters: {
+        'hesaplama_turu': 'Yıllık İzin Süresi',
+      });
     } catch (e) {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }

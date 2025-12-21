@@ -1038,6 +1038,12 @@ class _EmeklilikHesaplama4aSayfasiState extends State<EmeklilikHesaplama4aSayfas
       );
       
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
+      
+      // Firebase Analytics: Hesaplama tamamlandı
+      AnalyticsHelper.logCalculation('emeklilik_4a', parameters: {
+        'hesaplama_turu': '4/a (SSK) Emeklilik',
+        'emekli_durumu': hesaplamaSonucu!['emekliMi']['durum'] ?? 'bilinmiyor',
+      });
     } catch (e) {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }
