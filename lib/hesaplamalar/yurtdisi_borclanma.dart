@@ -311,8 +311,8 @@ class _YurtDisiBorclanmaHesaplamaScreenState extends State<YurtDisiBorclanmaHesa
 
   final TextEditingController _gunController = TextEditingController();
 
-  // Hesaplama parametreleri (AYNEN KORUNDU)
-  final double _asgariAylikGelir = 26005.50;
+  // Hesaplama parametreleri (2026 güncel)
+  final double _asgariAylikGelir = 33030.00;
   double get _ustLimitGelir => _asgariAylikGelir * 9.0;
   final double _borclanmaOrani = 0.45;
   final String _borclanmaTuru = 'Yurt Dışı Borçlanma';
