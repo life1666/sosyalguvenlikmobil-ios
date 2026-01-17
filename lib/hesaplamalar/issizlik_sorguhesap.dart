@@ -460,9 +460,9 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
   final double maxOran = 0.80;
   final double damgaVergisiOrani = 0.00759;
 
-  // ✅ Taban/Tavan (şimdilik 2025 değerleri; 2026 netleşince güncellersin)
-  double get tabanMaas => 13212.00;
-  double get tavanMaas => 20424.00;
+  // ✅ Taban/Tavan (2026 değerleri)
+  double get tabanMaas => (_year >= 2026) ? 13212.00 : 10402.20;
+  double get tavanMaas => (_year >= 2026) ? 26424.00 : 20804.40;
 
   // Asgari kontrol eşiği (son 4 ay brüt kazanç asgari altı olamaz)
   double get aylikAsgariBrut => asgariUcretBrut;
