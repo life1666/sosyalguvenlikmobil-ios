@@ -211,19 +211,27 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                         final responses = mesajData['responses'] as List<dynamic>?;
 
                         final allResponses = <Map<String, dynamic>>[];
-                        if (response != null && response.isNotEmpty) {
+                        final addedTexts = <String>{}; // Duplicate kontrolü için
+                        
+                        if (responses != null) {
+                          for (var r in responses) {
+                            if (r is Map<String, dynamic>) {
+                              final rText = r['text'] as String? ?? '';
+                              if (rText.isNotEmpty && !addedTexts.contains(rText)) {
+                                allResponses.add(r);
+                                addedTexts.add(rText);
+                              }
+                            }
+                          }
+                        }
+                        // Eski response field'ını sadece responses array'inde yoksa ekle
+                        if (response != null && response.isNotEmpty && !addedTexts.contains(response)) {
                           allResponses.add({
                             'text': response,
                             'timestamp': mesajData['responseTimestamp'] as Timestamp?,
                             'adminName': mesajData['adminName'] as String? ?? 'Admin',
                           });
-                        }
-                        if (responses != null) {
-                          for (var r in responses) {
-                            if (r is Map<String, dynamic>) {
-                              allResponses.add(r);
-                            }
-                          }
+                          addedTexts.add(response);
                         }
                         allResponses.sort((a, b) {
                           final aTime = a['timestamp'] as Timestamp?;
@@ -581,7 +589,70 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
               grouped.putIfAbsent(email, () => []).add(doc);
             }
 
-            final sortedEmails = grouped.keys.toList()..sort();
+            // En son mesaj zamanına göre sırala (en yeni en üstte)
+            final sortedEmails = grouped.keys.toList()..sort((a, b) {
+              final aMessages = grouped[a]!;
+              final bMessages = grouped[b]!;
+              
+              // Her email için en son mesaj zamanını bul (kullanıcı mesajı veya admin cevabı)
+              Timestamp? aLastTime;
+              Timestamp? bLastTime;
+              
+              for (var msg in aMessages) {
+                final data = msg.data() as Map<String, dynamic>;
+                final msgTime = data['timestamp'] as Timestamp?;
+                if (msgTime != null && (aLastTime == null || msgTime.compareTo(aLastTime) > 0)) {
+                  aLastTime = msgTime;
+                }
+                // Admin cevaplarını da kontrol et
+                final responses = data['responses'] as List<dynamic>?;
+                if (responses != null) {
+                  for (var r in responses) {
+                    if (r is Map<String, dynamic>) {
+                      final rTime = r['timestamp'] as Timestamp?;
+                      if (rTime != null && (aLastTime == null || rTime.compareTo(aLastTime) > 0)) {
+                        aLastTime = rTime;
+                      }
+                    }
+                  }
+                }
+                // Eski response field'ını da kontrol et
+                final responseTime = data['responseTimestamp'] as Timestamp?;
+                if (responseTime != null && (aLastTime == null || responseTime.compareTo(aLastTime) > 0)) {
+                  aLastTime = responseTime;
+                }
+              }
+              
+              for (var msg in bMessages) {
+                final data = msg.data() as Map<String, dynamic>;
+                final msgTime = data['timestamp'] as Timestamp?;
+                if (msgTime != null && (bLastTime == null || msgTime.compareTo(bLastTime) > 0)) {
+                  bLastTime = msgTime;
+                }
+                // Admin cevaplarını da kontrol et
+                final responses = data['responses'] as List<dynamic>?;
+                if (responses != null) {
+                  for (var r in responses) {
+                    if (r is Map<String, dynamic>) {
+                      final rTime = r['timestamp'] as Timestamp?;
+                      if (rTime != null && (bLastTime == null || rTime.compareTo(bLastTime) > 0)) {
+                        bLastTime = rTime;
+                      }
+                    }
+                  }
+                }
+                // Eski response field'ını da kontrol et
+                final responseTime = data['responseTimestamp'] as Timestamp?;
+                if (responseTime != null && (bLastTime == null || responseTime.compareTo(bLastTime) > 0)) {
+                  bLastTime = responseTime;
+                }
+              }
+              
+              if (aLastTime == null && bLastTime == null) return 0;
+              if (aLastTime == null) return 1;
+              if (bLastTime == null) return -1;
+              return bLastTime.compareTo(aLastTime); // En yeni en üstte
+            });
 
             return ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -590,20 +661,58 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                 final email = sortedEmails[index];
                 final messages = grouped[email]!;
                 
-                // En son mesajı al
-                messages.sort((a, b) {
-                  final aTime = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                  final bTime = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                  if (aTime == null && bTime == null) return 0;
-                  if (aTime == null) return 1;
-                  if (bTime == null) return -1;
-                  return bTime.compareTo(aTime); // Yeniye göre sırala (en son mesaj için)
-                });
+                // En son mesajı bul (kullanıcı mesajı veya admin cevabı)
+                Timestamp? lastTime;
+                QueryDocumentSnapshot? lastMessage;
+                String lastIcerik = "";
+                DateTime lastZaman = DateTime.now();
                 
-                final lastMessage = messages.first;
+                for (var msg in messages) {
+                  final msgData = msg.data() as Map<String, dynamic>;
+                  final msgTime = msgData['timestamp'] as Timestamp?;
+                  
+                  // Kullanıcı mesajını kontrol et
+                  if (msgTime != null && (lastTime == null || msgTime.compareTo(lastTime) > 0)) {
+                    lastTime = msgTime;
+                    lastMessage = msg;
+                    lastIcerik = msgData['message'] ?? "";
+                    lastZaman = msgTime.toDate();
+                  }
+                  
+                  // Admin cevaplarını kontrol et
+                  final responses = msgData['responses'] as List<dynamic>?;
+                  if (responses != null) {
+                    for (var r in responses) {
+                      if (r is Map<String, dynamic>) {
+                        final rTime = r['timestamp'] as Timestamp?;
+                        if (rTime != null && (lastTime == null || rTime.compareTo(lastTime) > 0)) {
+                          lastTime = rTime;
+                          lastMessage = msg;
+                          lastIcerik = r['text'] as String? ?? "";
+                          lastZaman = rTime.toDate();
+                        }
+                      }
+                    }
+                  }
+                  
+                  // Eski response field'ını da kontrol et
+                  final responseTime = msgData['responseTimestamp'] as Timestamp?;
+                  if (responseTime != null && (lastTime == null || responseTime.compareTo(lastTime) > 0)) {
+                    lastTime = responseTime;
+                    lastMessage = msg;
+                    lastIcerik = msgData['response'] as String? ?? "";
+                    lastZaman = responseTime.toDate();
+                  }
+                }
+                
+                if (lastMessage == null) {
+                  lastMessage = messages.first;
+                  final lastMessageData = lastMessage.data() as Map<String, dynamic>;
+                  lastIcerik = lastMessageData['message'] ?? "";
+                  lastZaman = (lastMessageData['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+                }
+                
                 final lastMessageData = lastMessage.data() as Map<String, dynamic>;
-                final lastIcerik = lastMessageData['message'] ?? "";
-                final lastZaman = (lastMessageData['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
                 final hasResponse = (lastMessageData['response'] != null && (lastMessageData['response'] as String).isNotEmpty) ||
                     (lastMessageData['responses'] != null && (lastMessageData['responses'] as List).isNotEmpty);
 
