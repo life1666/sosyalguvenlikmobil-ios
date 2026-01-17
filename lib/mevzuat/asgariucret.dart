@@ -17,6 +17,15 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
 
   // Tarih aralıklarına göre asgari ücret verileri
   static const List<Map<String, dynamic>> asgariUcretler = [
+    // ✅ 2026
+    {
+      'tarihAraligi': '01.01.2026-31.12.2026',
+      'gunluk': 1101.00,      // 33030 / 30
+      'aylik': 33030.00,
+      'aylikNet': 28075.50,
+      'artisOrani': 27.0,     // 26005.50 -> 33030.00 yaklaşık artış
+    },
+
     // 2025
     {
       'tarihAraligi': '01.01.2025-31.12.2025',
@@ -232,43 +241,12 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
       'aylikNet': 481.55,
       'artisOrani': 4.0,
     },
-    // 2007
-    /*{
-      'tarihAraligi': '01.07.2007-31.12.2007',
-      'gunluk': 19.50,
-      'aylik': 585.00,
-      'aylikNet': 436.00,
-      'artisOrani': 4.0,
-    },
-    {
-      'tarihAraligi': '01.01.2007-30.06.2007',
-      'gunluk': 18.75,
-      'aylik': 562.50,
-      'aylikNet': 419.00,
-      'artisOrani': 5.9,
-    },
-    // 2006
-    {
-      'tarihAraligi': '01.01.2006-31.12.2006',
-      'gunluk': 17.70,
-      'aylik': 531.00,
-      'aylikNet': 396.00,
-      'artisOrani': 8.7,
-    },
-    // 2005
-    {
-      'tarihAraligi': '01.01.2005-31.12.2005',
-      'gunluk': 16.29,
-      'aylik': 488.70,
-      'aylikNet': 365.00,
-      'artisOrani': null,
-    },*/
   ];
 
   String _formatPara(double tutar) {
     return '${tutar.toStringAsFixed(2).replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
+          (Match m) => '${m[1]}.',
     )} ₺';
   }
 
@@ -318,7 +296,7 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
                 Expanded(
                   child: Text(
                     'Asgari ücret tutarları yıllara göre listelenmiştir. '
-                    'Güncel asgari ücret bilgileri için resmi kaynakları kontrol ediniz.',
+                        'Güncel asgari ücret bilgileri için resmi kaynakları kontrol ediniz.',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey[800],
@@ -459,7 +437,8 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
                               Expanded(
                                 child: Container(
                                   height: 70, // Tutar kartları ile aynı yükseklik
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 10),
                                   decoration: BoxDecoration(
                                     color: Colors.orange.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),

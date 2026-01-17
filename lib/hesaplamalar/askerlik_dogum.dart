@@ -532,9 +532,19 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
   }
 
   // Sabitler
-  final double _asgariAylikGelir = 26005.50;
-  final double _ustLimitGelir = 169035.75;
+  final double _asgariAylikGelir = 33030.00;
+  double get _ustLimitGelir => _asgariAylikGelir * 9.0;
   final String _basvuruTarihi = 'Güncel asgari ücret üzerinden hesaplanmaktadır.';
+
+  // ✅ Prim oranları
+  final double _oranDogum = 0.32; // Doğum borçlanması
+  final double _oranDiger = 0.45; // Diğer tüm borçlanmalar
+
+  bool get _isDogumBorclanmasi =>
+      _secilenBorclanma == 'Ücretsiz Doğum veya Analık İzni Süreleri';
+
+  double get _primOrani => _isDogumBorclanmasi ? _oranDogum : _oranDiger;
+
 
   final TextEditingController _gunController = TextEditingController();
 
@@ -654,11 +664,11 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
 
     // Hesaplar
     final gunlukAsgariGelir = _asgariAylikGelir / 30.0;
-    final altLimitGunlukBedel = gunlukAsgariGelir * 0.32;
+    final altLimitGunlukBedel = gunlukAsgariGelir * _primOrani;
     final altLimit = gunSayisi * altLimitGunlukBedel;
 
     final gunlukUstGelir = _ustLimitGelir / 30.0;
-    final ustLimitGunlukBedel = gunlukUstGelir * 0.32;
+    final ustLimitGunlukBedel = gunlukUstGelir * _primOrani;
     final ustLimit = gunSayisi * ustLimitGunlukBedel;
 
     setState(() {
@@ -669,6 +679,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
           'Başvuru Tarihi': _basvuruTarihi,
           'Borçlanma Türü': _secilenBorclanma ?? '',
           'Borçlanılacak Gün Sayısı': '$gunSayisi gün',
+          'Prim Oranı': _isDogumBorclanmasi ? '%32 (Doğum)' : '%45 (Diğer)',
           'Borçlanma Alt Limiti': '${formatTL(altLimit)} (Beyan: ${formatPlain(_asgariAylikGelir)} TL)',
           'Borçlanma Üst Limiti': '${formatTL(ustLimit)} (Beyan: ${formatPlain(_ustLimitGelir)} TL)',
         },

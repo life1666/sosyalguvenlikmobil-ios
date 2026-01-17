@@ -106,6 +106,11 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       netMonthly: 22104.67,
       netMonthlyRetired: 23762.53,
     ),
+    2026: const _MinWage(
+      grossMonthly: 33030.00,
+      netMonthly: 28075.50,        // Normal çalışan net asgari
+      netMonthlyRetired: 30181.17,
+    ),
   };
 
   final Map<int, double> _annualPaidLeaveDays = {}; // year -> days
@@ -1372,7 +1377,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   }
 
   void _showSalaryYearPicker() {
-    final years = [2022, 2023, 2024, 2025];
+    final years = [2022, 2023, 2024, 2025, 2026];
     final initialIndex =
     years.indexOf(_salaryYear).clamp(0, years.length - 1);
     showCupertinoModalPopup(

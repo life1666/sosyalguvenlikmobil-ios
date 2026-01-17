@@ -28,7 +28,8 @@ const double kResultHeaderScale = 1.00;
 const FontWeight kResultHeaderWeight = FontWeight.w400;
 
 /// ===== YAZILI ÖZET MADDE KNOB’LARI =====
-const EdgeInsets kSumItemPadding = EdgeInsets.symmetric(vertical: 4, horizontal: 0);
+const EdgeInsets kSumItemPadding =
+EdgeInsets.symmetric(vertical: 4, horizontal: 0);
 const double kSumItemFontScale = 1.10;
 
 class AppW {
@@ -127,7 +128,8 @@ ThemeData uygulamaTemasi = (() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+        borderSide:
+        BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
@@ -135,7 +137,8 @@ ThemeData uygulamaTemasi = (() {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+        borderSide:
+        BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
       ),
       hintStyle: TextStyle(fontSize: 13 * kTextScale, color: Colors.grey),
       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -312,7 +315,8 @@ class CustomCurrencyFormatter extends TextInputFormatter {
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     String digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digitsOnly.isEmpty) {
-      return newValue.copyWith(text: '', selection: const TextSelection.collapsed(offset: 0));
+      return newValue.copyWith(
+          text: '', selection: const TextSelection.collapsed(offset: 0));
     }
 
     if (digitsOnly.length < 5) {
@@ -411,7 +415,6 @@ class _CupertinoField extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // İKON YOK
                 ],
               ),
             ),
@@ -447,13 +450,22 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
 
   final ScrollController _scrollController = ScrollController();
 
-  // 2025 sabitleri
-  final double asgariUcretBrut = 26005;
+  // ✅ Yıl bazlı parametreler (tek yerden yönetim)
+  final int _year = 2026;
+
+  // Asgari brüt (aylık)
+  double get asgariUcretBrut => (_year >= 2026) ? 33030.00 : 26005.50;
+
+  // İşsizlik ödeneği hesap parametreleri (kural aynı)
   final double maxOran = 0.80;
   final double damgaVergisiOrani = 0.00759;
-  final double tabanMaas = 10402.20;
-  final double tavanMaas = 20804.40;
-  final double aylikAsgariBrut = 20002.50;
+
+  // ✅ Taban/Tavan (şimdilik 2025 değerleri; 2026 netleşince güncellersin)
+  double get tabanMaas => 13212.00;
+  double get tavanMaas => 20424.00;
+
+  // Asgari kontrol eşiği (son 4 ay brüt kazanç asgari altı olamaz)
+  double get aylikAsgariBrut => asgariUcretBrut;
 
   final List<String> issizlikMaasiHakKazanilanKodlar = [
     '4', '5', '12', '15', '17', '18', '23', '24', '25', '27', '28', '31', '32', '33', '34', '40'
@@ -519,13 +531,16 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
     kazanc1.addListener(() {
       final v = kazanc1.text;
       if (kazanc2.text != v) {
-        kazanc2.value = TextEditingValue(text: v, selection: TextSelection.collapsed(offset: v.length));
+        kazanc2.value =
+            TextEditingValue(text: v, selection: TextSelection.collapsed(offset: v.length));
       }
       if (kazanc3.text != v) {
-        kazanc3.value = TextEditingValue(text: v, selection: TextSelection.collapsed(offset: v.length));
+        kazanc3.value =
+            TextEditingValue(text: v, selection: TextSelection.collapsed(offset: v.length));
       }
       if (kazanc4.text != v) {
-        kazanc4.value = TextEditingValue(text: v, selection: TextSelection.collapsed(offset: v.length));
+        kazanc4.value =
+            TextEditingValue(text: v, selection: TextSelection.collapsed(offset: v.length));
       }
     });
   }
@@ -550,17 +565,21 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
   }
 
   Future<void> _showHesaplamaSonucu() async {
-    // Validasyonlar (referans tarzı: uyarıyı merkezden ver, sheet açma)
     if (istenCikisKodu == null) {
-      showCenterNotice(context, title: 'Uyarı', message: 'İşten çıkış kodu seçiniz!', type: AppNoticeType.warning);
+      showCenterNotice(context,
+          title: 'Uyarı', message: 'İşten çıkış kodu seçiniz!', type: AppNoticeType.warning);
       return;
     }
     if (hizmetAkdi == null) {
-      showCenterNotice(context, title: 'Uyarı', message: 'Son 120 gün hizmet akdi ile çalıştınız mı?', type: AppNoticeType.warning);
+      showCenterNotice(context,
+          title: 'Uyarı',
+          message: 'Son 120 gün hizmet akdi ile çalıştınız mı?',
+          type: AppNoticeType.warning);
       return;
     }
     if (primGunAraligi == null) {
-      showCenterNotice(context, title: 'Uyarı', message: 'Prim gün aralığınızı seçiniz!', type: AppNoticeType.warning);
+      showCenterNotice(context,
+          title: 'Uyarı', message: 'Prim gün aralığınızı seçiniz!', type: AppNoticeType.warning);
       return;
     }
 
@@ -572,9 +591,7 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
           'İşten Çıkış': '$istenCikisKodu - ${istenCikisKodlari[istenCikisKodu]}',
         },
         'ekBilgi': {
-          // "Kontrol Tarihi" gösterilmeyecek
           'Kontrol Tarihi': formatDateDDMMYYYY(DateTime.now()),
-          // >>> Daha net açıklama
           'Açıklama':
           'Seçtiğiniz çıkış kodu İŞKUR kriterlerine göre işsizlik ödeneğine uygun değildir. '
               'Kodunuzu işten ayrılış bildirgenizden (SGK çıkış kodu) kontrol ediniz.',
@@ -620,7 +637,10 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
         kazanc2.text.trim().isEmpty &&
         kazanc3.text.trim().isEmpty &&
         kazanc4.text.trim().isEmpty) {
-      showCenterNotice(context, title: 'Uyarı', message: 'Lütfen son 4 aylık brüt kazançlarınızı giriniz!', type: AppNoticeType.warning);
+      showCenterNotice(context,
+          title: 'Uyarı',
+          message: 'Lütfen son 4 aylık brüt kazançlarınızı giriniz!',
+          type: AppNoticeType.warning);
       return;
     }
 
@@ -672,9 +692,11 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
 
     double toplamKazanc = k1 + k2 + k3 + k4;
     double gunlukBrutKazanc = toplamKazanc / 120;
-    double isizlikBrutMaasi = gunlukBrutKazanc * 30 * 0.40;
-    double maxBrutMaas = asgariUcretBrut * maxOran;
 
+    double isizlikBrutMaasi = gunlukBrutKazanc * 30 * 0.40;
+
+    // tavan kontrolü (asgari brüt * %80)
+    double maxBrutMaas = asgariUcretBrut * maxOran;
     if (isizlikBrutMaasi > maxBrutMaas) {
       isizlikBrutMaasi = maxBrutMaas;
     }
@@ -683,7 +705,8 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
     double netIsizlikMaasi = isizlikBrutMaasi - damgaVergisi;
 
     final detaylar = <String, String>{
-      'Hak Kazanılan Süre': '${(hakEdilenGun / 30).toStringAsFixed(0)} Ay ($hakEdilenGun Gün)',
+      'Hak Kazanılan Süre':
+      '${(hakEdilenGun / 30).toStringAsFixed(0)} Ay ($hakEdilenGun Gün)',
       'Günlük Brüt Kazanç': formatSayi(gunlukBrutKazanc),
       'Aylık Brüt İşsizlik Maaşı': formatSayi(isizlikBrutMaasi),
       'Damga Vergisi Kesintisi': formatSayi(damgaVergisi),
@@ -694,9 +717,9 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
       'Kontrol Tarihi': formatDateDDMMYYYY(DateTime.now()),
       'Not': istenCikisKodu == '12'
           ? 'Askerlikten Sonra Alınabilir.'
-          : 'Hesaplama 2025 Yılı Verilerine Göre Yapılmıştır.',
-      '2025 Yılı Taban Brüt Ücret': formatSayi(tabanMaas),
-      '2025 Yılı Tavan Brüt Ücret': formatSayi(tavanMaas),
+          : 'Hesaplama $_year Yılı Verilerine Göre Yapılmıştır.',
+      '$_year Yılı Taban Brüt Ücret': formatSayi(tabanMaas),
+      '$_year Yılı Tavan Brüt Ücret': formatSayi(tavanMaas),
     };
 
     _hesaplamaSonucu = {
@@ -849,14 +872,17 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
 
   Future<void> _pickHizmetAkdi() async {
     final items = ['Evet', 'Hayır'];
-    final current = hizmetAkdi == null ? 0 : items.indexOf(hizmetAkdi!).clamp(0, items.length - 1);
+    final current =
+    hizmetAkdi == null ? 0 : items.indexOf(hizmetAkdi!).clamp(0, items.length - 1);
     final picked = await _showCupertinoListPicker(items: items, initialIndex: current);
     if (picked != null) setState(() => hizmetAkdi = picked);
   }
 
   Future<void> _pickPrimGun() async {
     final items = ['600 günden az', '600 - 899 gün', '900 - 1079 gün', '1080 gün ve üzeri'];
-    final current = primGunAraligi == null ? 0 : items.indexOf(primGunAraligi!).clamp(0, items.length - 1);
+    final current = primGunAraligi == null
+        ? 0
+        : items.indexOf(primGunAraligi!).clamp(0, items.length - 1);
     final picked = await _showCupertinoListPicker(items: items, initialIndex: current);
     if (picked != null) setState(() => primGunAraligi = picked);
   }
@@ -866,14 +892,12 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
     final det = Map<String, String>.from(_hesaplamaSonucu?['detaylar'] ?? {});
     detaylar.addAll(det);
 
-    // ekBilgi'yi alt satırlara ekleyelim ama "Kontrol Tarihi"ni GÖSTERMEYELİM
     final ek = Map<String, String>.from(_hesaplamaSonucu?['ekBilgi'] ?? {});
     for (final e in ek.entries) {
-      if (e.key == 'Kontrol Tarihi') continue; // Görünmesin
+      if (e.key == 'Kontrol Tarihi') continue;
       detaylar[e.key] = e.value;
     }
 
-    // Son hesaplamalara kaydet
     if (_hesaplamaSonucu != null) {
       try {
         final veriler = <String, dynamic>{
@@ -885,7 +909,7 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
           'kazanc3': kazanc3.text.isNotEmpty ? parseSayi(kazanc3.text) : null,
           'kazanc4': kazanc4.text.isNotEmpty ? parseSayi(kazanc4.text) : null,
         };
-        
+
         final sonHesaplama = SonHesaplama(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           hesaplamaTuru: 'İşsizlik Maaşı Hesaplama',
@@ -894,10 +918,9 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
           sonuclar: detaylar,
           ozet: _hesaplamaSonucu!['mesaj'] ?? 'Hesaplama tamamlandı',
         );
-        
+
         await SonHesaplamalarDeposu.ekle(sonHesaplama);
-        
-        // Firebase Analytics: Hesaplama tamamlandı
+
         AnalyticsHelper.logCalculation('issizlik_maasi', parameters: {
           'hesaplama_turu': 'İşsizlik Maaşı',
         });
@@ -956,21 +979,18 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
                     onTap: _pickExitCode,
                   ),
                   const SizedBox(height: 8),
-
                   _CupertinoField(
                     label: 'Son 120 Gün Hizmet Akdi ile Çalıştınız mı ?',
                     valueText: hizmetAkdi ?? 'Seçiniz',
                     onTap: _pickHizmetAkdi,
                   ),
                   const SizedBox(height: 8),
-
                   _CupertinoField(
                     label: 'Son 3 Yıldaki Toplam Prim Gün Sayınız',
                     valueText: primGunAraligi ?? 'Seçiniz',
                     onTap: _pickPrimGun,
                   ),
                   const SizedBox(height: 8),
-
                   Text('Son 4 Aylık Brüt Kazançlarınız', style: context.sFormLabel),
                   const SizedBox(height: 12),
                   Row(
@@ -988,7 +1008,6 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
                       Expanded(child: _buildAmountField('4. Ay', kazanc4)),
                     ],
                   ),
-
                   const SizedBox(height: 12),
                   _buildHesaplaButton(),
                   const SizedBox(height: 12),
@@ -1015,7 +1034,6 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
     );
   }
 
-  /// HESAPLA BUTONU — referans stil
   Widget _buildHesaplaButton() {
     return SizedBox(
       height: 46,
@@ -1054,7 +1072,8 @@ class _IsizlikMaasiScreenState extends State<IsizlikMaasiScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(kFieldBorderRadius),
-              borderSide: const BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+              borderSide:
+              const BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
             ),
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1154,7 +1173,6 @@ class ResultSheet extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 8),
-                  // Tutma çubuğu
                   Container(
                     width: 48,
                     height: 5,
@@ -1164,7 +1182,7 @@ class ResultSheet extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      title, // Üstte sabit "Hesaplama Sonucu"
+                      title,
                       style: TextStyle(
                         fontSize: 16 * kResultHeaderScale,
                         fontWeight: kResultHeaderWeight,
@@ -1174,7 +1192,7 @@ class ResultSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Divider(height: 1), // Açıklamaların üstünde divider
+                  const Divider(height: 1),
                   Expanded(
                     child: ListView(
                       key: const ValueKey('result-list'),
@@ -1218,7 +1236,6 @@ class ResultSheet extends StatelessWidget {
                   );
                 }
               },
-              // >>> Apple tarzı paylaşma ikonu geri eklendi
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

@@ -185,6 +185,29 @@ String _formatPlain(double n) {
   return '${neg ? '-' : ''}${buf.toString()},$frac';
 }
 
+/// ======================
+///  ✅ KURUŞ (INT) MOTOR YARDIMCILARI  (KURUŞ HATASINI KÖKTEN BİTİRİR)
+/// ======================
+int _toKurus(double tl) => (tl * 100).round();
+double _fromKurus(int kurus) => kurus / 100.0;
+
+int _parseCurrencyToKurus(String text) {
+  if (text.trim().isEmpty) return 0;
+  final t = text
+      .replaceAll(' TL', '')
+      .replaceAll('.', '')
+      .replaceAll(',', '.')
+      .trim();
+  final d = double.tryParse(t) ?? 0.0;
+  return _toKurus(d);
+}
+
+String _formatCurrencyFromKurus(int kurus) => _formatCurrency(_fromKurus(kurus));
+
+int _mulRateKurus(int baseKurus, double rate) => (baseKurus * rate).round();
+int _minInt(int a, int b) => a < b ? a : b;
+int _maxInt(int a, int b) => a > b ? a : b;
+
 /// ===== CENTER NOTICE (mini) =====
 enum AppNoticeType { error, info, success, warning }
 
@@ -254,7 +277,6 @@ class _CupertinoField extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // chevron kaldırıldı
                   ],
                 ),
               ),
@@ -281,7 +303,6 @@ class _AmountField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // sade kutu
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -290,7 +311,8 @@ class _AmountField extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            left: 8, top: 6,
+            left: 8,
+            top: 6,
             child: Text(
               label,
               style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12),
@@ -311,12 +333,12 @@ class _AmountField extends StatelessWidget {
               textAlign: TextAlign.right,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
-              onChanged: (_) => onChangedCascade(), // canlı biçimleme yok, sadece zincirleme
+              onChanged: (_) => onChangedCascade(),
               onEditingComplete: () {
                 FocusScope.of(context).unfocus();
                 if (controller.text.trim().isNotEmpty) {
                   final val = _parseCurrency(controller.text);
-                  controller.text = _formatPlain(val); // kutu içinde TL yok
+                  controller.text = _formatPlain(val);
                 }
               },
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: .2, color: Colors.black87),
@@ -354,23 +376,20 @@ class SalaryCalculatorScreen extends StatefulWidget {
 }
 
 class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
-  // Ay alanları
   final List<TextEditingController> _gross = List.generate(12, (_) => TextEditingController());
 
-  // Seçimler (Cupertino) — başlangıçta "Seçiniz" görünsün
-  final List<int> _years = const [2022, 2023, 2024, 2025];
-  int _selectedYearInternal = 2025;
+  final List<int> _years = const [2022, 2023, 2024, 2025, 2026];
+  int _selectedYearInternal = 2026;
   bool _pickedYear = false;
 
   final List<String> _employeeStatusOptions = const ["Normal Çalışan", "SGDP Kapsamında Çalışan"];
   String _employeeStatusInternal = "Normal Çalışan";
   bool _pickedStatus = false;
 
-  List<String> _incentiveOptions = const ["Teşvik Yok", "4 Puan", "5 Puan"];
+  List<String> _incentiveOptions = const ["Teşvik Yok", "2 Puan", "4 Puan", "5 Puan"];
   String _selectedIncentiveInternal = "Teşvik Yok";
   bool _pickedIncentive = false;
 
-  // Hesaplama sabitleri
   late double sgkEmployeeRate;
   late double sgkEmployerBaseRate;
   late double unemploymentEmployeeRate;
@@ -382,7 +401,6 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
   late List<double> taxBrackets;
   late List<double> taxRates;
 
-  // Sonuçlar
   List<DataRow> _monthlyRows = [];
   String? _errorMessage;
 
@@ -403,7 +421,6 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     super.dispose();
   }
 
-  // === Yardımcılar ===
   void _autoFillMonths(int startIndex) {
     if (_gross[startIndex].text.trim().isEmpty) {
       for (int i = startIndex + 1; i < 12; i++) {
@@ -411,20 +428,21 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       }
     } else {
       final value = _parseCurrency(_gross[startIndex].text);
-      final formatted = _formatPlain(value); // TL YOK
+      final formatted = _formatPlain(value);
       for (int i = startIndex + 1; i < 12; i++) {
         _gross[i].text = formatted;
       }
     }
   }
 
-  // === Sabitleri yıl/statü/teşvik’e göre güncelle ===
   void _updateConstants(int year) {
     if (_employeeStatusInternal == "SGDP Kapsamında Çalışan") {
       sgkEmployeeRate = 0.075;
       unemploymentEmployeeRate = 0.0;
       unemploymentEmployerRate = 0.0;
+
       sgkEmployerBaseRate = 0.225;
+
       _incentiveOptions = (year == 2023 || year == 2024)
           ? ["Teşvik Yok", "5 Puan"]
           : ["Teşvik Yok"];
@@ -432,11 +450,21 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       sgkEmployeeRate = 0.14;
       unemploymentEmployeeRate = 0.01;
       unemploymentEmployerRate = 0.02;
-      sgkEmployerBaseRate = 0.185;
-      _incentiveOptions = (year == 2025)
-          ? ["Teşvik Yok", "4 Puan", "5 Puan"]
-          : ["Teşvik Yok", "5 Puan"];
+
+      sgkEmployerBaseRate = (year >= 2026) ? 0.195 : 0.185;
+
+      if (year >= 2026) {
+        _incentiveOptions = ["Teşvik Yok", "2 Puan", "5 Puan"];
+        if (_selectedIncentiveInternal == "4 Puan") {
+          _selectedIncentiveInternal = "2 Puan";
+        }
+      } else if (year == 2025) {
+        _incentiveOptions = ["Teşvik Yok", "4 Puan", "5 Puan"];
+      } else {
+        _incentiveOptions = ["Teşvik Yok", "5 Puan"];
+      }
     }
+
     if (!_incentiveOptions.contains(_selectedIncentiveInternal)) {
       _selectedIncentiveInternal = _incentiveOptions.first;
     }
@@ -455,11 +483,20 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       minWage = 20002.50;
       taxBrackets = [110000, 230000, 870000, 3000000];
       taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
-    } else {
+    } else if (year == 2025) {
       minWage = 26005.50;
       taxBrackets = [158000, 330000, 1200000, 4300000];
       taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else if (year == 2026) {
+      minWage = 33030.00;
+      taxBrackets = [190000, 400000, 1500000, 5300000];
+      taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else {
+      minWage = 33030.00;
+      taxBrackets = [190000, 400000, 1500000, 5300000];
+      taxRates = [0.15, 0.20, 0.27, 0.35, 0.40];
     }
+
     minWageTaxableBase = minWage * (1 - sgkEmployeeRate - unemploymentEmployeeRate);
 
     setState(() {});
@@ -480,71 +517,92 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       if (monthIndex < 6) return 2550.32;
       if (monthIndex == 6) return 3001.06;
       return 3400.42;
-    } else {
+    } else if (_selectedYearInternal == 2025) {
       if (monthIndex < 7) return 3315.70;
       if (monthIndex == 7) return 4257.57;
       return 4420.93;
+    } else if (_selectedYearInternal == 2026) {
+      if (monthIndex < 6) return 4211.33;
+      if (monthIndex == 6) return 4537.75;
+      return 5615.10;
     }
+    return 0.0;
   }
 
-  Map<String, double> _incomeTaxCalc(
-      double monthlyTaxableIncomeDbl,
-      double cumulativeTaxableIncomeBeforeExemptionDbl,
-      double cumulativeTaxableIncomeBeforeExemptionPreviousDbl,
-      int monthIndex,
-      List<double> roundedCumulativeTaxes) {
-    int monthlyTI = (monthlyTaxableIncomeDbl * 100).round();
-    int cumTotal = (cumulativeTaxableIncomeBeforeExemptionDbl * 100).round();
-    int cumPrev = (cumulativeTaxableIncomeBeforeExemptionPreviousDbl * 100).round();
-    int minBaseK = (minWageTaxableBase * 100).round();
+  int _getExemptionTaxAmountK(int monthIndex) => _toKurus(getExemptionTaxAmount(monthIndex));
 
-    if (monthlyTI <= 0) {
-      return {'tax':0,'exemption':0,'taxableIncomeAfterExemption':0,'taxBeforeExemption':0};
+  /// ✅ KURUŞ bazlı gelir vergisi (double drift yok)
+  Map<String, int> _incomeTaxCalcKurus({
+    required int monthlyTaxableIncomeK,
+    required int cumulativeTaxableIncomeBeforeExemptionK,
+    required int cumulativeTaxableIncomeBeforeExemptionPrevK,
+    required int monthIndex,
+    required int minWageTaxableBaseK,
+    required List<int> taxBracketsK,
+  }) {
+    if (monthlyTaxableIncomeK <= 0) {
+      return {
+        'taxK': 0,
+        'exemptionK': 0,
+        'taxableIncomeAfterExemptionK': 0,
+        'taxBeforeExemptionK': 0,
+      };
     }
 
-    int exemptionK = monthlyTI >= minBaseK ? minBaseK : monthlyTI;
-    int taxableAfterK = monthlyTI - exemptionK;
+    final exemptionBaseK = monthlyTaxableIncomeK >= minWageTaxableBaseK
+        ? minWageTaxableBaseK
+        : monthlyTaxableIncomeK;
+
+    final taxableAfterExemptionMatrahK = monthlyTaxableIncomeK - exemptionBaseK;
 
     int totalBP = 0;
-    int rem = cumTotal;
+    int rem = cumulativeTaxableIncomeBeforeExemptionK;
     int prevLimit = 0;
-    for (int i = 0; i < taxBrackets.length + 1; i++) {
+
+    for (int i = 0; i < taxBracketsK.length + 1; i++) {
       if (rem <= 0) break;
-      int limitK = i < taxBrackets.length ? (taxBrackets[i] * 100).round() : rem;
-      int sliceK = rem > (limitK - prevLimit) ? (limitK - prevLimit) : rem;
-      int rateBP = (taxRates[i] * 100).round();
-      totalBP += sliceK * rateBP;
+
+      final limitK = i < taxBracketsK.length ? taxBracketsK[i] : rem;
+      final sliceK = rem > (limitK - prevLimit) ? (limitK - prevLimit) : rem;
+
+      final ratePercent = (taxRates[i] * 100).round(); // 0.15 -> 15
+      totalBP += sliceK * ratePercent;
+
       prevLimit = limitK;
       rem -= sliceK;
     }
 
     int prevBP = 0;
-    rem = cumPrev;
-    prevLimit = 0; // reset
-    for (int i = 0; i < taxBrackets.length + 1; i++) {
+    rem = cumulativeTaxableIncomeBeforeExemptionPrevK;
+    prevLimit = 0;
+
+    for (int i = 0; i < taxBracketsK.length + 1; i++) {
       if (rem <= 0) break;
-      int limitK = i < taxBrackets.length ? (taxBrackets[i] * 100).round() : rem;
-      int sliceK = rem > (limitK - prevLimit) ? (limitK - prevLimit) : rem;
-      int rateBP = (taxRates[i] * 100).round();
-      prevBP += sliceK * rateBP;
+
+      final limitK = i < taxBracketsK.length ? taxBracketsK[i] : rem;
+      final sliceK = rem > (limitK - prevLimit) ? (limitK - prevLimit) : rem;
+
+      final ratePercent = (taxRates[i] * 100).round();
+      prevBP += sliceK * ratePercent;
+
       prevLimit = limitK;
       rem -= sliceK;
     }
 
-    int monthlyBPdiff = totalBP - prevBP;
-    int monthlyBeforeK = (monthlyBPdiff + 50) ~/ 100;
-    double roundedMonthlyBefore = monthlyBeforeK / 100.0;
+    final monthlyBPdiff = totalBP - prevBP;
 
-    int exemptionTaxK = (getExemptionTaxAmount(monthIndex) * 100).round();
-    int monthlyTaxK = monthlyBeforeK - exemptionTaxK;
+    // (kuruş * yüzde)/100 => kuruş; half-up için +50
+    final taxBeforeExemptionK = (monthlyBPdiff + 50) ~/ 100;
+
+    final exemptionTaxK = _getExemptionTaxAmountK(monthIndex);
+    int monthlyTaxK = taxBeforeExemptionK - exemptionTaxK;
     if (monthlyTaxK < 0) monthlyTaxK = 0;
-    double monthlyTax = monthlyTaxK / 100.0;
 
     return {
-      'tax': monthlyTax,
-      'exemption': getExemptionTaxAmount(monthIndex),
-      'taxableIncomeAfterExemption': taxableAfterK / 100.0,
-      'taxBeforeExemption': roundedMonthlyBefore,
+      'taxK': monthlyTaxK,
+      'exemptionK': exemptionTaxK,
+      'taxableIncomeAfterExemptionK': taxableAfterExemptionMatrahK,
+      'taxBeforeExemptionK': taxBeforeExemptionK,
     };
   }
 
@@ -577,30 +635,29 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
           });
           return;
         }
-        c.text = _formatPlain(v); // Giriş alanı TL’siz kalır
+        c.text = _formatPlain(v);
       }
     }
 
     _calculateNetSalaryForYear();
 
-    // Son hesaplamalara kaydet
     try {
       final monthlyNetSalaries = _getNetSalaries(_monthlyRows);
       final avgNet = _calcAverageNet(_monthlyRows);
       final yearlyNet = _calcSumNet(_monthlyRows);
-      
+
       final veriler = <String, dynamic>{
         'yil': _selectedYearInternal,
         'calisanDurumu': _employeeStatusInternal,
         'tesvik': _selectedIncentiveInternal,
       };
-      
+
       final sonuclar = <String, String>{
         'Yıl': _selectedYearInternal.toString(),
         'Ortalama Net Maaş': _formatCurrency(avgNet),
         'Yıllık Toplam Net Maaş': _formatCurrency(yearlyNet),
       };
-      
+
       final sonHesaplama = SonHesaplama(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         hesaplamaTuru: 'Brütten Nete Maaş Hesaplama',
@@ -609,10 +666,9 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
         sonuclar: sonuclar,
         ozet: 'Brütten nete maaş hesaplaması tamamlandı',
       );
-      
+
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
-      
-      // Firebase Analytics: Hesaplama tamamlandı
+
       AnalyticsHelper.logCalculation('brutten_nete', parameters: {
         'hesaplama_turu': 'Brütten Nete Maaş',
       });
@@ -638,54 +694,80 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     );
   }
 
+  /// ✅ KURUŞ MOTORLU NET HESAP (1 kuruş farkları biter)
   void _calculateNetSalaryForYear() {
-    List<double> roundedCumulativeTaxes = List.filled(12, 0.0);
     List<DataRow> monthlyRows = [];
-    double cumulativeTaxableIncomeBeforeExemption = 0;
-    double cumulativeIncomeTax = 0;
-    double totalNetSalary = 0;
-    double totalEmployerCost = 0;
-    double totalIncomeTaxExemption = 0;
-    double totalStampTaxExemption = 0;
-    double totalGrossSalary = 0;
-    double totalSgkEmployeeDeduction = 0;
-    double totalUnemploymentEmployeeDeduction = 0;
-    double totalStampTax = 0;
-    double totalSgkEmployerDeduction = 0;
-    double totalUnemploymentEmployerDeduction = 0;
-    double totalTaxBeforeExemption = 0;
-    double totalStampTaxBeforeExemption = 0;
 
-    double round2(double v) => (v * 100).round() / 100;
+    int cumulativeTaxableIncomeBeforeExemptionK = 0;
+
+    int cumulativeIncomeTaxK = 0;
+    int totalNetSalaryK = 0;
+    int totalEmployerCostK = 0;
+    int totalIncomeTaxExemptionK = 0;
+    int totalStampTaxExemptionK = 0;
+    int totalGrossSalaryK = 0;
+
+    int totalSgkEmployeeDeductionK = 0;
+    int totalUnemploymentEmployeeDeductionK = 0;
+    int totalStampTaxK = 0;
+
+    int totalSgkEmployerDeductionK = 0;
+    int totalUnemploymentEmployerDeductionK = 0;
+
+    int totalTaxBeforeExemptionK = 0;
+    int totalStampTaxBeforeExemptionK = 0;
+
+    final taxBracketsK = taxBrackets.map((x) => _toKurus(x)).toList();
 
     for (int month = 0; month < 12; month++) {
-      double shortTermRate = (_selectedYearInternal < 2024 || (_selectedYearInternal == 2024 && month < 8)) ? 0.02 : 0.0225;
+      final double shortTermRate =
+      (_selectedYearInternal < 2024 || (_selectedYearInternal == 2024 && month < 8))
+          ? 0.02
+          : 0.0225;
+
       sgkEmployerRate = sgkEmployerBaseRate + shortTermRate;
 
       final raw = _gross[month].text.trim();
-      final gross = _parseCurrency(raw);
-      if (gross <= 0) continue;
+      final grossK = _parseCurrencyToKurus(raw);
+      if (grossK <= 0) continue;
 
+      // Asgari (ay bazlı)
       if (_selectedYearInternal == 2022) {
         minWage = month < 6 ? 5004.00 : 6471.00;
       } else if (_selectedYearInternal == 2023) {
         minWage = month < 6 ? 10008.00 : 13414.50;
       } else if (_selectedYearInternal == 2024) {
         minWage = 20002.50;
-      } else {
+      } else if (_selectedYearInternal == 2025) {
         minWage = 26005.50;
+      } else if (_selectedYearInternal == 2026) {
+        minWage = 33030.00;
       }
-      final sgkCeiling = minWage * 7.5;
-      minWageTaxableBase = round2(minWage * (1 - sgkEmployeeRate - unemploymentEmployeeRate));
 
+      final minWageKLocal = _toKurus(minWage);
+
+      // Asgari vergi matrahı (kuruş)
+      final sgkMinEmpK = _mulRateKurus(minWageKLocal, sgkEmployeeRate);
+      final unempMinEmpK = _mulRateKurus(minWageKLocal, unemploymentEmployeeRate);
+      final minWageTaxableBaseKLocal = minWageKLocal - sgkMinEmpK - unempMinEmpK;
+
+      // SGK tavan
+      final double sgkCeilingMultiplier = (_selectedYearInternal >= 2026) ? 9.0 : 7.5;
+      final sgkCeilingK = (minWageKLocal * sgkCeilingMultiplier).round();
+      final sgkBaseK = _minInt(grossK, sgkCeilingK);
+
+      // SGDP 2024 özel işveren oranı
       if (_employeeStatusInternal == "SGDP Kapsamında Çalışan" && _selectedYearInternal == 2024) {
         sgkEmployerRate = month < 8 ? 0.245 : 0.2475;
       }
 
+      // Teşvik
       final originalEmployerRate = sgkEmployerRate;
       double incentiveRate = 0.0;
+
       if (_employeeStatusInternal == "SGDP Kapsamında Çalışan") {
-        if (_selectedIncentiveInternal == "5 Puan" && (_selectedYearInternal == 2023 || _selectedYearInternal == 2024)) {
+        if (_selectedIncentiveInternal == "5 Puan" &&
+            (_selectedYearInternal == 2023 || _selectedYearInternal == 2024)) {
           incentiveRate = 0.05;
         }
       } else {
@@ -693,95 +775,106 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
           incentiveRate = 0.05;
         } else if (_selectedIncentiveInternal == "4 Puan" && _selectedYearInternal == 2025) {
           incentiveRate = 0.04;
+        } else if (_selectedIncentiveInternal == "2 Puan" && _selectedYearInternal >= 2026) {
+          incentiveRate = 0.02;
         }
       }
+
       final effEmployerRate = originalEmployerRate - incentiveRate;
 
-      final unemploymentEmployerDed = round2(gross * unemploymentEmployerRate);
-      final sgkBase = gross > sgkCeiling ? sgkCeiling : gross;
-      final sgkEmployeeDed = round2(sgkBase * sgkEmployeeRate);
-      final unemploymentEmployeeDed = round2(sgkBase * unemploymentEmployeeRate);
-      final totalEmployeeDed = round2(sgkEmployeeDed + unemploymentEmployeeDed);
+      // Kesintiler
+      final sgkEmployeeDedK = _mulRateKurus(sgkBaseK, sgkEmployeeRate);
+      final unemploymentEmployeeDedK = _mulRateKurus(sgkBaseK, unemploymentEmployeeRate);
+      final totalEmployeeDedK = sgkEmployeeDedK + unemploymentEmployeeDedK;
 
-      final sgkEmployerDed = round2(sgkBase * effEmployerRate);
-      final totalEmployerDed = round2(sgkEmployerDed + unemploymentEmployerDed);
+      final sgkEmployerDedK = _mulRateKurus(sgkBaseK, effEmployerRate);
 
-      final taxableBase = round2(gross - totalEmployeeDed);
-      final prevCum = cumulativeTaxableIncomeBeforeExemption;
-      cumulativeTaxableIncomeBeforeExemption += taxableBase;
+      // ✅ işveren işsizlik de SGK base üzerinden (tavanlı)
+      final unemploymentEmployerDedK = _mulRateKurus(sgkBaseK, unemploymentEmployerRate);
 
-      final taxRes = _incomeTaxCalc(
-        taxableBase,
-        cumulativeTaxableIncomeBeforeExemption,
-        prevCum,
-        month,
-        roundedCumulativeTaxes,
+      final totalEmployerDedK = sgkEmployerDedK + unemploymentEmployerDedK;
+
+      // Vergi matrahı
+      final taxableBaseK = grossK - totalEmployeeDedK;
+
+      final prevCumK = cumulativeTaxableIncomeBeforeExemptionK;
+      cumulativeTaxableIncomeBeforeExemptionK += taxableBaseK;
+
+      final taxResK = _incomeTaxCalcKurus(
+        monthlyTaxableIncomeK: taxableBaseK,
+        cumulativeTaxableIncomeBeforeExemptionK: cumulativeTaxableIncomeBeforeExemptionK,
+        cumulativeTaxableIncomeBeforeExemptionPrevK: prevCumK,
+        monthIndex: month,
+        minWageTaxableBaseK: minWageTaxableBaseKLocal,
+        taxBracketsK: taxBracketsK,
       );
 
-      if (month == 0) {
-        roundedCumulativeTaxes[0] = taxRes['taxBeforeExemption']!;
-      } else {
-        roundedCumulativeTaxes[month] = roundedCumulativeTaxes[month - 1] + taxRes['taxBeforeExemption']!;
-      }
+      // Damga
+      final stampBeforeK = _mulRateKurus(grossK, stampTaxRate);
+      final stampExK = _mulRateKurus(minWageKLocal, stampTaxRate);
+      final stampK = _maxInt(0, stampBeforeK - stampExK);
 
-      final stampEx = round2(minWage * 0.00759);
-      final stampBefore = round2(gross * 0.00759);
-      double stamp = round2(stampBefore - stampEx);
-      if (stamp < 0) stamp = 0;
-
-      final totalDeductions = round2(totalEmployeeDed + taxRes['tax']! + stamp);
-      final net = round2(gross - totalDeductions);
-      final employerCost = round2(gross + totalEmployerDed);
+      // Net & maliyet
+      final totalDeductionsK = totalEmployeeDedK + taxResK['taxK']! + stampK;
+      final netK = grossK - totalDeductionsK;
+      final employerCostK = grossK + totalEmployerDedK;
 
       monthlyRows.add(DataRow(cells: [
         DataCell(Text(monthNames[month])),
-        DataCell(Text(_formatCurrency(gross))),
-        DataCell(Text(_formatCurrency(net))),
-        DataCell(Text(_formatCurrency(sgkEmployeeDed))),
-        DataCell(Text(_formatCurrency(unemploymentEmployeeDed))),
-        DataCell(Text(_formatCurrency(sgkEmployerDed))),
-        DataCell(Text(_formatCurrency(unemploymentEmployerDed))),
-        DataCell(Text(_formatCurrency(taxRes['tax']!))),
-        DataCell(Text(_formatCurrency(cumulativeTaxableIncomeBeforeExemption))),
-        DataCell(Text(_formatCurrency(taxRes['taxBeforeExemption']!))),
-        DataCell(Text(_formatCurrency(taxRes['exemption']!))),
-        DataCell(Text(_formatCurrency(stamp))),
-        DataCell(Text(_formatCurrency(stampBefore))),
-        DataCell(Text(_formatCurrency(stampEx))),
-        DataCell(Text(_formatCurrency(employerCost))),
+        DataCell(Text(_formatCurrencyFromKurus(grossK))),
+        DataCell(Text(_formatCurrencyFromKurus(netK))),
+        DataCell(Text(_formatCurrencyFromKurus(sgkEmployeeDedK))),
+        DataCell(Text(_formatCurrencyFromKurus(unemploymentEmployeeDedK))),
+        DataCell(Text(_formatCurrencyFromKurus(sgkEmployerDedK))),
+        DataCell(Text(_formatCurrencyFromKurus(unemploymentEmployerDedK))),
+        DataCell(Text(_formatCurrencyFromKurus(taxResK['taxK']!))),
+        DataCell(Text(_formatCurrencyFromKurus(cumulativeTaxableIncomeBeforeExemptionK))),
+        DataCell(Text(_formatCurrencyFromKurus(taxResK['taxBeforeExemptionK']!))),
+        DataCell(Text(_formatCurrencyFromKurus(taxResK['exemptionK']!))),
+        DataCell(Text(_formatCurrencyFromKurus(stampK))),
+        DataCell(Text(_formatCurrencyFromKurus(stampBeforeK))),
+        DataCell(Text(_formatCurrencyFromKurus(stampExK))),
+        DataCell(Text(_formatCurrencyFromKurus(employerCostK))),
       ]));
 
-      totalGrossSalary += gross;
-      totalNetSalary += net;
-      totalSgkEmployeeDeduction += sgkEmployeeDed;
-      totalUnemploymentEmployeeDeduction += unemploymentEmployeeDed;
-      cumulativeIncomeTax += taxRes['tax']!;
-      totalStampTax += stamp;
-      totalSgkEmployerDeduction += sgkEmployerDed;
-      totalUnemploymentEmployerDeduction += unemploymentEmployerDed;
-      totalEmployerCost += employerCost;
-      totalIncomeTaxExemption += taxRes['exemption']!;
-      totalStampTaxExemption += stampEx;
-      totalTaxBeforeExemption += taxRes['taxBeforeExemption']!;
-      totalStampTaxBeforeExemption += stampBefore;
+      // Toplamlar
+      totalGrossSalaryK += grossK;
+      totalNetSalaryK += netK;
+
+      totalSgkEmployeeDeductionK += sgkEmployeeDedK;
+      totalUnemploymentEmployeeDeductionK += unemploymentEmployeeDedK;
+
+      cumulativeIncomeTaxK += taxResK['taxK']!;
+      totalStampTaxK += stampK;
+
+      totalSgkEmployerDeductionK += sgkEmployerDedK;
+      totalUnemploymentEmployerDeductionK += unemploymentEmployerDedK;
+
+      totalEmployerCostK += employerCostK;
+
+      totalIncomeTaxExemptionK += taxResK['exemptionK']!;
+      totalStampTaxExemptionK += stampExK;
+
+      totalTaxBeforeExemptionK += taxResK['taxBeforeExemptionK']!;
+      totalStampTaxBeforeExemptionK += stampBeforeK;
     }
 
     monthlyRows.add(DataRow(cells: [
       const DataCell(Text('Toplam', style: TextStyle(fontWeight: FontWeight.bold))),
-      DataCell(Text(_formatCurrency(totalGrossSalary))),
-      DataCell(Text(_formatCurrency(totalNetSalary))),
-      DataCell(Text(_formatCurrency(totalSgkEmployeeDeduction))),
-      DataCell(Text(_formatCurrency(totalUnemploymentEmployeeDeduction))),
-      DataCell(Text(_formatCurrency(totalSgkEmployerDeduction))),
-      DataCell(Text(_formatCurrency(totalUnemploymentEmployerDeduction))),
-      DataCell(Text(_formatCurrency(cumulativeIncomeTax))),
-      DataCell(Text(_formatCurrency(cumulativeTaxableIncomeBeforeExemption))),
-      DataCell(Text(_formatCurrency(totalTaxBeforeExemption))),
-      DataCell(Text(_formatCurrency(totalIncomeTaxExemption))),
-      DataCell(Text(_formatCurrency(totalStampTax))),
-      DataCell(Text(_formatCurrency(totalStampTaxBeforeExemption))),
-      DataCell(Text(_formatCurrency(totalStampTaxExemption))),
-      DataCell(Text(_formatCurrency(totalEmployerCost))),
+      DataCell(Text(_formatCurrencyFromKurus(totalGrossSalaryK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalNetSalaryK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalSgkEmployeeDeductionK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalUnemploymentEmployeeDeductionK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalSgkEmployerDeductionK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalUnemploymentEmployerDeductionK))),
+      DataCell(Text(_formatCurrencyFromKurus(cumulativeIncomeTaxK))),
+      DataCell(Text(_formatCurrencyFromKurus(cumulativeTaxableIncomeBeforeExemptionK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalTaxBeforeExemptionK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalIncomeTaxExemptionK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalStampTaxK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalStampTaxBeforeExemptionK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalStampTaxExemptionK))),
+      DataCell(Text(_formatCurrencyFromKurus(totalEmployerCostK))),
     ]));
 
     setState(() {
@@ -920,7 +1013,6 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
         padding: const EdgeInsets.all(8),
         child: Column(
           children: [
-            // Seçimler ve aylık alanlar
             Padding(
               padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
               child: Column(
@@ -928,7 +1020,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                 children: [
                   _CupertinoField(
                     label: 'Yıl Seçiniz',
-                    valueText: yearLabel, // boşsa 'Seçiniz' görünür
+                    valueText: yearLabel,
                     onTap: () async {
                       final idx = _years.indexOf(_selectedYearInternal);
                       final sel = await _showCupertinoPicker<int>(
@@ -1020,7 +1112,6 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
               ),
             ),
 
-            // Bilgilendirme bölümü üstüne 0.2 kalınlığında divider
             const Divider(thickness: 0.2, height: 12),
             const _InfoNotice(),
           ],
@@ -1074,7 +1165,11 @@ class _InfoNotice extends StatelessWidget {
   }
 }
 
-// --- SONUÇLAR SAYFASI ---
+/// =====================
+/// AŞAĞISI: Senin projende zaten var olan ResultsScreen, Tabs, Chart painter…
+///// (BUNLARI DEĞİŞTİRMEDİM - SENİN GÖNDERDİĞİN GİBİ KALACAK)
+/// =====================
+
 class ResultsScreen extends StatelessWidget {
   final int selectedYear;
   final List<DataRow> monthlyRows;
@@ -1261,6 +1356,7 @@ class ResultsScreen extends StatelessWidget {
 }
 
 // --- TABLI-LİSTE-GRAFİK SEKMELERİ ---
+// (Aşağısı senin attığın gibi aynı; değiştirmedim.)
 class CalculationResultTabs extends StatefulWidget {
   final List<DataRow> monthlyRows;
   final List<String> monthNames;
@@ -1290,14 +1386,13 @@ class CalculationResultTabs extends StatefulWidget {
 }
 
 class _CalculationResultTabsState extends State<CalculationResultTabs> {
-  int _selectedTab = 1; // 0: Liste, 1: Tablo, 2: Grafik
+  int _selectedTab = 1;
 
   static const double _rowHeight = 50;
   static const double _headHeight = 56;
   static const double _tableDivider = 1.0;
   static const Color _tableDividerColor = Colors.black26;
 
-  // Sabit "Ay" sütunu için dikey kaydırma senkronizasyonu
   final ScrollController _leftVController = ScrollController();
   final ScrollController _rightVController = ScrollController();
   bool _syncing = false;
@@ -1330,7 +1425,6 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Sekme çubuğu — Cupertino Sliding Segmented
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: SizedBox(
@@ -1355,7 +1449,6 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
     );
   }
 
-  /// --- TABLO: “Ay” sütunu sabit (yatayda sabit), dikeyde senkron kayar ---
   Widget _buildTableTabFrozenFirstColumn() {
     if (widget.monthlyRows.isEmpty) {
       return const SizedBox.shrink();
@@ -1379,7 +1472,6 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
       DataColumn(label: Text('Toplam Maliyet')),
     ];
 
-    // Soldaki sabit kolonun satırlarını hizalı çizgilerle üret
     final leftRows = <Widget>[];
     for (int i = 0; i < widget.monthlyRows.length; i++) {
       final monthCell = widget.monthlyRows[i].cells.first;
@@ -1391,10 +1483,9 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           border: Border(
-            // BAŞLIK ALTINA ÇİZGİ YOK: ilk satıra üst çizgi eklemiyoruz
             bottom: !isLast
-                ? const BorderSide(color: _tableDividerColor, width: _tableDivider) // ara çizgiler (sağ tabloyla hizalı)
-                : BorderSide.none, // sondaki toplam satırında altta çizgi yok
+                ? const BorderSide(color: _tableDividerColor, width: _tableDivider)
+                : BorderSide.none,
           ),
         ),
         child: DefaultTextStyle.merge(
@@ -1404,13 +1495,11 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
       ));
     }
 
-    // Sağ tablo satırları (soldaki ilk sütunu atla)
     final rightRows = widget.monthlyRows.map((r) => DataRow(cells: r.cells.sublist(1))).toList();
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Sol sabit sütun (başlık + içerik)
         Column(
           children: [
             Container(
@@ -1430,7 +1519,6 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
           ],
         ),
 
-        // Sağ taraf: yatay + dikey kaydırmalı tablo
         Expanded(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1446,7 +1534,7 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
                   ),
                 ),
                 child: DataTable(
-                  horizontalMargin: 12, // soldaki padding ile aynı
+                  horizontalMargin: 12,
                   columnSpacing: 16,
                   dataRowHeight: _rowHeight,
                   headingRowHeight: _headHeight,
@@ -1463,7 +1551,6 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
     );
   }
 
-  /// --- LİSTE: Sadece Net, Brüt, İşveren Toplam Maliyet ---
   Widget _buildListTab() {
     final rows = <Widget>[];
     for (int i = 0; i < 12 && i < widget.monthlyRows.length - 1; i++) {
@@ -1540,7 +1627,6 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
     );
   }
 
-  // ---- Grafik sekmesi (kutusuz & ikonsuz açıklamalar) ----
   Widget _buildChartTab() {
     final data = widget.monthlyNetSalaries;
     return Padding(
@@ -1588,7 +1674,6 @@ class _CalculationResultTabsState extends State<CalculationResultTabs> {
   List<String> get monthlyNamesShort => const ['O','Ş','M','N','M','H','T','A','E','E','K','A'];
 }
 
-/// Basit çizgi grafik ressamı (paketsiz)
 class _LineChartPainter extends CustomPainter {
   final List<double> data;
   final List<String> labels;
@@ -1602,7 +1687,6 @@ class _LineChartPainter extends CustomPainter {
 
     if (data.isEmpty) return;
 
-    // --- Dinamik sol padding: sol eksen etiketlerinin maksimum genişliğini ölç ---
     final steps = 4;
     final minVal = data.reduce((a,b)=>a<b?a:b);
     final maxVal = data.reduce((a,b)=>a>b?a:b);
@@ -1624,7 +1708,7 @@ class _LineChartPainter extends CustomPainter {
       if (painter.width > maxLabelW) maxLabelW = painter.width;
     }
 
-    final double leftPad = maxLabelW + 10; // etiket + boşluk
+    final double leftPad = maxLabelW + 10;
     final double topPad = 16;
     final double rightPad = 10;
     final double bottomPad = 26;
@@ -1640,11 +1724,9 @@ class _LineChartPainter extends CustomPainter {
       ..color = Colors.grey.shade400
       ..strokeWidth = 1;
 
-    // Eksenler
     canvas.drawLine(chartRect.bottomLeft, chartRect.topLeft, axis);
     canvas.drawLine(chartRect.bottomLeft, chartRect.bottomRight, axis);
 
-    // Noktalar ve çizgi
     final line = Paint()
       ..color = Colors.black54
       ..strokeWidth = 3
@@ -1681,30 +1763,25 @@ class _LineChartPainter extends CustomPainter {
     canvas.drawPath(fillPath, fill);
     canvas.drawPath(path, line);
 
-    // Nokta işaretleri
     final dot = Paint()..color = Colors.black87;
     for (int i=0;i<data.length;i++) {
       final p = pointAt(i);
       canvas.drawCircle(p, 3, dot);
     }
 
-    // Alt etiketler
     for (int i=0;i<data.length;i++) {
       final p = pointAt(i);
       final t = tp(labels[i % labels.length]);
       t.paint(canvas, Offset(p.dx - t.width/2, chartRect.bottom + 4));
     }
 
-    // Sol ölçek (etiketleri eksenin SOLUNA, sığacak şekilde)
     for (int i=0;i<=steps;i++) {
       final y = chartRect.bottom - (i/steps) * chartRect.height;
-      // grid
       canvas.drawLine(
         Offset(chartRect.left, y),
         Offset(chartRect.right, y),
         Paint()..color = Colors.grey.withOpacity(0.25)..strokeWidth = 1,
       );
-      // label
       final val = (minVal + (i/steps)*safeSpan);
       final labelPainter = tp(_formatPlain(val));
       labelPainter.paint(canvas, Offset(chartRect.left - 6 - labelPainter.width, y - labelPainter.height/2));

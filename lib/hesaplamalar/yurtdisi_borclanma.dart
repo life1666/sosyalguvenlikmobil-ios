@@ -313,7 +313,7 @@ class _YurtDisiBorclanmaHesaplamaScreenState extends State<YurtDisiBorclanmaHesa
 
   // Hesaplama parametreleri (AYNEN KORUNDU)
   final double _asgariAylikGelir = 26005.50;
-  final double _ustLimitGelir = 169035.75;
+  double get _ustLimitGelir => _asgariAylikGelir * 9.0;
   final double _borclanmaOrani = 0.45;
   final String _borclanmaTuru = 'Yurt Dışı Borçlanma';
   final String _basvuruTarihi = 'Güncel asgari ücret üzerinden hesaplanmaktadır.';

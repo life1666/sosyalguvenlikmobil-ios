@@ -28,7 +28,8 @@ const double kResultHeaderScale = 1.00;
 const FontWeight kResultHeaderWeight = FontWeight.w400;
 
 /// ===== YAZILI ÖZET MADDE KNOB’LARI =====
-const EdgeInsets kSumItemPadding = EdgeInsets.symmetric(vertical: 4, horizontal: 0);
+const EdgeInsets kSumItemPadding =
+EdgeInsets.symmetric(vertical: 4, horizontal: 0);
 const double kSumItemFontScale = 1.10;
 
 class AppW {
@@ -127,7 +128,8 @@ ThemeData uygulamaTemasi = (() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+        borderSide:
+        BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
@@ -135,7 +137,8 @@ ThemeData uygulamaTemasi = (() {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+        borderSide:
+        BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
       ),
       hintStyle: TextStyle(fontSize: 13 * kTextScale, color: Colors.grey),
       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -382,15 +385,15 @@ class _CupertinoField extends StatelessWidget {
           GestureDetector(
             onTap: onTap,
             child: InputDecorator(
-              decoration: InputDecoration(
-                enabledBorder: const OutlineInputBorder(
+              decoration: const InputDecoration(
+                enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
                   borderSide: BorderSide(
                     color: kFieldBorderColor,
                     width: kFieldBorderWidth,
                   ),
                 ),
-                focusedBorder: const OutlineInputBorder(
+                focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
                   borderSide: BorderSide(
                     color: kFieldFocusColor,
@@ -398,7 +401,7 @@ class _CupertinoField extends StatelessWidget {
                   ),
                 ),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               child: Row(
                 children: [
@@ -433,8 +436,7 @@ class CompensationCalculatorScreen extends StatefulWidget {
       _CompensationCalculatorScreenState();
 }
 
-class _CompensationCalculatorScreenState
-    extends State<CompensationCalculatorScreen> {
+class _CompensationCalculatorScreenState extends State<CompensationCalculatorScreen> {
   @override
   void initState() {
     super.initState();
@@ -517,6 +519,28 @@ class _CompensationCalculatorScreenState
     super.dispose();
   }
 
+  /// ✅ İhbar GV: kademeli tarife (kümülatif bilinmediği için yaklaşık)
+  double _calcProgressiveTax(double base, List<double> brackets, List<double> rates) {
+    double total = 0.0;
+    double prev = 0.0;
+
+    for (int i = 0; i < brackets.length; i++) {
+      final limit = brackets[i];
+      if (base <= prev) break;
+
+      final slice = (base > limit) ? (limit - prev) : (base - prev);
+      if (slice > 0) total += slice * rates[i];
+
+      prev = limit;
+    }
+
+    if (base > prev) {
+      total += (base - prev) * rates[brackets.length];
+    }
+
+    return total;
+  }
+
   /// Tavan ücreti
   double getTavanUcreti(DateTime exitDate) {
     final year = exitDate.year;
@@ -529,14 +553,17 @@ class _CompensationCalculatorScreenState
     if (year == 2023) return month < 7 ? 19982.31 : 23489.83;
     if (year == 2024) return month < 7 ? 35058.58 : 41828.42;
     if (year == 2025) return month < 7 ? 46655.43 : 53919.68;
-    return 53919.68;
+
+    // ✅ 2026 ilk 6 ay tavan (temmuz sonrası bilinmiyorsa aynı bırakıldı)
+    if (year == 2026) return month < 7 ? 64948.77 : 64948.77;
+
+    return 64948.77;
   }
 
   String formatSayi(double sayi) => formatTL(sayi);
   double parseSayi(String input) => parseTL(input);
 
-  Map<String, dynamic> calculateSeverancePay(
-      double salary, DateTime start, DateTime end) {
+  Map<String, dynamic> calculateSeverancePay(double salary, DateTime start, DateTime end) {
     double ceiling = getTavanUcreti(end);
     int daysWorked = end.difference(start).inDays + 1;
     double dailySalary = salary / 365;
@@ -559,8 +586,7 @@ class _CompensationCalculatorScreenState
     };
   }
 
-  Map<String, double> calculateNoticePay(
-      double salary, DateTime start, DateTime end) {
+  Map<String, double> calculateNoticePay(double salary, DateTime start, DateTime end) {
     int daysWorked = end.difference(start).inDays + 1;
     int noticeDays;
 
@@ -577,16 +603,33 @@ class _CompensationCalculatorScreenState
     double dailySalary = salary / 30;
     double noticePay = dailySalary * noticeDays;
 
-    double incomeTax;
-    if (noticePay <= 158000) {
-      incomeTax = noticePay * 0.15;
-    } else if (noticePay <= 330000) {
-      incomeTax = noticePay * 0.20;
-    } else if (noticePay <= 800000) {
-      incomeTax = noticePay * 0.27;
+    // ✅ Kademeli tarife (yıla göre) — kümülatif matrah bilinmediği için yaklaşık
+    final int y = end.year;
+
+    late final List<double> brackets;
+    late final List<double> rates;
+
+    if (y >= 2026) {
+      brackets = [190000, 400000, 1500000, 5300000];
+      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else if (y == 2025) {
+      brackets = [158000, 330000, 1200000, 4300000];
+      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else if (y == 2024) {
+      brackets = [110000, 230000, 870000, 3000000];
+      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else if (y == 2023) {
+      brackets = [70000, 150000, 550000, 1900000];
+      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+    } else if (y == 2022) {
+      brackets = [32000, 70000, 250000, 880000];
+      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
     } else {
-      incomeTax = noticePay * 0.35;
+      brackets = [190000, 400000, 1500000, 5300000];
+      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
     }
+
+    final double incomeTax = _calcProgressiveTax(noticePay, brackets, rates);
 
     double stampTax = noticePay * 0.00759;
     double netNoticePay = noticePay - incomeTax - stampTax;
@@ -625,14 +668,17 @@ class _CompensationCalculatorScreenState
   }
 
   Future<void> _showHesaplamaSonucu() async {
-    // Validasyonlar
     if (selectedExitCode == null) {
-      showCenterNotice(context, title: 'Uyarı', message: 'İşten çıkış kodu seçiniz!', type: AppNoticeType.warning);
+      showCenterNotice(
+        context,
+        title: 'Uyarı',
+        message: 'İşten çıkış kodu seçiniz!',
+        type: AppNoticeType.warning,
+      );
       return;
     }
 
-    if (!isEligibleForSeverance(selectedExitCode!) &&
-        !isEligibleForNotice(selectedExitCode!)) {
+    if (!isEligibleForSeverance(selectedExitCode!) && !isEligibleForNotice(selectedExitCode!)) {
       _hesaplamaSonucu = {
         'basarili': false,
         'mesaj': 'Bu Şartlar Altında Kıdem Tazminatına Hak Kazanamıyorsunuz.',
@@ -650,17 +696,23 @@ class _CompensationCalculatorScreenState
       return;
     }
 
-    if (startGun == null || startAy == null || startYil == null ||
-        endGun == null || endAy == null || endYil == null ||
+    if (startGun == null ||
+        startAy == null ||
+        startYil == null ||
+        endGun == null ||
+        endAy == null ||
+        endYil == null ||
         grossSalaryController.text.isEmpty) {
-      showCenterNotice(context,
-          title: 'Uyarı',
-          message: 'Tüm alanları doldurmanız gerekiyor! İşten çıkış kodunuz kıdem ve ihbar tazminatı almaya uygundur.',
-          type: AppNoticeType.warning);
+      showCenterNotice(
+        context,
+        title: 'Uyarı',
+        message:
+        'Tüm alanları doldurmanız gerekiyor! İşten çıkış kodunuz kıdem ve ihbar tazminatı almaya uygundur.',
+        type: AppNoticeType.warning,
+      );
       return;
     }
 
-    // Tarihler
     DateTime startDate;
     DateTime endDate;
     try {
@@ -669,26 +721,44 @@ class _CompensationCalculatorScreenState
       startDate = DateTime(int.parse(startYil!), startAyIndex, int.parse(startGun!));
       endDate = DateTime(int.parse(endYil!), endAyIndex, int.parse(endGun!));
       if (endDate.isBefore(startDate)) {
-        showCenterNotice(context, title: 'Hata', message: 'Çıkış tarihi giriş tarihinden önce olamaz!', type: AppNoticeType.error);
+        showCenterNotice(
+          context,
+          title: 'Hata',
+          message: 'Çıkış tarihi giriş tarihinden önce olamaz!',
+          type: AppNoticeType.error,
+        );
         return;
       }
       if (startDate.isAfter(DateTime.now()) || endDate.isAfter(DateTime.now())) {
-        showCenterNotice(context, title: 'Hata', message: 'Tarihler gelecekte olamaz!', type: AppNoticeType.error);
+        showCenterNotice(
+          context,
+          title: 'Hata',
+          message: 'Tarihler gelecekte olamaz!',
+          type: AppNoticeType.error,
+        );
         return;
       }
     } catch (_) {
-      showCenterNotice(context, title: 'Hata', message: 'Geçersiz tarih (ör. 31 Şubat)!', type: AppNoticeType.error);
+      showCenterNotice(
+        context,
+        title: 'Hata',
+        message: 'Geçersiz tarih (ör. 31 Şubat)!',
+        type: AppNoticeType.error,
+      );
       return;
     }
 
-    // Brüt maaş
     double grossSalary = parseSayi(grossSalaryController.text);
     if (grossSalary <= 0) {
-      showCenterNotice(context, title: 'Hata', message: 'Brüt maaş sıfır veya negatif olamaz!', type: AppNoticeType.error);
+      showCenterNotice(
+        context,
+        title: 'Hata',
+        message: 'Brüt maaş sıfır veya negatif olamaz!',
+        type: AppNoticeType.error,
+      );
       return;
     }
 
-    // Hesap
     final severance = calculateSeverancePay(grossSalary, startDate, endDate);
     final notice = calculateNoticePay(grossSalary, startDate, endDate);
 
@@ -725,6 +795,9 @@ class _CompensationCalculatorScreenState
       detaylar['Gelir Vergisi (İhbar)'] = formatSayi(notice['incomeTax']!);
       detaylar['Damga Vergisi (İhbar)'] = formatSayi(notice['stampTax']!);
       detaylar['İhbar Tazminatı (Net)'] = formatSayi(notice['net']!);
+      // ✅ uyarı
+      detaylar['İhbar GV Uyarısı'] =
+      'Gelir vergisi, kümülatif matrah bilgisi alınamadığı için kademeli tarife üzerinden yaklaşık hesaplanmıştır.';
     } else {
       detaylar['İhbar Tazminatı'] = 'Hak Kazanılmadı.';
     }
@@ -753,8 +826,7 @@ class _CompensationCalculatorScreenState
 
   Future<void> _openResultSheet() async {
     final detaylar = Map<String, String>.from(_hesaplamaSonucu?['detaylar'] ?? {});
-    
-    // Son hesaplamalara kaydet
+
     if (_hesaplamaSonucu != null) {
       try {
         final veriler = <String, dynamic>{
@@ -767,19 +839,18 @@ class _CompensationCalculatorScreenState
               : null,
           'brutMaas': grossSalaryController.text.isNotEmpty ? parseSayi(grossSalaryController.text) : null,
         };
-        
+
         final sonHesaplama = SonHesaplama(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           hesaplamaTuru: 'Kıdem ve İhbar Tazminatı Hesaplama',
           tarihSaat: DateTime.now(),
           veriler: veriler,
           sonuclar: detaylar,
-          ozet: _hesaplamaSonucu!['mesaj'] ?? 'Hesaplama tamamlandı',
+          ozet: (_hesaplamaSonucu!['mesaj'] ?? 'Hesaplama tamamlandı').toString(),
         );
-        
+
         await SonHesaplamalarDeposu.ekle(sonHesaplama);
-        
-        // Firebase Analytics: Hesaplama tamamlandı
+
         AnalyticsHelper.logCalculation('kidem_ihbar_tazminati', parameters: {
           'hesaplama_turu': 'Kıdem - İhbar Tazminatı',
         });
@@ -787,7 +858,7 @@ class _CompensationCalculatorScreenState
         debugPrint('Son hesaplama kaydedilirken hata: $e');
       }
     }
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1002,7 +1073,6 @@ class _CompensationCalculatorScreenState
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // >>> Değişiklik 1: "Kod " ibaresi kaldırıldı, sadece sayı <<<
                             Text(
                               e.key,
                               style: const TextStyle(
@@ -1090,28 +1160,24 @@ class _CompensationCalculatorScreenState
                 delegate: SliverChildListDelegate.fixed([
                   _CupertinoField(
                     label: 'İşten Çıkış Kodunuz',
-                    // >>> Değişiklik 1: "Kod " ibaresi kaldırıldı, sadece sayı gösteriliyor <<<
                     valueText: selectedExitCode == null
                         ? 'Seçiniz'
                         : '${selectedExitCode!} - ${exitCodes[selectedExitCode]!}',
                     onTap: _pickExitCode,
                   ),
                   const SizedBox(height: 8),
-
                   _CupertinoField(
                     label: 'İşe Giriş Tarihi',
                     valueText: _composeDateText(startGun, startAy, startYil),
                     onTap: _pickStartDate,
                   ),
                   const SizedBox(height: 8),
-
                   _CupertinoField(
                     label: 'İşten Çıkış Tarihi',
                     valueText: _composeDateText(endGun, endAy, endYil),
                     onTap: _pickEndDate,
                   ),
                   const SizedBox(height: 8),
-
                   _buildAmountField('Son Ay Giydirilmiş Brüt Ücret', grossSalaryController),
                   const SizedBox(height: 12),
                   _buildHesaplaButton(),
@@ -1174,7 +1240,6 @@ class _CompensationCalculatorScreenState
             suffix: Text('TL', style: TextStyle(color: Colors.indigo, fontSize: 14)),
           ),
           keyboardType: TextInputType.number,
-          // >>> Değişiklik 2: Yazıldıktan sonraki koyuluk, tarih alanı görünümleriyle aynı (w300) <<<
           style: const TextStyle(color: Colors.black, fontWeight: AppW.body),
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
@@ -1273,7 +1338,8 @@ class ResultSheet extends StatelessWidget {
                   Container(
                     width: 48,
                     height: 5,
-                    decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(3)),
+                    decoration:
+                    BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(3)),
                   ),
                   const SizedBox(height: 12),
                   Padding(
