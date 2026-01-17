@@ -1,11 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'mesaihesaplama.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../utils/analytics_helper.dart';
 
 class AppScrollBehavior extends MaterialScrollBehavior {
@@ -245,29 +247,34 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
 
   Future<void> _saveState() async {
-    if (_restoring) return; // yükleme sırasında tetiklenen dinleyicileri yoksay
-    final prefs = await SharedPreferences.getInstance();
+    if (_restoring || !mounted) return; // yükleme sırasında veya dispose sonrası tetiklenen dinleyicileri yoksay
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    List<String> _texts(List<TextEditingController> list) =>
-        list.map((c) => c.text).toList();
+      List<String> _texts(List<TextEditingController> list) =>
+          list.map((c) => c.text).toList();
 
-    final data = {
-      'startDate': _startDate?.toIso8601String(),
-      'salaryYear': _salaryYear,
-      'salaryKind': _salaryKind.index,
-      'salaryMode': _salaryMode.index,
-      'isRetired': _isRetired,
-      'bonusKind': _bonusKind.index,
-      'leaveYear': _leaveYear,
-      'annualPaidLeaveDays': _annualPaidLeaveDays,  // {year: days}
-      'resultsYear': _resultsYear,
-      'overtimeData': _overtimeData,                // {"yyyy-MM-dd_suffix": double}
-      'grossTexts': _texts(_grossCtrls),            // 12 eleman
-      'netTexts': _texts(_netCtrls),                // 12 eleman
-      'bonusTexts': _texts(_bonusCtrls),            // 12 eleman
-    };
+      final data = {
+        'startDate': _startDate?.toIso8601String(),
+        'salaryYear': _salaryYear,
+        'salaryKind': _salaryKind.index,
+        'salaryMode': _salaryMode.index,
+        'isRetired': _isRetired,
+        'bonusKind': _bonusKind.index,
+        'leaveYear': _leaveYear,
+        'annualPaidLeaveDays': _annualPaidLeaveDays,  // {year: days}
+        'resultsYear': _resultsYear,
+        'overtimeData': _overtimeData,                // {"yyyy-MM-dd_suffix": double}
+        'grossTexts': _texts(_grossCtrls),            // 12 eleman
+        'netTexts': _texts(_netCtrls),                // 12 eleman
+        'bonusTexts': _texts(_bonusCtrls),            // 12 eleman
+      };
 
-    await prefs.setString(_kStore, jsonEncode(data));
+      await prefs.setString(_kStore, jsonEncode(data));
+    } catch (e) {
+      debugPrint('_saveState hatası: $e');
+      FirebaseCrashlytics.instance.recordError(e, StackTrace.current);
+    }
   }
 
   // ----------------- Helpers -----------------

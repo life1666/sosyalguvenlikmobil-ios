@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../utils/analytics_helper.dart';
 
 class MevzuatSayfasi extends StatefulWidget {
@@ -98,11 +100,25 @@ class _MevzuatSayfasiState extends State<MevzuatSayfasi> {
   ];
 
   Future<void> _acLink(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      throw 'Link açılamadı: $url';
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Link açılamadı')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('_acLink hatası: $e');
+      FirebaseCrashlytics.instance.recordError(e, StackTrace.current);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Link açılırken bir hata oluştu')),
+        );
+      }
     }
   }
 

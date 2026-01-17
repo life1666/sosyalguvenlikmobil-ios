@@ -4,9 +4,11 @@ import 'dart:io' show Platform;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import '../ana_ekran.dart';
 
@@ -63,9 +65,13 @@ class _GirisEkraniState extends State<GirisEkrani> {
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => AnaEkran()));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google giriş hatası: ${e.toString()}')),
-      );
+      debugPrint('Google giriş hatası: $e');
+      FirebaseCrashlytics.instance.recordError(e, StackTrace.current);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google giriş hatası: ${e.toString()}')),
+        );
+      }
     }
   }
 

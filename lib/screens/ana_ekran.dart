@@ -23,6 +23,7 @@ import '../../mevzuat/mevzuat.dart';
 import '../../utils/analytics_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -101,9 +102,9 @@ class _AnaEkranState extends State<AnaEkran> {
   final String mevzuatUzmaniUID = 'jBEoEbfgjJUHklmfmrJqsrIBETF2';
 
   static const String playStoreLink =
-      'https://play.google.com/store/apps/details?id=com.sosyalguvenlik.mobil';
+      'https://play.google.com/store/apps/details?id=com.sosyalguvenlik.mobil&pcampaignid=web_share';
   static const String appStoreLink =
-      'https://apps.apple.com/tr/app/sosyal-g%C3%BCvenlik-mobil/id6752835301';
+      'https://apps.apple.com/us/app/sosyal-g%C3%BCvenlik-mobil/id6752835301';
 
   @override
   void initState() {
@@ -408,24 +409,35 @@ class _AnaEkranState extends State<AnaEkran> {
   }
 
   Future<void> _launchURL(String url) async {
-    Future<bool> _try(String u) async {
-      final uri = Uri.tryParse(u);
-      if (uri == null) return false;
-      return await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    try {
+      Future<bool> _try(String u) async {
+        try {
+          final uri = Uri.tryParse(u);
+          if (uri == null) return false;
+          return await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } catch (e) {
+          debugPrint('_launchURL _try hatası: $e');
+          return false;
+        }
+      }
 
-    bool ok = await _try(url);
-    if (!ok) ok = await _try(Uri.encodeFull(url));
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Link açılamadı: $url')),
-      );
+      bool ok = await _try(url);
+      if (!ok) ok = await _try(Uri.encodeFull(url));
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Link açılamadı: $url')),
+        );
+      }
+    } catch (e) {
+      debugPrint('_launchURL hatası: $e');
+      FirebaseCrashlytics.instance.recordError(e, StackTrace.current);
     }
   }
 
   Future<void> _shareApp() async {
+    final shareText = 'Çalışma hayatındaki herkesin cebinde olması gereken uygulamanın Android sürümünü: $playStoreLink, iOS sürümünü $appStoreLink linkinden indirebilirsiniz.';
     await Share.share(
-      'Uygulamayı indir: $playStoreLink',
+      shareText,
       subject: 'Sosyal Güvenlik Mobil',
     );
   }

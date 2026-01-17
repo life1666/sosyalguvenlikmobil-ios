@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../../utils/analytics_helper.dart';
 
 class IletisimEkrani extends StatefulWidget {
@@ -34,18 +36,29 @@ class _IletisimEkraniState extends State<IletisimEkrani> {
   }
 
   Future<void> _sorumlulukDurumunuKontrolEt() async {
-    final prefs = await SharedPreferences.getInstance();
-    final kabulEdildi = prefs.getBool('_sorumlulukKabulEdildi') ?? false;
-    
-    if (!kabulEdildi) {
-      // İlk açılışta uyarı dialog'u göster
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showUyariDialog();
-      });
-    } else {
-      setState(() {
-        _sorumlulukKabulEdildi = true;
-      });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final kabulEdildi = prefs.getBool('_sorumlulukKabulEdildi') ?? false;
+      
+      if (!mounted) return;
+      
+      if (!kabulEdildi) {
+        // İlk açılışta uyarı dialog'u göster
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showUyariDialog();
+          }
+        });
+      } else {
+        if (mounted) {
+          setState(() {
+            _sorumlulukKabulEdildi = true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('_sorumlulukDurumunuKontrolEt hatası: $e');
+      FirebaseCrashlytics.instance.recordError(e, StackTrace.current);
     }
   }
 
