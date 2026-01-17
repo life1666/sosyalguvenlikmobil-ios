@@ -712,7 +712,7 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                   lastZaman = (lastMessageData['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
                 }
                 
-                final lastMessageData = lastMessage.data() as Map<String, dynamic>;
+                final lastMessageData = lastMessage!.data() as Map<String, dynamic>;
                 final hasResponse = (lastMessageData['response'] != null && (lastMessageData['response'] as String).isNotEmpty) ||
                     (lastMessageData['responses'] != null && (lastMessageData['responses'] as List).isNotEmpty);
 
@@ -773,7 +773,7 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                             ),
                             IconButton(
                                 icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                onPressed: () => _mesajSil(lastMessage.id),
+                                onPressed: () => _mesajSil(lastMessage!.id),
                                 padding: EdgeInsets.zero,
                                 constraints: BoxConstraints(),
                             ),
