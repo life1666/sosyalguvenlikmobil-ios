@@ -934,7 +934,7 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
   }) async {
     final days = [for (int i = 1; i <= 31; i++) '$i'];
     final months = aylar;
-    final years = [for (int y = 2025; y >= 1980; y--) '$y'];
+    final years = [for (int y = 2026; y >= 1980; y--) '$y'];
 
     int idxD = (gun != null) ? days.indexOf(gun) : 0;
     int idxM = (ay != null) ? months.indexOf(ay) : 0;
