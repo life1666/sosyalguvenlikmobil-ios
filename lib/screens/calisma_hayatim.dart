@@ -20,6 +20,11 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   double? _guncelBrutMaas;
   bool _isLoading = true;
 
+  final GlobalKey _careerKey = GlobalKey();
+  double _careerHeight = 0;
+
+  final double _retirementScale = 1.15;
+
   @override
   void initState() {
     super.initState();
@@ -57,9 +62,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     } catch (e) {
       debugPrint('Kişisel bilgiler yüklenirken hata: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -75,7 +78,6 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     return DateFormat('dd.MM.yyyy', 'tr_TR').format(date);
   }
 
-  // ✅ Kartların hepsinde aynı görünüm (resimdeki gibi)
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
       color: Colors.white,
@@ -90,16 +92,18 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     );
   }
 
-  // Emeklilik hesaplamaları
   Map<String, dynamic>? _calculateRetirement() {
-    if (_dogumTarihi == null || _ilkIseGirisTarihi == null || _toplamPrimGun == null) {
+    if (_dogumTarihi == null ||
+        _ilkIseGirisTarihi == null ||
+        _toplamPrimGun == null) {
       return null;
     }
 
     try {
       final now = DateTime.now();
       int age = now.year - _dogumTarihi!.year;
-      if (DateTime(now.year, _dogumTarihi!.month, _dogumTarihi!.day).isAfter(now)) {
+      if (DateTime(now.year, _dogumTarihi!.month, _dogumTarihi!.day)
+          .isAfter(now)) {
         age--;
       }
 
@@ -137,7 +141,6 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     }
   }
 
-  // Kıdem tazminatı hesaplama
   double? _calculateSeverancePay() {
     if (_mevcutIsyeriBaslangic == null || _guncelBrutMaas == null) {
       return null;
@@ -152,7 +155,6 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       final dailySalary = _guncelBrutMaas! / 30;
       final severancePay = dailySalary * totalMonths;
 
-      // 2026 tavan kontrolü (senin örneğin)
       final asgariUcret = 33030.0;
       final tavan = asgariUcret * 9.0;
 
@@ -163,7 +165,6 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     }
   }
 
-  // Yıllık izin süresi hesaplama
   int? _calculateAnnualLeave() {
     if (_mevcutIsyeriBaslangic == null) return null;
 
@@ -181,7 +182,6 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     }
   }
 
-  // Maaş kesintileri hesaplama
   Map<String, double>? _calculateSalaryDeductions() {
     if (_guncelBrutMaas == null) return null;
 
@@ -201,7 +201,8 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       }
 
       final damgaVergisi = brutMaas * 0.00759;
-      final toplamKesinti = sgkIsci + issizlikIsci + gelirVergisi + damgaVergisi;
+      final toplamKesinti =
+          sgkIsci + issizlikIsci + gelirVergisi + damgaVergisi;
       final netMaas = brutMaas - toplamKesinti;
 
       return {
@@ -227,7 +228,9 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_dogumTarihi == null || _ilkIseGirisTarihi == null || _toplamPrimGun == null) {
+    if (_dogumTarihi == null ||
+        _ilkIseGirisTarihi == null ||
+        _toplamPrimGun == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -256,6 +259,16 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       );
     }
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final box = _careerKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null && mounted) {
+        final h = box.size.height;
+        if ((h - _careerHeight).abs() > 0.5) {
+          setState(() => _careerHeight = h);
+        }
+      }
+    });
+
     final retirementInfo = _calculateRetirement();
     final severancePay = _calculateSeverancePay();
     final annualLeave = _calculateAnnualLeave();
@@ -271,62 +284,53 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
             _buildCareerSummary(themeColor),
             const SizedBox(height: 16),
 
-            // ✅ RESİMDEKİ GİBİ: GENİŞLİKLER EŞİT + KARTLAR STRETCH + width infinity
-            LayoutBuilder(
-              builder: (context, constraints) {
-                // yüksekliği sabitle: resimdeki oran gibi (istersen 260-310 arası)
-                final double cardHeight = (constraints.maxWidth * 0.38).clamp(260.0, 310.0);
-
-                return SizedBox(
-                  width: double.infinity,
-                  height: cardHeight,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: cardHeight,
-                          child: _buildRetirementTracking(retirementInfo, themeColor),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: SizedBox(
-                          height: cardHeight,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch, // ✅ kritik
-                            children: [
-                              Expanded(
-                                child: _buildSmallCard(
-                                  'Kıdem Tazminatı',
-                                  severancePay != null ? _formatCurrency(severancePay) : '-',
-                                  Icons.receipt_long,
-                                  Colors.orange,
-                                  isEstimated: true,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Expanded(
-                                child: _buildSmallCard(
-                                  'Yıllık İzin Hakkı',
-                                  annualLeave != null ? '$annualLeave Gün' : '-',
-                                  Icons.beach_access,
-                                  Colors.blue,
-                                  subtitle: 'Bu Yıl',
-                                ),
-                              ),
-                            ],
+            if (_careerHeight > 0)
+              SizedBox(
+                height: _careerHeight * _retirementScale,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildRetirementTracking(retirementInfo, themeColor),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _buildMiniInfoCardLeftIconCompact(
+                              icon: Icons.payments_rounded,
+                              iconColor: Colors.orange,
+                              title: 'Kıdem Tazminatı',
+                              value: severancePay != null
+                                  ? _formatCurrency(severancePay)
+                                  : '-',
+                              isEstimated: true,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: _buildMiniInfoCardLeftIconCompact(
+                              icon: Icons.event_available_rounded,
+                              iconColor: Colors.blue,
+                              title: 'Yıllık İzin',
+                              value: annualLeave != null
+                                  ? '$annualLeave Gün'
+                                  : '-',
+                              subtitle: 'Bu Yıl',
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  ],
+                ),
+              ),
 
             const SizedBox(height: 16),
 
             if (deductions != null) _buildSalaryAnalysis(deductions, themeColor),
+
             const SizedBox(height: 16),
 
             SizedBox(
@@ -353,6 +357,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
 
   Widget _buildCareerSummary(Color themeColor) {
     return Container(
+      key: _careerKey,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[800],
@@ -425,10 +430,17 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+              ),
               const SizedBox(height: 2),
               Text(
                 value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -442,10 +454,13 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     );
   }
 
-  Widget _buildRetirementTracking(Map<String, dynamic>? retirementInfo, Color themeColor) {
+  // Emeklilik: donut + alt yazılar sığsın diye alan optimize
+  Widget _buildRetirementTracking(
+      Map<String, dynamic>? retirementInfo, Color themeColor) {
     if (retirementInfo == null) return const SizedBox.shrink();
 
-    final normalRetirement = retirementInfo['normalEmeklilik'] as Map<String, dynamic>?;
+    final normalRetirement =
+    retirementInfo['normalEmeklilik'] as Map<String, dynamic>?;
     if (normalRetirement == null) return const SizedBox.shrink();
 
     final progress = (normalRetirement['progress'] as num?)?.toDouble() ?? 0.0;
@@ -454,82 +469,106 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     final currentAge = normalRetirement['currentAge'] as int? ?? 0;
     final estimatedDate = normalRetirement['estimatedDate'] as DateTime?;
 
+    const double donutSize = 80.0; // ✅ daha küçük
+    const double donutStroke = 9.0;
+
     return Container(
-      width: double.infinity, // ✅ kritik
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Emeklilik Takibi',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: Center(
-              child: SizedBox(
-                width: 125,
-                height: 125,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 125,
-                      height: 125,
-                      child: CircularProgressIndicator(
-                        value: progress / 100,
-                        strokeWidth: 12,
-                        backgroundColor: Colors.grey[200],
-                        valueColor: AlwaysStoppedAnimation<Color>(themeColor),
+          const SizedBox(height: 4),
+
+          Center(
+            child: SizedBox(
+              width: donutSize,
+              height: donutSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: donutSize,
+                    height: donutSize,
+                    child: CircularProgressIndicator(
+                      value: progress / 100,
+                      strokeWidth: donutStroke,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(themeColor),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '%${progress.toInt()}',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: themeColor,
+                        ),
                       ),
-                    ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '%${progress.toInt()}',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: themeColor,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Kalan: $remainingYears Yıl${remainingMonths > 0 ? ' $remainingMonths Ay' : ''}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$currentAge Yaşında',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 1),
+                      Text(
+                        '$currentAge Yaş',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 9.5, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
+
+          const SizedBox(height: 6),
+
+          Center(
+            child: Text(
+              'Kalan: $remainingYears Yıl${remainingMonths > 0 ? ' $remainingMonths Ay' : ''}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
+          Center(
+            child: Text(
+              '$currentAge Yaşında',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            ),
+          ),
+
+          const Spacer(),
+
           if (estimatedDate != null)
             Center(
               child: Text(
                 'Tahmini: ${DateFormat('yyyy', 'tr_TR').format(estimatedDate)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
               ),
             ),
         ],
@@ -537,52 +576,90 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     );
   }
 
-  Widget _buildSmallCard(
-      String title,
-      String value,
-      IconData icon,
-      Color color, {
-        String? subtitle,
-        bool isEstimated = false,
-      }) {
+  // ✅ BOŞLUK AZALTILDI: başlık-tutar arası 8 -> 4, subtitle arası 4 -> 2
+  Widget _buildMiniInfoCardLeftIconCompact({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String value,
+    String? subtitle,
+    bool isEstimated = false,
+  }) {
+    const double leftIndent = 32; // ikon hizası
+
     return Container(
-      width: double.infinity, // ✅ kritik
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
       decoration: _cardDecoration(),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w600,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, color: iconColor, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 4), // ✅ azaltıldı
+
+          Padding(
+            padding: const EdgeInsets.only(left: leftIndent),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
+
           if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            const SizedBox(height: 2), // ✅ azaltıldı
+            Padding(
+              padding: const EdgeInsets.only(left: leftIndent),
+              child: Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
+            ),
           ],
+
           if (isEstimated) ...[
-            const SizedBox(height: 4),
-            Text(
-              '(Tahmini)',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[500],
-                fontStyle: FontStyle.italic,
+            const SizedBox(height: 2), // ✅ azaltıldı
+            Padding(
+              padding: const EdgeInsets.only(left: leftIndent),
+              child: Text(
+                '(Tahmini)',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[500],
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
           ],
@@ -591,6 +668,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     );
   }
 
+  // Maaş & Kesinti Analizi (Net ele Geçen (%71) ₺35.746 format)
   Widget _buildSalaryAnalysis(Map<String, double> deductions, Color themeColor) {
     final brut = deductions['brut']!;
     final net = deductions['net']!;
@@ -604,14 +682,14 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     final damgaVergisiPercent = (damgaVergisi / brut * 100);
 
     final segments = [
-      {'label': 'Net Ele Geçen', 'value': net, 'percent': netPercent, 'color': Colors.blue},
-      {'label': 'SGK Primi (İşçi)', 'value': sgk, 'percent': sgkPercent, 'color': Colors.orange},
+      {'label': 'Net ele Geçen', 'value': net, 'percent': netPercent, 'color': Colors.blue},
+      {'label': 'SGK Primi', 'value': sgk, 'percent': sgkPercent, 'color': Colors.orange},
       {'label': 'Gelir Vergisi', 'value': gelirVergisi, 'percent': gelirVergisiPercent, 'color': Colors.red},
       {'label': 'Damga Vergisi', 'value': damgaVergisi, 'percent': damgaVergisiPercent, 'color': Colors.purple},
     ];
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -624,95 +702,117 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: 150,
-                height: 150,
-                child: CustomPaint(
-                  size: const Size(150, 150),
-                  painter: DonutChartPainter(segments),
+              Transform.translate(
+                offset: const Offset(0, -6),
+                child: SizedBox(
+                  width: 135,
+                  height: 135,
+                  child: CustomPaint(
+                    size: const Size(135, 135),
+                    painter: DonutChartPainter(segments),
+                  ),
                 ),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var segment in segments)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: segment['color'] as Color,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${(segment['percent'] as double).toStringAsFixed(0)}%',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  Text(
-                                    segment['label'] as String,
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                  ),
-                                  Text(
-                                    _formatCurrency(segment['value'] as double),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey[800],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Column(
+                    children: [
+                      for (var seg in segments)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _buildSalaryLineInline(
+                            color: seg['color'] as Color,
+                            label: seg['label'] as String,
+                            percent: (seg['percent'] as double),
+                            amount: seg['value'] as double,
+                          ),
                         ),
+                      const Divider(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Toplam Brüt',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatCurrency(brut),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: themeColor,
+                            ),
+                          ),
+                        ],
                       ),
-                    const Divider(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Toplam Brüt',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                        Text(
-                          _formatCurrency(brut),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: themeColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSalaryLineInline({
+    required Color color,
+    required String label,
+    required double percent,
+    required double amount,
+  }) {
+    final leftText = '$label (%${percent.toStringAsFixed(0)})';
+
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            leftText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _formatCurrency(amount),
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -740,38 +840,9 @@ class DonutChartPainter extends CustomPainter {
       final paint = Paint()
         ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = radius - innerRadius;
+        ..strokeWidth = strokeWidth;
 
       canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
-
-      if (percent > 3) {
-        final textAngle = startAngle + sweepAngle / 2;
-        final textRadius = radius - strokeWidth * 0.35;
-        final textX = center.dx + textRadius * math.cos(textAngle);
-        final textY = center.dy + textRadius * math.sin(textAngle);
-
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: '%${percent.toStringAsFixed(0)}',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              shadows: [
-                Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 2),
-              ],
-            ),
-          ),
-          textDirection: ui.TextDirection.ltr,
-          textAlign: TextAlign.center,
-        );
-        textPainter.layout();
-        textPainter.paint(
-          canvas,
-          Offset(textX - textPainter.width / 2, textY - textPainter.height / 2),
-        );
-      }
-
       startAngle += sweepAngle;
     }
   }
