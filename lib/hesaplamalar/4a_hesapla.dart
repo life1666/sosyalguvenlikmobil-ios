@@ -7,6 +7,7 @@ import 'dart:convert';
 import '../emeklilik_takip/emeklilik_takip.dart';
 import '../sonhesaplama/sonhesaplama.dart';
 import '../utils/analytics_helper.dart';
+import '../utils/theme_helper.dart';
 
 /// =================== GLOBAL KNOB’LAR ===================
 
@@ -114,7 +115,11 @@ ThemeData uygulamaTemasi = (() {
   final double sizeSmall   = 13 * kTextScale;
   final double sizeAppBar  = 22 * kTextScale;
 
-  final colorScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
+  // ThemeHelper'dan tema rengini al
+  final themeHelper = ThemeHelper();
+  final themeColor = themeHelper.themeColor;
+
+  final colorScheme = ColorScheme.fromSeed(seedColor: themeColor);
 
   return ThemeData(
     useMaterial3: true,
@@ -122,8 +127,8 @@ ThemeData uygulamaTemasi = (() {
     scaffoldBackgroundColor: Colors.white,
 
     appBarTheme: AppBarTheme(
-      backgroundColor: Colors.indigo[500],
-      foregroundColor: Colors.white,
+      backgroundColor: Colors.white,
+      foregroundColor: themeColor,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import '../sonhesaplama/sonhesaplama.dart';
 import '../utils/analytics_helper.dart';
+import '../utils/theme_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB’LAR (Referans) ===================
 
@@ -60,7 +61,11 @@ ThemeData uygulamaTemasi = (() {
   final double sizeSmall   = 12.5 * kTextScale;
   final double sizeAppBar  = 20.5 * kTextScale;
 
-  final colorScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
+  // ThemeHelper'dan tema rengini al
+  final themeHelper = ThemeHelper();
+  final themeColor = themeHelper.themeColor;
+
+  final colorScheme = ColorScheme.fromSeed(seedColor: themeColor);
 
   return ThemeData(
     useMaterial3: true,
@@ -68,8 +73,8 @@ ThemeData uygulamaTemasi = (() {
     scaffoldBackgroundColor: Colors.white,
 
     appBarTheme: AppBarTheme(
-      backgroundColor: Colors.indigo[500],
-      foregroundColor: Colors.white,
+      backgroundColor: Colors.white,
+      foregroundColor: themeColor,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(

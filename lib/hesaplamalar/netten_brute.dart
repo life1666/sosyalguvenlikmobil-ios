@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../sonhesaplama/sonhesaplama.dart';
 import '../utils/analytics_helper.dart';
+import '../utils/theme_helper.dart';
 
 /// =================== GLOBAL STIL & KNOB'LAR ===================
 
@@ -54,14 +55,21 @@ ThemeData get uygulamaTemasi {
   final double sizeSmall = 12.5 * kTextScale;
   final double sizeAppBar = 20.5 * kTextScale;
 
+  // ThemeHelper'dan tema rengini al
+  final themeHelper = ThemeHelper();
+  final themeColor = themeHelper.themeColor;
+
   return ThemeData(
-    primarySwatch: Colors.indigo,
+    primaryColor: themeColor,
+    colorScheme: ColorScheme.fromSeed(seedColor: themeColor),
     scaffoldBackgroundColor: Colors.grey[100],
     appBarTheme: AppBarTheme(
+      backgroundColor: Colors.white,
+      foregroundColor: themeColor,
       titleTextStyle: TextStyle(
         fontSize: sizeAppBar,
         fontWeight: AppW.appBarTitle,
-        color: Colors.white,
+        color: themeColor,
         fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
       ),
     ),

@@ -17,6 +17,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:ui'; // PointerDeviceKind için (eğer scrollBehavior kullanacaksan)
 import 'cv/cv_sablon.dart'; // CV şablonları için
+import 'utils/theme_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,25 +63,88 @@ void main() async {
   runApp(SgkBilgiPlatformu());
 }
 
-class SgkBilgiPlatformu extends StatelessWidget {
+class SgkBilgiPlatformu extends StatefulWidget {
+  const SgkBilgiPlatformu({super.key});
+
+  @override
+  State<SgkBilgiPlatformu> createState() => _SgkBilgiPlatformuState();
+}
+
+class _SgkBilgiPlatformuState extends State<SgkBilgiPlatformu> {
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  final ThemeHelper _themeHelper = ThemeHelper();
+  Color _themeColor = Colors.indigo; // Varsayılan indigo (orijinal renk)
+  double _fontSize = 14.0; // Varsayılan 14 punto
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeSettings();
+    _themeHelper.addThemeChangeListener(_onThemeChanged);
+    _themeHelper.addFontSizeChangeListener(_onFontSizeChanged);
+  }
+
+  @override
+  void dispose() {
+    _themeHelper.removeThemeChangeListener(_onThemeChanged);
+    _themeHelper.removeFontSizeChangeListener(_onFontSizeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {
+        _themeColor = _themeHelper.themeColor;
+      });
+    }
+  }
+
+  void _onFontSizeChanged() {
+    if (mounted) {
+      setState(() {
+        _fontSize = _themeHelper.fontSize;
+      });
+    }
+  }
+
+  Future<void> _loadThemeSettings() async {
+    await _themeHelper.loadSettings();
+    if (mounted) {
+      setState(() {
+        _themeColor = _themeHelper.themeColor;
+        _fontSize = _themeHelper.fontSize;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Tema rengine göre text scale factor hesapla (14 punto = 1.0)
+    final textScaleFactor = _fontSize / 14.0;
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Sosyal Güvenlik Mobil',
       navigatorObservers: [
         FirebaseAnalyticsObserver(analytics: analytics),
       ],
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaleFactor: textScaleFactor.clamp(0.85, 1.3), // 12-18 punto arası
+          ),
+          child: child!,
+        );
+      },
       theme: ThemeData(
-        primaryColor: Colors.indigo,
+        primaryColor: _themeColor,
+        colorScheme: ColorScheme.fromSeed(seedColor: _themeColor),
         scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.indigo,
-          titleTextStyle: TextStyle(
+        appBarTheme: AppBarTheme(
+          backgroundColor: _themeColor,
+          titleTextStyle: const TextStyle(
               color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-          iconTheme: IconThemeData(color: Colors.white),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         textTheme: const TextTheme(
           bodyMedium: TextStyle(color: Colors.black87),

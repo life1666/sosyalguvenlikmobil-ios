@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -42,6 +43,7 @@ import '../../hesaplamalar/askerlik_dogum.dart';
 import '../../hesaplamalar/yurtdisi_borclanma.dart';
 import '../../hesaplamalar/asgari_iscilik.dart';
 import '../../hesaplamalar/yillik_izin.dart';
+import 'calisma_hayatim.dart';
 
 // ==================== MODELS ====================
 class FeatureItem {
@@ -87,6 +89,7 @@ class AnaEkran extends StatefulWidget {
 
 class _AnaEkranState extends State<AnaEkran> {
   int _selectedIndex = 0;
+  int _selectedTabIndex = 0; // 0 = Ana Ekran, 1 = Çalışma Hayatım
   User? _kullanici;
   String _appVersion = 'Bilinmiyor';
 
@@ -893,25 +896,39 @@ class _AnaEkranState extends State<AnaEkran> {
   Widget build(BuildContext context) {
     final colorPrimary = Theme.of(context).primaryColor;
 
+    final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Sosyal Güvenlik Mobil',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: themeColor),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.account_circle_rounded, color: Colors.indigo, size: 28),
+          icon: Icon(Icons.account_circle_rounded, color: themeColor, size: 28),
           onPressed: () => _showFullScreenMenu(context),
         ),
         actions: [
+          // Arama ikonu
+          IconButton(
+            icon: Icon(Icons.search_rounded, color: themeColor),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AramaEkrani(),
+                ),
+              );
+            },
+          ),
+          // Bildirim ikonu
           if (_kullanici != null)
             Stack(
               children: [
                 IconButton(
-                  icon: Icon(Icons.notifications_outlined, color: Colors.indigo),
+                  icon: Icon(Icons.notifications_outlined, color: themeColor),
                   onPressed: _showMesajBildirimDialog,
                 ),
                 if (_mesajSayisi > 0)
@@ -944,32 +961,44 @@ class _AnaEkranState extends State<AnaEkran> {
         ],
       ),
 
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SearchBar(),
-                  // const SizedBox(height: 10),
-                  // _QuickActions(
-                  //   onTap: (label) {
-                  //     ScaffoldMessenger.of(context).showSnackBar(
-                  //       SnackBar(content: Text('$label yakında eklenecek')),
-                  //     );
-                  //   },
-                  // ),
-                ],
+      body: Column(
+        children: [
+          // Cupertino Segmented Control
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: CupertinoSlidingSegmentedControl<int>(
+                groupValue: _selectedTabIndex,
+                onValueChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedTabIndex = value;
+                    });
+                  }
+                },
+                children: const {
+                  0: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text('Ana Ekran'),
+                  ),
+                  1: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text('Çalışma Hayatım'),
+                  ),
+                },
               ),
             ),
           ),
-
-          // Sık Kullanılanlar
-          SliverToBoxAdapter(
-            child: _SikKullanilanlar(),
-          ),
+          // İçerik
+          Expanded(
+            child: _selectedTabIndex == 0
+                ? CustomScrollView(
+                    slivers: [
+                      // Sık Kullanılanlar
+                      SliverToBoxAdapter(
+                        child: _SikKullanilanlar(),
+                      ),
 
           // Hızlı İşlemler Başlığı
           SliverToBoxAdapter(
@@ -1043,13 +1072,13 @@ class _AnaEkranState extends State<AnaEkran> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Colors.indigo,
-                          Colors.purple.shade600,
+                          Theme.of(context).primaryColor,
+                          Theme.of(context).primaryColor.withOpacity(0.7),
                         ],
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.indigo.withOpacity(0.3),
+                          color: Theme.of(context).primaryColor.withOpacity(0.3),
                           blurRadius: 12,
                           offset: Offset(0, 4),
                         ),
@@ -1116,12 +1145,16 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
           ),
 
-          // Son Aktiviteler
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-              child: _SonHesaplamalarBlock(categories: categories),
-            ),
+                      // Son Aktiviteler
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                          child: _SonHesaplamalarBlock(categories: categories),
+                        ),
+                      ),
+                    ],
+                  )
+                : const CalismaHayatimEkrani(),
           ),
         ],
       ),
@@ -1203,14 +1236,14 @@ class _AnaEkranState extends State<AnaEkran> {
                             Align(
                               alignment: Alignment.centerLeft,
                               child: IconButton(
-                              icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+                              icon: Icon(Icons.arrow_back_rounded, color: Theme.of(ctx).primaryColor),
                                 onPressed: () => Navigator.pop(ctx),
                               ),
                             ),
-                          const Text(
+                          Text(
                               'Sosyal Güvenlik Mobil',
                             style: TextStyle(
-                              color: Colors.indigo,
+                              color: Theme.of(ctx).primaryColor,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1220,6 +1253,7 @@ class _AnaEkranState extends State<AnaEkran> {
                     ),
                     for (final a in items)
                       _menuButton(
+                        context: ctx,
                         icon: a.icon,
                         title: a.title,
                         onTap: a.onTap,
@@ -1280,7 +1314,9 @@ class _AnaEkranState extends State<AnaEkran> {
     required String title,
     required VoidCallback onTap,
     required double height,
+    required BuildContext context,
   }) {
+    final themeColor = Theme.of(context).primaryColor;
     return SizedBox(
       height: height,
       child: Padding(
@@ -1292,13 +1328,13 @@ class _AnaEkranState extends State<AnaEkran> {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(14),
-            splashColor: Colors.indigo.withOpacity(.08),
-            highlightColor: Colors.indigo.withOpacity(.04),
+            splashColor: themeColor.withOpacity(.08),
+            highlightColor: themeColor.withOpacity(.04),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(
                 children: [
-                  Icon(icon, color: Colors.indigo),
+                  Icon(icon, color: themeColor),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -1334,33 +1370,6 @@ class _AnaEkranState extends State<AnaEkran> {
   }
 }
 
-class _SearchBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      elevation: 1,
-      borderRadius: BorderRadius.circular(14),
-      child: TextField(
-        readOnly: true,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const AramaEkrani(),
-            ),
-          );
-        },
-        decoration: const InputDecoration(
-          hintText: 'Ne yapmak istiyorsun?',
-          prefixIcon: Icon(Icons.search_rounded),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
-    );
-  }
-}
 
 // class _QuickActions extends StatelessWidget {
 //   final void Function(String) onTap;
@@ -1512,13 +1521,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
       appBar: AppBar(
         title: Text(
           widget.category.title,
-          style: const TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Theme.of(context).primaryColor),
         ),
         centerTitle: false, // Başlık sola hizalı (geri okunun yanında)
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.indigo),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).primaryColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -1697,15 +1706,15 @@ class AllFeaturesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Tüm Özellikler',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Theme.of(context).primaryColor),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.indigo),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).primaryColor),
           onPressed: () => Navigator.pop(context),
         ),
         leadingWidth: 56,
@@ -2355,6 +2364,7 @@ class _SikKullanilanlar extends StatelessWidget {
                   itemBuilder: (context, i) {
                 final item = popularItems[i];
                 final icon = item['icon'] as IconData? ?? Icons.star_rounded;
+                final themeColor = Theme.of(context).primaryColor;
                 return InkWell(
                   borderRadius: BorderRadius.circular(24),
                   onTap: () {
@@ -2415,13 +2425,13 @@ class _SikKullanilanlar extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Colors.indigo.withOpacity(0.12),
-                          Colors.indigo.withOpacity(0.06),
+                          themeColor.withOpacity(0.12),
+                          themeColor.withOpacity(0.06),
                         ],
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.indigo.withOpacity(0.08),
+                          color: themeColor.withOpacity(0.08),
                           blurRadius: 4,
                           offset: Offset(0, 2),
                         ),
@@ -2433,7 +2443,7 @@ class _SikKullanilanlar extends StatelessWidget {
                         Icon(
                           icon,
                           size: 18,
-                          color: Colors.indigo[700],
+                          color: themeColor,
                         ),
                         SizedBox(width: 6),
                         Text(
@@ -2441,7 +2451,7 @@ class _SikKullanilanlar extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Colors.indigo[700],
+                            color: themeColor,
                           ),
                         ),
                       ],
