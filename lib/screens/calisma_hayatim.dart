@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import '../mesaitakip/mesaihesaplama.dart';
 
 class CalismaHayatimEkrani extends StatefulWidget {
   const CalismaHayatimEkrani({super.key});
@@ -141,28 +142,56 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     }
   }
 
-  double? _calculateSeverancePay() {
+  /// ✅ Profesyonel Kıdem Tazminatı Hesaplama (Tavan + Damga Vergisi)
+  Map<String, double>? _calculateSeverancePay() {
     if (_mevcutIsyeriBaslangic == null || _guncelBrutMaas == null) {
       return null;
     }
 
     try {
       final now = DateTime.now();
-      final years = now.year - _mevcutIsyeriBaslangic!.year;
-      final months = now.month - _mevcutIsyeriBaslangic!.month;
-      final totalMonths = years * 12 + months;
-
-      final dailySalary = _guncelBrutMaas! / 30;
-      final severancePay = dailySalary * totalMonths;
-
-      final asgariUcret = 33030.0;
-      final tavan = asgariUcret * 9.0;
-
-      return severancePay > tavan ? tavan : severancePay;
+      final ceiling = _getKidemTavani(now);
+      
+      final daysWorked = now.difference(_mevcutIsyeriBaslangic!).inDays + 1;
+      final dailySalary = _guncelBrutMaas! / 365; // Yıllık bazda
+      
+      double severancePay = dailySalary * daysWorked;
+      
+      // Tavan kontrolü
+      final dailyCeiling = ceiling / 365;
+      if (dailySalary > dailyCeiling) {
+        severancePay = dailyCeiling * daysWorked;
+      }
+      
+      final stampTax = severancePay * 0.00759; // Damga vergisi
+      final netSeverancePay = severancePay - stampTax;
+      
+      return {
+        'brut': severancePay,
+        'net': netSeverancePay,
+        'stampTax': stampTax,
+      };
     } catch (e) {
       debugPrint('Kıdem tazminatı hesaplama hatası: $e');
       return null;
     }
+  }
+
+  /// Kıdem Tazminatı Tavanı (Güncel verilerle)
+  double _getKidemTavani(DateTime date) {
+    final year = date.year;
+    final month = date.month;
+
+    if (year < 2020) return 6379.86;
+    if (year == 2020) return month < 7 ? 6379.86 : 6730.15;
+    if (year == 2021) return month < 7 ? 7117.17 : 8284.51;
+    if (year == 2022) return month < 7 ? 10848.59 : 15371.40;
+    if (year == 2023) return month < 7 ? 19982.31 : 23489.83;
+    if (year == 2024) return month < 7 ? 35058.58 : 41828.42;
+    if (year == 2025) return month < 7 ? 46655.43 : 53919.68;
+    if (year == 2026) return month < 7 ? 64948.77 : 64948.77;
+    
+    return 64948.77; // Varsayılan
   }
 
   int? _calculateAnnualLeave() {
@@ -182,37 +211,57 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     }
   }
 
+  /// ✅ Profesyonel Maaş Kesintileri Hesaplama (Mesai Takip SalaryEngine'den)
+  /// Kümülatif vergi hesabı ile Ocak'tan şu anki aya kadar
   Map<String, double>? _calculateSalaryDeductions() {
     if (_guncelBrutMaas == null) return null;
 
     try {
-      final brutMaas = _guncelBrutMaas!;
-      final sgkIsci = brutMaas * 0.14;
-      final issizlikIsci = brutMaas * 0.01;
-
-      final gelirVergisiMatrahi = brutMaas - sgkIsci - issizlikIsci;
-      double gelirVergisi = 0;
-
-      if (gelirVergisiMatrahi > 110000) {
-        gelirVergisi =
-            (gelirVergisiMatrahi - 110000) * 0.35 + 110000 * 0.15;
-      } else {
-        gelirVergisi = gelirVergisiMatrahi * 0.15;
+      final now = DateTime.now();
+      final year = now.year;
+      final currentMonth = now.month - 1; // 0-based (Ocak=0, Şubat=1, ...)
+      
+      // SalaryEngine oluştur (Normal çalışan, teşviksiz)
+      final engine = SalaryEngine(
+        year: year,
+        status: EmployeeStatus.normal,
+        incentive: Incentive.none,
+      );
+      
+      // Ocak'tan şu anki aya kadar hesapla (kümülatif vergi için)
+      double cumulativeTaxBase = 0.0;
+      MonthResult? currentMonthResult;
+      
+      for (int m = 0; m <= currentMonth; m++) {
+        final result = engine.calculateNetFromGross(
+          grossMonthly: _guncelBrutMaas!,
+          monthIndex: m,
+          cumulativeTaxBasePrev: cumulativeTaxBase,
+        );
+        
+        cumulativeTaxBase = result.cumulativeTaxBase;
+        
+        // Son ay sonucunu sakla
+        if (m == currentMonth) {
+          currentMonthResult = result;
+        }
       }
-
-      final damgaVergisi = brutMaas * 0.00759;
-      final toplamKesinti =
-          sgkIsci + issizlikIsci + gelirVergisi + damgaVergisi;
-      final netMaas = brutMaas - toplamKesinti;
-
+      
+      if (currentMonthResult == null) return null;
+      
+      final totalDeductions = currentMonthResult.sgkEmployee +
+          currentMonthResult.unemploymentEmployee +
+          currentMonthResult.incomeTax +
+          currentMonthResult.stampTax;
+      
       return {
-        'brut': brutMaas,
-        'sgk': sgkIsci,
-        'issizlik': issizlikIsci,
-        'gelirVergisi': gelirVergisi,
-        'damgaVergisi': damgaVergisi,
-        'toplam': toplamKesinti,
-        'net': netMaas,
+        'brut': currentMonthResult.gross,
+        'sgk': currentMonthResult.sgkEmployee,
+        'issizlik': currentMonthResult.unemploymentEmployee,
+        'gelirVergisi': currentMonthResult.incomeTax,
+        'damgaVergisi': currentMonthResult.stampTax,
+        'toplam': totalDeductions,
+        'net': currentMonthResult.net,
       };
     } catch (e) {
       debugPrint('Maaş kesintileri hesaplama hatası: $e');
@@ -277,12 +326,12 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildCareerSummary(themeColor),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             if (_careerHeight > 0)
               SizedBox(
@@ -292,7 +341,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                     Expanded(
                       child: _buildRetirementTracking(retirementInfo, themeColor),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -303,12 +352,13 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                               iconColor: Colors.orange,
                               title: 'Kıdem Tazminatı',
                               value: severancePay != null
-                                  ? _formatCurrency(severancePay)
+                                  ? _formatCurrency(severancePay['net']!)
                                   : '-',
                               isEstimated: true,
+                              onInfoTap: () => _showSeverancePayDetails(severancePay),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           Expanded(
                             child: _buildMiniInfoCardLeftIconCompact(
                               icon: Icons.event_available_rounded,
@@ -318,6 +368,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                                   ? '$annualLeave Gün'
                                   : '-',
                               subtitle: 'Bu Yıl',
+                              onInfoTap: () => _showAnnualLeaveDetails(annualLeave),
                             ),
                           ),
                         ],
@@ -327,11 +378,11 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                 ),
               ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             if (deductions != null) _buildSalaryAnalysis(deductions, themeColor),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             SizedBox(
               width: double.infinity,
@@ -469,7 +520,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     final currentAge = normalRetirement['currentAge'] as int? ?? 0;
     final estimatedDate = normalRetirement['estimatedDate'] as DateTime?;
 
-    const double donutSize = 80.0; // ✅ daha küçük
+    const double donutSize = 80.0;
     const double donutStroke = 9.0;
 
     return Container(
@@ -478,16 +529,36 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Emeklilik Takibi',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Emeklilik Takibi',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: () => _showRetirementDetails(retirementInfo, themeColor),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: themeColor,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
 
@@ -560,7 +631,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
             ),
           ),
 
-          const Spacer(),
+          const SizedBox(height: 8),
 
           if (estimatedDate != null)
             Center(
@@ -576,7 +647,6 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     );
   }
 
-  // ✅ BOŞLUK AZALTILDI: başlık-tutar arası 8 -> 4, subtitle arası 4 -> 2
   Widget _buildMiniInfoCardLeftIconCompact({
     required IconData icon,
     required Color iconColor,
@@ -584,85 +654,59 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     required String value,
     String? subtitle,
     bool isEstimated = false,
+    VoidCallback? onInfoTap,
   }) {
-    const double leftIndent = 32; // ikon hizası
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: _cardDecoration(),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(icon, color: iconColor, size: 22),
-              const SizedBox(width: 10),
+              Icon(icon, color: iconColor, size: 18),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.grey[700],
+                    fontSize: 11,
+                    color: Colors.grey[400],
                   ),
                 ),
               ),
+              if (onInfoTap != null)
+                InkWell(
+                  onTap: onInfoTap,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: iconColor,
+                    ),
+                  ),
+                ),
             ],
           ),
-
-          const SizedBox(height: 4), // ✅ azaltıldı
-
+          const SizedBox(height: 2),
           Padding(
-            padding: const EdgeInsets.only(left: leftIndent),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                maxLines: 1,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+            padding: const EdgeInsets.only(left: 24),
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
             ),
           ),
-
-          if (subtitle != null) ...[
-            const SizedBox(height: 2), // ✅ azaltıldı
-            Padding(
-              padding: const EdgeInsets.only(left: leftIndent),
-              child: Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-              ),
-            ),
-          ],
-
-          if (isEstimated) ...[
-            const SizedBox(height: 2), // ✅ azaltıldı
-            Padding(
-              padding: const EdgeInsets.only(left: leftIndent),
-              child: Text(
-                '(Tahmini)',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[500],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -694,13 +738,32 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Maaş ve Kesinti Analizi',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Maaş ve Kesinti Analizi',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: () => _showSalaryDetails(deductions, themeColor),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: themeColor,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Row(
@@ -813,6 +876,352 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
           ),
         ),
       ],
+    );
+  }
+
+  // Emeklilik Detayları Dialog
+  void _showRetirementDetails(Map<String, dynamic> retirementInfo, Color themeColor) {
+    final normalRetirement = retirementInfo['normalEmeklilik'] as Map<String, dynamic>?;
+    if (normalRetirement == null) return;
+
+    final progress = (normalRetirement['progress'] as num?)?.toDouble() ?? 0.0;
+    final remainingYears = normalRetirement['remainingYears'] as int? ?? 0;
+    final remainingMonths = normalRetirement['remainingMonths'] as int? ?? 0;
+    final currentAge = normalRetirement['currentAge'] as int? ?? 0;
+    final requiredAge = normalRetirement['requiredAge'] as int? ?? 60;
+    final requiredDays = normalRetirement['requiredDays'] as int? ?? 5400;
+    final currentDays = normalRetirement['currentDays'] as int? ?? 0;
+    final estimatedDate = normalRetirement['estimatedDate'] as DateTime?;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.track_changes, color: themeColor, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Emeklilik Detayları',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetailRow('Mevcut Yaşınız', '$currentAge yaş'),
+              _buildDetailRow('Emeklilik Yaşı', '$requiredAge yaş'),
+              const Divider(height: 20),
+              _buildDetailRow('Toplam Prim Günü', '$currentDays gün'),
+              _buildDetailRow('Gerekli Prim Günü', '$requiredDays gün'),
+              const Divider(height: 20),
+              _buildDetailRow('İlerleme', '%${progress.toStringAsFixed(1)}'),
+              _buildDetailRow('Kalan Süre', '$remainingYears yıl ${remainingMonths > 0 ? '$remainingMonths ay' : ''}'),
+              if (estimatedDate != null)
+                _buildDetailRow('Tahmini Emeklilik', DateFormat('MMMM yyyy', 'tr_TR').format(estimatedDate)),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: themeColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: themeColor, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Veriler her gün otomatik olarak güncellenmektedir.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Kıdem Tazminatı Detayları Dialog
+  void _showSeverancePayDetails(Map<String, double>? severancePay) {
+    if (severancePay == null) return;
+
+    final now = DateTime.now();
+    final workYears = _mevcutIsyeriBaslangic != null 
+        ? now.year - _mevcutIsyeriBaslangic!.year 
+        : 0;
+    final workMonths = _mevcutIsyeriBaslangic != null
+        ? now.month - _mevcutIsyeriBaslangic!.month + (workYears * 12)
+        : 0;
+
+    final brutSeverance = severancePay['brut'] ?? 0;
+    final netSeverance = severancePay['net'] ?? 0;
+    final stampTax = severancePay['stampTax'] ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.payments_rounded, color: Colors.orange, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Kıdem Tazminatı Detayları',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetailRow('Başlangıç Tarihi', _formatDate(_mevcutIsyeriBaslangic)),
+              _buildDetailRow('Çalışma Süresi', '$workYears yıl $workMonths ay'),
+              const Divider(height: 20),
+              _buildDetailRow('Aylık Brüt Maaş', _formatCurrency(_guncelBrutMaas)),
+              const Divider(height: 20),
+              _buildDetailRow('Brüt Kıdem Tazminatı', _formatCurrency(brutSeverance)),
+              _buildDetailRow('Damga Vergisi (%0.759)', _formatCurrency(stampTax), color: Colors.red),
+              _buildDetailRow('Net Kıdem Tazminatı', _formatCurrency(netSeverance), isBold: true, color: Colors.green),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Kıdem Tazminatı Nedir?',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'En az 1 yıl çalıştıktan sonra işten ayrılırken, belirli koşullarda işvereninizin size ödemekle yükümlü olduğu tazminattır. Hesaplama günlük brüt maaş × çalışma günü şeklinde yapılır ve tavan ücreti kontrolü ile damga vergisi (%0.759) uygulanır.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Yıllık İzin Detayları Dialog
+  void _showAnnualLeaveDetails(int? annualLeave) {
+    if (annualLeave == null) return;
+
+    final now = DateTime.now();
+    final workYears = _mevcutIsyeriBaslangic != null 
+        ? now.year - _mevcutIsyeriBaslangic!.year 
+        : 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.event_available_rounded, color: Colors.blue, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Yıllık İzin Detayları',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetailRow('Başlangıç Tarihi', _formatDate(_mevcutIsyeriBaslangic)),
+              _buildDetailRow('Çalışma Süresi', '$workYears yıl'),
+              const Divider(height: 20),
+              _buildDetailRow('Yıllık İzin Hakkı', '$annualLeave gün', isBold: true),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Yıllık İzin Süresi',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '• 1-5 yıl arası: 14 gün\n• 5-15 yıl arası: 20 gün\n• 15 yıl ve üzeri: 26 gün',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Maaş Analizi Detayları Dialog
+  void _showSalaryDetails(Map<String, double> deductions, Color themeColor) {
+    final brut = deductions['brut']!;
+    final net = deductions['net']!;
+    final sgk = deductions['sgk']!;
+    final issizlik = deductions['issizlik']!;
+    final gelirVergisi = deductions['gelirVergisi']!;
+    final damgaVergisi = deductions['damgaVergisi']!;
+    final toplam = deductions['toplam']!;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.account_balance_wallet, color: themeColor, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Maaş Analizi Detayları',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetailRow('Brüt Maaş', _formatCurrency(brut), isBold: true),
+              const Divider(height: 20),
+              const Text(
+                'Kesintiler:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              _buildDetailRow('SGK Primi (%14)', _formatCurrency(sgk)),
+              _buildDetailRow('İşsizlik Primi (%1)', _formatCurrency(issizlik)),
+              _buildDetailRow('Gelir Vergisi', _formatCurrency(gelirVergisi)),
+              _buildDetailRow('Damga Vergisi (%0.759)', _formatCurrency(damgaVergisi)),
+              const Divider(height: 20),
+              _buildDetailRow('Toplam Kesinti', _formatCurrency(toplam), color: Colors.red),
+              _buildDetailRow('Net Maaş', _formatCurrency(net), isBold: true, color: Colors.green),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: themeColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: themeColor, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Eline geçecek net tutar: ${_formatCurrency(net)} (${((net / brut) * 100).toStringAsFixed(1)}%)',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Detay satırı widget'ı
+  Widget _buildDetailRow(String label, String value, {bool isBold = false, Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: color ?? Colors.black87,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
