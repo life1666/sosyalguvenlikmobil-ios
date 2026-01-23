@@ -88,10 +88,10 @@ class AnaEkran extends StatefulWidget {
 }
 
 class _AnaEkranState extends State<AnaEkran> {
-  int _selectedIndex = 0;
-  int _selectedTabIndex = 0; // 0 = Ana Ekran, 1 = Çalışma Hayatım
+  int _selectedIndex = -1; // -1 = Ana sayfa (alt barda gösterilmiyor)
   User? _kullanici;
   String _appVersion = 'Bilinmiyor';
+  int _refreshKey = 0; // Çalışma Hayatım'ı yenilemek için
 
   // Banner kaldırıldı
   // final PageController _bannerController = PageController();
@@ -906,23 +906,7 @@ class _AnaEkranState extends State<AnaEkran> {
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.account_circle_rounded, color: themeColor, size: 28),
-          onPressed: () => _showFullScreenMenu(context),
-        ),
         actions: [
-          // Arama ikonu
-          IconButton(
-            icon: Icon(Icons.search_rounded, color: themeColor),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AramaEkrani(),
-                ),
-              );
-            },
-          ),
           // Bildirim ikonu
           if (_kullanici != null)
             Stack(
@@ -961,204 +945,132 @@ class _AnaEkranState extends State<AnaEkran> {
         ],
       ),
 
-      body: Column(
-        children: [
-          // Cupertino Segmented Control
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: CupertinoSlidingSegmentedControl<int>(
-                groupValue: _selectedTabIndex,
-                onValueChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedTabIndex = value;
-                    });
-                  }
-                },
-                children: const {
-                  0: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Text('Ana Ekran'),
-                  ),
-                  1: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Text('Çalışma Hayatım'),
-                  ),
-                },
-              ),
-            ),
-          ),
-          // İçerik
-          Expanded(
-            child: _selectedTabIndex == 0
-                ? CustomScrollView(
-                    slivers: [
-                      // Sık Kullanılanlar
-                      SliverToBoxAdapter(
-                        child: _SikKullanilanlar(),
-                      ),
+      body: _buildBody(),
 
-          // Hızlı İşlemler Başlığı
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
-              child: Text(
-                '⚡ Hızlı İşlemler',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.grey[800],
-                ),
-              ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
             ),
-          ),
-
-          // Ana 4 Kategori (2x2 Grid)
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.1,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final top4 = categories.take(4).toList();
-                  final category = top4[index];
-                  return _CategoryCard(
-                    category: category,
-                    onTap: () {
-                      AnalyticsHelper.logCustomEvent('category_tapped', parameters: {'category': category.title});
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CategoryScreen(category: category),
-                        ),
-                      );
-                    },
-                  );
-                },
-                childCount: 4, // Sadece 4 ana kategori
-              ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex >= 0 ? _selectedIndex : 0,
+          onTap: (index) {
+            setState(() => _selectedIndex = index);
+            
+            // Navigation logic
+            if (index == 0) {
+            // Ayarlar (Menü)
+            _showFullScreenMenu(context);
+            // Index'i sıfırla
+            Future.delayed(Duration(milliseconds: 100), () {
+              if (mounted) setState(() => _selectedIndex = -1);
+            });
+            } else if (index == 1) {
+              // Arama
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AramaEkrani()),
+              );
+              // Index'i sıfırla
+              Future.delayed(Duration(milliseconds: 100), () {
+                if (mounted) setState(() => _selectedIndex = -1);
+              });
+            } else if (index == 2) {
+              // Son Hesaplamalar ekranına git
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SonHesaplamalarEkrani()),
+              );
+              // Index'i sıfırla
+              Future.delayed(Duration(milliseconds: 100), () {
+                if (mounted) setState(() => _selectedIndex = -1);
+              });
+            } else if (index == 3) {
+              // Tüm Özellikler ekranına git
+              AnalyticsHelper.logCustomEvent('all_features_tapped');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AllFeaturesScreen(categories: categories)),
+              );
+              // Index'i sıfırla
+              Future.delayed(Duration(milliseconds: 100), () {
+                if (mounted) setState(() => _selectedIndex = -1);
+              });
+            }
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: themeColor,
+          unselectedItemColor: themeColor,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
+          elevation: 0,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_circle_outlined, size: 26),
+              activeIcon: Icon(Icons.account_circle_rounded, size: 28),
+              label: 'Ayarlar',
             ),
-          ),
-
-          // Tüm Özellikler Butonu
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    AnalyticsHelper.logCustomEvent('all_features_tapped');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AllFeaturesScreen(categories: categories),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Theme.of(context).primaryColor,
-                          Theme.of(context).primaryColor.withOpacity(0.7),
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).primaryColor.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.apps, color: Colors.white),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tüm Özellikler',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Makaleler, Mevzuat, Sözlük ve daha fazlası',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white.withOpacity(0.9),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          duration: Duration(milliseconds: 1500),
-                          curve: Curves.easeInOut,
-                          builder: (context, value, child) {
-                            return Transform.translate(
-                              offset: Offset(value * 3, 0),
-                              child: Icon(Icons.chevron_right, color: Colors.white),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search_outlined, size: 26),
+              activeIcon: Icon(Icons.search_rounded, size: 28),
+              label: 'Ara',
             ),
-          ),
-
-          // Son Hesaplamalar Başlığı
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
-              child: Text(
-                '🕐 Son Hesaplamalar',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.grey[800],
-                ),
-              ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history_outlined, size: 26),
+              activeIcon: Icon(Icons.history_rounded, size: 28),
+              label: 'Son Hesaplamalar',
             ),
-          ),
-
-                      // Son Aktiviteler
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                          child: _SonHesaplamalarBlock(categories: categories),
-                        ),
-                      ),
-                    ],
-                  )
-                : const CalismaHayatimEkrani(),
-          ),
-        ],
+            BottomNavigationBarItem(
+              icon: Icon(Icons.apps_outlined, size: 26),
+              activeIcon: Icon(Icons.apps_rounded, size: 28),
+              label: 'Tüm Özellikler',
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildBody() {
+    return CustomScrollView(
+        slivers: [
+          // Sık Kullanılanlar
+          SliverToBoxAdapter(
+            child: _SikKullanilanlar(),
+          ),
+
+          // Çalışma Hayatım Başlığı
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Text(
+                '💼 Çalışma Hayatım',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ),
+          ),
+
+          // Çalışma Hayatım İçeriği
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+              child: CalismaHayatimContent(key: ValueKey(_refreshKey)),
+            ),
+          ),
+        ],
+      );
   }
 
   // Yan menü
@@ -1184,7 +1096,12 @@ class _AnaEkranState extends State<AnaEkran> {
             })
           else
             _MenuAction(Icons.person, 'Hesabım', () {
-              Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => HesabimEkrani()));
+              Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => HesabimEkrani())).then((_) {
+                // Hesabım ekranından döndüğünde Çalışma Hayatım'ı yenile
+                if (mounted) {
+                  setState(() => _refreshKey++);
+                }
+              });
             }),
           _MenuAction(Icons.mail_outline, 'İletişim', () {
             Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => IletisimEkrani()));
@@ -1306,7 +1223,12 @@ class _AnaEkranState extends State<AnaEkran> {
           ),
         );
       },
-    );
+    ).then((_) {
+      // Menü kapandığında Çalışma Hayatım'ı yenile
+      if (mounted) {
+        setState(() => _refreshKey++);
+      }
+    });
   }
 
   Widget _menuButton({

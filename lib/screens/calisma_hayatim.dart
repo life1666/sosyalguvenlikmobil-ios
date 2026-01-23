@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
@@ -7,10 +6,22 @@ import 'dart:convert';
 import '../mesaitakip/mesaihesaplama.dart';
 
 class CalismaHayatimEkrani extends StatefulWidget {
-  const CalismaHayatimEkrani({super.key});
+  final bool useScaffold;
+  
+  const CalismaHayatimEkrani({super.key, this.useScaffold = true});
 
   @override
   State<CalismaHayatimEkrani> createState() => _CalismaHayatimEkraniState();
+}
+
+// İçerik widget'ı - Scaffold olmadan (convenience wrapper)
+class CalismaHayatimContent extends StatelessWidget {
+  const CalismaHayatimContent({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const CalismaHayatimEkrani(useScaffold: false);
+  }
 }
 
 class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
@@ -21,10 +32,6 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   double? _guncelBrutMaas;
   bool _isLoading = true;
 
-  final GlobalKey _careerKey = GlobalKey();
-  double _careerHeight = 0;
-
-  final double _retirementScale = 1.15;
 
   @override
   void initState() {
@@ -108,38 +115,131 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
         age--;
       }
 
-      int requiredAge = 60;
-      int requiredDays = 5400;
+      // Normal emeklilik (7200 gün, 60 yaş)
+      int normalRequiredAge = 60;
+      int normalRequiredDays = 7200;
 
-      if (_ilkIseGirisTarihi!.isBefore(DateTime(2008, 5, 1))) {
-        requiredDays = 5000;
+      final normalRemainingDaysTotal = (normalRequiredDays - _toplamPrimGun!).clamp(0, normalRequiredDays);
+      final normalRemainingYears = normalRemainingDaysTotal ~/ 360; // SGK standardı: 1 yıl = 360 gün
+      final normalRemainingDaysOnly = normalRemainingDaysTotal % 360; // Kalan günler
+      final normalProgress = (_toplamPrimGun! / normalRequiredDays * 100).clamp(0, 100);
+
+      DateTime? normalEstimatedDate;
+      if (normalRemainingDaysTotal > 0) {
+        final araTarih = DateTime(now.year + normalRemainingYears, now.month, now.day);
+        normalEstimatedDate = araTarih.add(Duration(days: normalRemainingDaysOnly));
       }
 
-      final remainingYears = requiredAge - age;
-      final remainingDays = requiredDays - _toplamPrimGun!;
-      final progress = (_toplamPrimGun! / requiredDays * 100).clamp(0, 100);
+      // Kısmi emeklilik (5400 gün, 60 yaş) - 2008 öncesi başlayanlar için
+      int partialRequiredAge = 60;
+      int partialRequiredDays = 5400;
+      
+      if (_ilkIseGirisTarihi!.isBefore(DateTime(1999, 4, 23))) {
+        partialRequiredDays = 5000; // 1999 öncesi
+      }
 
-      DateTime? estimatedDate;
-      if (remainingYears > 0) {
-        estimatedDate = DateTime(now.year + remainingYears, now.month, now.day);
+      final partialRemainingDaysTotal = (partialRequiredDays - _toplamPrimGun!).clamp(0, partialRequiredDays);
+      final partialRemainingYears = partialRemainingDaysTotal ~/ 360; // SGK standardı: 1 yıl = 360 gün
+      final partialRemainingDaysOnly = partialRemainingDaysTotal % 360; // Kalan günler
+      final partialProgress = (_toplamPrimGun! / partialRequiredDays * 100).clamp(0, 100);
+
+      DateTime? partialEstimatedDate;
+      if (partialRemainingDaysTotal > 0) {
+        final araTarih = DateTime(now.year + partialRemainingYears, now.month, now.day);
+        partialEstimatedDate = araTarih.add(Duration(days: partialRemainingDaysOnly));
       }
 
       return {
         'normalEmeklilik': {
-          'requiredAge': requiredAge,
-          'requiredDays': requiredDays,
+          'requiredAge': normalRequiredAge,
+          'requiredDays': normalRequiredDays,
           'currentAge': age,
           'currentDays': _toplamPrimGun,
-          'remainingYears': remainingYears > 0 ? remainingYears : 0,
-          'remainingMonths': remainingDays > 0 ? (remainingDays / 30).floor() : 0,
-          'progress': progress,
-          'estimatedDate': estimatedDate,
+          'remainingYears': normalRemainingYears,
+          'remainingDays': normalRemainingDaysOnly,
+          'progress': normalProgress,
+          'estimatedDate': normalEstimatedDate,
+        },
+        'kismiEmeklilik': {
+          'requiredAge': partialRequiredAge,
+          'requiredDays': partialRequiredDays,
+          'currentAge': age,
+          'currentDays': _toplamPrimGun,
+          'remainingYears': partialRemainingYears,
+          'remainingDays': partialRemainingDaysOnly,
+          'progress': partialProgress,
+          'estimatedDate': partialEstimatedDate,
         },
       };
     } catch (e) {
       debugPrint('Emeklilik hesaplama hatası: $e');
       return null;
     }
+  }
+
+  // Demo veriler - Kişisel bilgiler yoksa göster
+  Map<String, dynamic> _getDemoRetirementInfo() {
+    final bugun = DateTime.now();
+    final demoYas = 35;
+    final demoPrimGun = 4320; // 12 yıl * 360 gün
+    final normalGerekliYas = 60;
+    final normalGerekliGun = 7200; // Normal emeklilik
+    final kismiGerekliYas = 60;
+    final kismiGerekliGun = 5400; // Kısmi emeklilik
+    
+    final normalKalanGunToplam = normalGerekliGun - demoPrimGun;
+    final normalKalanYil = normalKalanGunToplam ~/ 360; // SGK standardı: 1 yıl = 360 gün
+    final normalKalanGun = normalKalanGunToplam % 360;
+    
+    final kismiKalanGunToplam = kismiGerekliGun - demoPrimGun;
+    final kismiKalanYil = kismiKalanGunToplam ~/ 360;
+    final kismiKalanGun = kismiKalanGunToplam % 360;
+    
+    return {
+      'normalEmeklilik': {
+        'requiredAge': normalGerekliYas,
+        'requiredDays': normalGerekliGun,
+        'currentAge': demoYas,
+        'currentDays': demoPrimGun,
+        'remainingYears': normalKalanYil,
+        'remainingDays': normalKalanGun,
+        'progress': (demoPrimGun / normalGerekliGun * 100).clamp(0, 100),
+        'estimatedDate': DateTime(bugun.year + normalKalanYil, bugun.month, bugun.day).add(Duration(days: normalKalanGun)),
+      },
+      'kismiEmeklilik': {
+        'requiredAge': kismiGerekliYas,
+        'requiredDays': kismiGerekliGun,
+        'currentAge': demoYas,
+        'currentDays': demoPrimGun,
+        'remainingYears': kismiKalanYil,
+        'remainingDays': kismiKalanGun,
+        'progress': (demoPrimGun / kismiGerekliGun * 100).clamp(0, 100),
+        'estimatedDate': DateTime(bugun.year + kismiKalanYil, bugun.month, bugun.day).add(Duration(days: kismiKalanGun)),
+      },
+    };
+  }
+
+  Map<String, double> _getDemoSeverancePay() {
+    return {
+      'brut': 125000.0,
+      'damga': 948.75,
+      'net': 124051.25,
+    };
+  }
+
+  int _getDemoAnnualLeave() {
+    return 20; // 5-15 yıl arası çalışma için
+  }
+
+  Map<String, double> _getDemoSalaryDeductions() {
+    return {
+      'brut': 50000.0,
+      'sgk': 7000.0,
+      'issizlik': 500.0,
+      'gelirVergisi': 1792.0,
+      'damgaVergisi': 500.0,
+      'net': 40208.0,
+    };
   }
 
   /// ✅ Profesyonel Kıdem Tazminatı Hesaplama (Tavan + Damga Vergisi)
@@ -277,90 +377,136 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_dogumTarihi == null ||
+    // Kişisel bilgiler eksikse demo veriler kullan
+    final bool usingDemoData = _dogumTarihi == null ||
         _ilkIseGirisTarihi == null ||
-        _toplamPrimGun == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.info_outline, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                'Kişisel Bilgiler Eksik',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Çalışma Hayatım özelliğini kullanmak için Hesabım > Kişisel Bilgiler bölümünden bilgilerinizi doldurun.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+        _toplamPrimGun == null;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final box = _careerKey.currentContext?.findRenderObject() as RenderBox?;
-      if (box != null && mounted) {
-        final h = box.size.height;
-        if ((h - _careerHeight).abs() > 0.5) {
-          setState(() => _careerHeight = h);
-        }
-      }
-    });
+    final retirementInfo = usingDemoData ? _getDemoRetirementInfo() : _calculateRetirement();
+    final severancePay = usingDemoData ? _getDemoSeverancePay() : _calculateSeverancePay();
+    final annualLeave = usingDemoData ? _getDemoAnnualLeave() : _calculateAnnualLeave();
+    final deductions = usingDemoData ? _getDemoSalaryDeductions() : _calculateSalaryDeductions();
 
-    final retirementInfo = _calculateRetirement();
-    final severancePay = _calculateSeverancePay();
-    final annualLeave = _calculateAnnualLeave();
-    final deductions = _calculateSalaryDeductions();
-
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+    final contentWidget = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCareerSummary(themeColor),
-            const SizedBox(height: 12),
-
-            if (_careerHeight > 0)
-              SizedBox(
-                height: _careerHeight * _retirementScale,
+            // Demo veri uyarısı
+            if (usingDemoData)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.amber.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
                 child: Row(
                   children: [
+                    Icon(Icons.info_outline, color: Colors.amber[700], size: 20),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: _buildRetirementTracking(retirementInfo, themeColor),
+                      child: Text(
+                        'Bunlar örnek verilerdir. Gerçek verilerinizi görmek için Ayarlar > Hesabım > Kişisel Bilgiler\'den bilgilerinizi girin.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.amber[900],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: _buildMiniInfoCardLeftIconCompact(
+                  ],
+                ),
+              ),
+            
+            // Kariyer Özeti Container - diğer tüm kutuları sarar (resimdeki gibi)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Kariyer Özeti bilgileri (başlık kaldırıldı)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSummaryItem(
+                          Icons.calendar_today,
+                          'İlk İşe Başlama Tarihim',
+                          _formatDate(_ilkIseGirisTarihi),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildSummaryItem(
+                          Icons.work,
+                          'Toplam Prim Günüm',
+                          _toplamPrimGun != null ? '$_toplamPrimGun Gün' : '-',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSummaryItem(
+                          Icons.business,
+                          'Mevcut İşyeri Başlangıç Tarihi',
+                          _formatDate(_mevcutIsyeriBaslangic),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildSummaryItem(
+                          Icons.account_balance_wallet,
+                          'Güncel Maaşım',
+                          _guncelBrutMaas != null
+                              ? '${_formatCurrency(_guncelBrutMaas)} (Brüt)'
+                              : '-',
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Emeklilik Takibi + Kıdem/Yıllık İzin (başlık kaldırıldı)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildRetirementTracking(retirementInfo, themeColor),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildMiniInfoCardLeftIconCompact(
                               icon: Icons.payments_rounded,
                               iconColor: Colors.orange,
-                              title: 'Kıdem Tazminatı',
+                              title: 'Kıdem Tazminatım',
                               value: severancePay != null
                                   ? _formatCurrency(severancePay['net']!)
                                   : '-',
                               isEstimated: true,
                               onInfoTap: () => _showSeverancePayDetails(severancePay),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: _buildMiniInfoCardLeftIconCompact(
+                            const SizedBox(height: 12),
+                            _buildMiniInfoCardLeftIconCompact(
                               icon: Icons.event_available_rounded,
                               iconColor: Colors.blue,
                               title: 'Yıllık İzin',
@@ -370,17 +516,19 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                               subtitle: 'Bu Yıl',
                               onInfoTap: () => _showAnnualLeaveDetails(annualLeave),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Maaş ve Kesinti Analizi
+                  if (deductions != null) _buildSalaryAnalysis(deductions, themeColor),
+                ],
               ),
-
-            const SizedBox(height: 12),
-
-            if (deductions != null) _buildSalaryAnalysis(deductions, themeColor),
+            ),
 
             const SizedBox(height: 12),
 
@@ -401,76 +549,23 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
               ),
             ),
           ],
+        );
+
+    // useScaffold parametresine göre Scaffold ile veya olmadan döndür
+    if (widget.useScaffold) {
+      return Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(12),
+          child: contentWidget,
         ),
-      ),
-    );
+      );
+    } else {
+      // Scaffold olmadan, direkt içerik
+      return contentWidget;
+    }
   }
 
-  Widget _buildCareerSummary(Color themeColor) {
-    return Container(
-      key: _careerKey,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[800],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Kariyer Özeti',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[200],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryItem(
-                  Icons.calendar_today,
-                  'İşe Başlama Tarihi',
-                  _formatDate(_ilkIseGirisTarihi),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSummaryItem(
-                  Icons.work,
-                  'Toplam Prim Gün',
-                  _toplamPrimGun != null ? '$_toplamPrimGun Gün' : '-',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryItem(
-                  Icons.business,
-                  'Mevcut İşyeri Başlangıç',
-                  _formatDate(_mevcutIsyeriBaslangic),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSummaryItem(
-                  Icons.account_balance_wallet,
-                  'Güncel Maaş',
-                  _guncelBrutMaas != null
-                      ? '${_formatCurrency(_guncelBrutMaas)} (Brüt)'
-                      : '-',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildSummaryItem(IconData icon, String label, String value) {
     return Row(
@@ -516,16 +611,14 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
 
     final progress = (normalRetirement['progress'] as num?)?.toDouble() ?? 0.0;
     final remainingYears = normalRetirement['remainingYears'] as int? ?? 0;
-    final remainingMonths = normalRetirement['remainingMonths'] as int? ?? 0;
-    final currentAge = normalRetirement['currentAge'] as int? ?? 0;
-    final estimatedDate = normalRetirement['estimatedDate'] as DateTime?;
-
-    const double donutSize = 80.0;
-    const double donutStroke = 9.0;
+    final remainingDaysOnly = normalRetirement['remainingDays'] as int? ?? 0;
+    final currentDays = normalRetirement['currentDays'] as int? ?? 0;
+    final requiredDays = normalRetirement['requiredDays'] as int? ?? 7200;
+    final totalRemainingDays = requiredDays - currentDays;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(10),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,7 +633,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
@@ -551,6 +644,10 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: themeColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
                   child: Icon(
                     Icons.info_outline,
                     size: 18,
@@ -560,88 +657,119 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
 
-          Center(
-            child: SizedBox(
-              width: donutSize,
-              height: donutSize,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: donutSize,
-                    height: donutSize,
-                    child: CircularProgressIndicator(
-                      value: progress / 100,
-                      strokeWidth: donutStroke,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(themeColor),
+          // İki sütunlu gösterim
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      'TAMAMLANAN',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[500],
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '%${progress.toInt()}',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: themeColor,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '%${progress.toInt()}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: themeColor,
                       ),
-                      const SizedBox(height: 1),
-                      Text(
-                        '$currentAge Yaş',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 9.5, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${currentDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} gün',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+              Container(
+                width: 1,
+                height: 50,
+                color: Colors.grey[300],
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      'KALAN',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[500],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '%${(100 - progress).toInt()}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${totalRemainingDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} gün',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
 
-          Center(
-            child: Text(
-              'Kalan: $remainingYears Yıl${remainingMonths > 0 ? ' $remainingMonths Ay' : ''}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 4),
-
-          Center(
-            child: Text(
-              '$currentAge Yaşında',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress / 100,
+              minHeight: 8,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(themeColor),
             ),
           ),
 
           const SizedBox(height: 8),
 
-          if (estimatedDate != null)
-            Center(
-              child: Text(
-                'Tahmini: ${DateFormat('yyyy', 'tr_TR').format(estimatedDate)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-              ),
+          // Kalan süre
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.event_outlined, size: 14, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  '~$remainingYears yıl ${remainingDaysOnly > 0 ? '$remainingDaysOnly gün' : ''}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
+          ),
+
         ],
       ),
     );
@@ -658,23 +786,22 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: iconColor, size: 18),
-              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[400],
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
                   ),
                 ),
               ),
@@ -684,6 +811,10 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
                     child: Icon(
                       Icons.info_outline,
                       size: 16,
@@ -693,18 +824,15 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                 ),
             ],
           ),
-          const SizedBox(height: 2),
-          Padding(
-            padding: const EdgeInsets.only(left: 24),
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ],
@@ -733,7 +861,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(10),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -745,7 +873,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                 child: Text(
                   'Maaş ve Kesinti Analizi',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
@@ -756,16 +884,20 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: themeColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
                   child: Icon(
                     Icons.info_outline,
-                    size: 20,
+                    size: 18,
                     color: themeColor,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -882,16 +1014,12 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   // Emeklilik Detayları Dialog
   void _showRetirementDetails(Map<String, dynamic> retirementInfo, Color themeColor) {
     final normalRetirement = retirementInfo['normalEmeklilik'] as Map<String, dynamic>?;
+    final partialRetirement = retirementInfo['kismiEmeklilik'] as Map<String, dynamic>?;
+    
     if (normalRetirement == null) return;
 
-    final progress = (normalRetirement['progress'] as num?)?.toDouble() ?? 0.0;
-    final remainingYears = normalRetirement['remainingYears'] as int? ?? 0;
-    final remainingMonths = normalRetirement['remainingMonths'] as int? ?? 0;
     final currentAge = normalRetirement['currentAge'] as int? ?? 0;
-    final requiredAge = normalRetirement['requiredAge'] as int? ?? 60;
-    final requiredDays = normalRetirement['requiredDays'] as int? ?? 5400;
     final currentDays = normalRetirement['currentDays'] as int? ?? 0;
-    final estimatedDate = normalRetirement['estimatedDate'] as DateTime?;
 
     showDialog(
       context: context,
@@ -913,16 +1041,49 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('Mevcut Yaşınız', '$currentAge yaş'),
-              _buildDetailRow('Emeklilik Yaşı', '$requiredAge yaş'),
-              const Divider(height: 20),
-              _buildDetailRow('Toplam Prim Günü', '$currentDays gün'),
-              _buildDetailRow('Gerekli Prim Günü', '$requiredDays gün'),
-              const Divider(height: 20),
-              _buildDetailRow('İlerleme', '%${progress.toStringAsFixed(1)}'),
-              _buildDetailRow('Kalan Süre', '$remainingYears yıl ${remainingMonths > 0 ? '$remainingMonths ay' : ''}'),
-              if (estimatedDate != null)
-                _buildDetailRow('Tahmini Emeklilik', DateFormat('MMMM yyyy', 'tr_TR').format(estimatedDate)),
+              _buildDetailRow('Mevcut Yaşınız', '$currentAge yaş', isBold: true),
+              _buildDetailRow('Toplam Prim Günü', '$currentDays gün', isBold: true),
+              
+              const SizedBox(height: 20),
+              
+              // Normal Emeklilik
+              Text(
+                '📋 Normal Emeklilik',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: themeColor,
+                ),
+              ),
+              const Divider(height: 16),
+              _buildDetailRow('Gerekli Yaş', '${normalRetirement['requiredAge']} yaş'),
+              _buildDetailRow('Gerekli Prim Günü', '${normalRetirement['requiredDays']} gün'),
+              _buildDetailRow('İlerleme', '%${(normalRetirement['progress'] as num).toStringAsFixed(1)}'),
+              _buildDetailRow('Kalan Süre', '${normalRetirement['remainingYears']} yıl ${(normalRetirement['remainingDays'] as int) > 0 ? '${normalRetirement['remainingDays']} gün' : ''}'),
+              if (normalRetirement['estimatedDate'] != null)
+                _buildDetailRow('Tahmini Tarih', DateFormat('dd.MM.yyyy', 'tr_TR').format(normalRetirement['estimatedDate'] as DateTime)),
+              
+              if (partialRetirement != null) ...[
+                const SizedBox(height: 20),
+                
+                // Kısmi Emeklilik
+                Text(
+                  '📋 Kısmi Emeklilik',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+                const Divider(height: 16),
+                _buildDetailRow('Gerekli Yaş', '${partialRetirement['requiredAge']} yaş'),
+                _buildDetailRow('Gerekli Prim Günü', '${partialRetirement['requiredDays']} gün'),
+                _buildDetailRow('İlerleme', '%${(partialRetirement['progress'] as num).toStringAsFixed(1)}'),
+                _buildDetailRow('Kalan Süre', '${partialRetirement['remainingYears']} yıl ${(partialRetirement['remainingDays'] as int) > 0 ? '${partialRetirement['remainingDays']} gün' : ''}'),
+                if (partialRetirement['estimatedDate'] != null)
+                  _buildDetailRow('Tahmini Tarih', DateFormat('dd.MM.yyyy', 'tr_TR').format(partialRetirement['estimatedDate'] as DateTime)),
+              ],
+              
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -936,7 +1097,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
-                        'Veriler her gün otomatik olarak güncellenmektedir.',
+                        'Ana ekranda normal emeklilik (7200 gün) gösterilir. Veriler her gün otomatik güncellenir.',
                         style: TextStyle(fontSize: 12),
                       ),
                     ),
