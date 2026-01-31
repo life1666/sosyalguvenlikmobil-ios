@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../mesaitakip/mesaihesaplama.dart';
+import 'package:syncfusion_flutter_gauges/gauges.dart';
 
 class CalismaHayatimEkrani extends StatefulWidget {
   final bool useScaffold;
@@ -425,20 +426,24 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey[800],
+                color: Colors.grey[50],
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.grey[200]!,
+                  width: 1,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Kariyer Özeti bilgileri (başlık kaldırıldı)
+                  // Üst bilgiler: İlk İşe Başlama + Mevcut İşyeri Başlangıç
                   Row(
                     children: [
                       Expanded(
@@ -451,72 +456,48 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildSummaryItem(
-                          Icons.work,
-                          'Toplam Prim Günüm',
-                          _toplamPrimGun != null ? '$_toplamPrimGun Gün' : '-',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSummaryItem(
                           Icons.business,
-                          'Mevcut İşyeri Başlangıç Tarihi',
+                          'Mevcut İş Başlama Tarihim',
                           _formatDate(_mevcutIsyeriBaslangic),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildSummaryItem(
-                          Icons.account_balance_wallet,
-                          'Güncel Maaşım',
-                          _guncelBrutMaas != null
-                              ? '${_formatCurrency(_guncelBrutMaas)} (Brüt)'
-                              : '-',
-                        ),
-                      ),
                     ],
                   ),
                   
                   const SizedBox(height: 12),
                   
-                  // Emeklilik Takibi + Kıdem/Yıllık İzin (başlık kaldırıldı)
+                  // Emeklilik Takibi (Tam genişlik)
+                  _buildRetirementTracking(retirementInfo, themeColor),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Kıdem Tazminatı + Yıllık İzin (yan yana)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: _buildRetirementTracking(retirementInfo, themeColor),
+                        child: _buildMiniInfoCardLeftIconCompact(
+                          icon: Icons.payments_rounded,
+                          iconColor: Colors.orange,
+                          title: 'Kıdem Tazminatım',
+                          value: severancePay != null
+                              ? _formatCurrency(severancePay['net']!)
+                              : '-',
+                          isEstimated: true,
+                          onInfoTap: () => _showSeverancePayDetails(severancePay),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildMiniInfoCardLeftIconCompact(
-                              icon: Icons.payments_rounded,
-                              iconColor: Colors.orange,
-                              title: 'Kıdem Tazminatım',
-                              value: severancePay != null
-                                  ? _formatCurrency(severancePay['net']!)
-                                  : '-',
-                              isEstimated: true,
-                              onInfoTap: () => _showSeverancePayDetails(severancePay),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildMiniInfoCardLeftIconCompact(
-                              icon: Icons.event_available_rounded,
-                              iconColor: Colors.blue,
-                              title: 'Yıllık İzin',
-                              value: annualLeave != null
-                                  ? '$annualLeave Gün'
-                                  : '-',
-                              subtitle: 'Bu Yıl',
-                              onInfoTap: () => _showAnnualLeaveDetails(annualLeave),
-                            ),
-                          ],
+                        child: _buildMiniInfoCardLeftIconCompact(
+                          icon: Icons.event_available_rounded,
+                          iconColor: Colors.blue,
+                          title: 'Yıllık İznim',
+                          value: annualLeave != null
+                              ? '$annualLeave Gün'
+                              : '-',
+                          subtitle: 'Bu Yıl',
+                          onInfoTap: () => _showAnnualLeaveDetails(annualLeave),
                         ),
                       ),
                     ],
@@ -524,7 +505,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                   
                   const SizedBox(height: 12),
                   
-                  // Maaş ve Kesinti Analizi
+                  // Maaş ve Kesinti Analizi (Tam genişlik)
                   if (deductions != null) _buildSalaryAnalysis(deductions, themeColor),
                 ],
               ),
@@ -570,7 +551,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   Widget _buildSummaryItem(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, color: Colors.grey[400], size: 18),
+        Icon(icon, color: Colors.grey[600], size: 18),
         const SizedBox(width: 6),
         Expanded(
           child: Column(
@@ -580,17 +561,17 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: Colors.grey[800],
                 ),
               ),
             ],
@@ -600,7 +581,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     );
   }
 
-  // Emeklilik: donut + alt yazılar sığsın diye alan optimize
+  // Emeklilik: Sol tarafta animasyonlu gauge göstergesi, sağ tarafta detaylar
   Widget _buildRetirementTracking(
       Map<String, dynamic>? retirementInfo, Color themeColor) {
     if (retirementInfo == null) return const SizedBox.shrink();
@@ -618,22 +599,23 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Başlık
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
-                  'Emeklilik Takibi',
+                  'Emeklilik Takibim',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
@@ -657,121 +639,90 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
 
-          // İki sütunlu gösterim
+          // Sol: Gauge göstergesi, Sağ: Detaylar
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Sol: Syncfusion Animasyonlu Gauge
+              _AnimatedGaugeWidget(
+                progress: progress,
+                themeColor: themeColor,
+                currentDays: currentDays,
+              ),
+              
+              const SizedBox(width: 12),
+              
+              // Sağ: Detay Bilgileri
               Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'TAMAMLANAN',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[500],
-                        letterSpacing: 0.5,
-                      ),
+                    _buildRetirementDetailRow(
+                      icon: Icons.check_circle_outline,
+                      iconColor: themeColor,
+                      label: 'Tamamlanan',
+                      value: '${currentDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} gün',
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '%${progress.toInt()}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: themeColor,
-                      ),
+                    const SizedBox(height: 10),
+                    _buildRetirementDetailRow(
+                      icon: Icons.schedule,
+                      iconColor: Colors.grey[600]!,
+                      label: 'Kalan',
+                      value: '${totalRemainingDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} gün',
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${currentDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} gün',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 50,
-                color: Colors.grey[300],
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      'KALAN',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[500],
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '%${(100 - progress).toInt()}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${totalRemainingDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} gün',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
+                    const SizedBox(height: 10),
+                    _buildRetirementDetailRow(
+                      icon: Icons.event_outlined,
+                      iconColor: Colors.orange,
+                      label: 'Tahmini Süre',
+                      value: '~$remainingYears yıl${remainingDaysOnly > 0 ? ' $remainingDaysOnly gün' : ''}',
                     ),
                   ],
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 10),
-
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: progress / 100,
-              minHeight: 8,
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(themeColor),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Kalan süre
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.event_outlined, size: 14, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '~$remainingYears yıl ${remainingDaysOnly > 0 ? '$remainingDaysOnly gün' : ''}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
         ],
       ),
+    );
+  }
+
+  Widget _buildRetirementDetailRow({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: iconColor),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            '$label:',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey[800],
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 
@@ -1380,6 +1331,191 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
               color: color ?? Colors.black87,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Ultra Dinamik Gauge Widget - Pulse, Shimmer, Wave Efektleri
+class _AnimatedGaugeWidget extends StatefulWidget {
+  final double progress;
+  final Color themeColor;
+  final int currentDays;
+
+  const _AnimatedGaugeWidget({
+    required this.progress,
+    required this.themeColor,
+    required this.currentDays,
+  });
+
+  @override
+  State<_AnimatedGaugeWidget> createState() => _AnimatedGaugeWidgetState();
+}
+
+class _AnimatedGaugeWidgetState extends State<_AnimatedGaugeWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _valueAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedGaugeWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.progress != widget.progress) {
+      _setupAnimation(restartFromZero: true);
+    }
+  }
+
+  void _setupAnimation({bool restartFromZero = false}) {
+    final animationDurationMs = (widget.progress * 500).toInt().clamp(300, 100000); // Her %1 için 0.5 saniye
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: animationDurationMs),
+    );
+
+    _valueAnim = Tween<double>(
+      begin: 0,
+      end: widget.progress,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
+
+    // İlk frame'den itibaren başlat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _controller.forward(from: 0);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Color _getProgressColor(double progress) {
+    if (progress < 30) return const Color(0xFFE53935);
+    if (progress < 60) return const Color(0xFFFB8C00);
+    if (progress < 85) return const Color(0xFFFDD835);
+    return const Color(0xFF43A047);
+  }
+
+  List<Color> _getProgressGradientColors(double progress) {
+    if (progress < 30) {
+      return [
+        const Color(0xFFE53935).withOpacity(0.6),
+        const Color(0xFFE53935),
+        const Color(0xFFE53935).withOpacity(0.8),
+        const Color(0xFFE53935).withOpacity(0.6),
+      ];
+    } else if (progress < 60) {
+      final t = (progress - 30) / 30;
+      final color = Color.lerp(const Color(0xFFE53935), const Color(0xFFFB8C00), t)!;
+      return [color.withOpacity(0.6), color, color.withOpacity(0.8), color.withOpacity(0.6)];
+    } else if (progress < 85) {
+      final t = (progress - 60) / 25;
+      final color = Color.lerp(const Color(0xFFFB8C00), const Color(0xFFFDD835), t)!;
+      return [color.withOpacity(0.6), color, color.withOpacity(0.8), color.withOpacity(0.6)];
+    } else {
+      final t = (progress - 85) / 15;
+      final color = Color.lerp(const Color(0xFFFDD835), const Color(0xFF43A047), t)!;
+      return [color.withOpacity(0.6), color, color.withOpacity(0.8), color.withOpacity(0.6)];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 140,
+      height: 140,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Gauge (animasyonlu)
+          AnimatedBuilder(
+            animation: _valueAnim,
+            builder: (context, _) {
+              final val = _valueAnim.value;
+
+              return SfRadialGauge(
+                axes: <RadialAxis>[
+                  RadialAxis(
+                    minimum: 0,
+                    maximum: 100,
+                    showLabels: false,
+                    showTicks: false,
+                    startAngle: 270,
+                    endAngle: 270,
+                    axisLineStyle: AxisLineStyle(
+                      thickness: 0.15,
+                      cornerStyle: CornerStyle.bothCurve,
+                      color: Colors.grey[200],
+                      thicknessUnit: GaugeSizeUnit.factor,
+                    ),
+                    pointers: <GaugePointer>[
+                      RangePointer(
+                        value: val,
+                        cornerStyle: CornerStyle.bothCurve,
+                        width: 0.15,
+                        sizeUnit: GaugeSizeUnit.factor,
+                        enableAnimation: false,
+                        gradient: SweepGradient(
+                          colors: _getProgressGradientColors(val), // Animasyonlu renk!
+                          stops: const <double>[0.0, 0.3, 0.6, 1.0],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+          
+          // % Yazısı (baştan görünür, sadece sayı artıyor)
+          AnimatedBuilder(
+            animation: _valueAnim,
+            builder: (context, _) {
+              final val = _valueAnim.value;
+              
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Yüzde değeri - gri renk
+                  Text(
+                    '%${val.toInt()}',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.grey[700],
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  // Alt yazı - sade gri arka plan
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Tamamlandı',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

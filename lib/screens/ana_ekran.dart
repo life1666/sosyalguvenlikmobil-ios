@@ -16,7 +16,6 @@ import 'yanmenu/sozlesme_ekrani.dart';
 import 'yanmenu/kvkk_ekrani.dart';
 import '../../cv/cv_olustur.dart';
 import '../../emeklilik_takip/emeklilik_takip.dart';
-import '../../arama/aramaekrani.dart';
 import '../../sozluk/sozluk.dart';
 import '../../sonhesaplama/sonhesaplama.dart';
 import '../../mevzuat/asgariucret.dart';
@@ -92,6 +91,7 @@ class _AnaEkranState extends State<AnaEkran> {
   User? _kullanici;
   String _appVersion = 'Bilinmiyor';
   int _refreshKey = 0; // Çalışma Hayatım'ı yenilemek için
+  bool _showDisclaimer = false; // Sorumluluk reddi gösterilsin mi?
 
   // Banner kaldırıldı
   // final PageController _bannerController = PageController();
@@ -122,7 +122,27 @@ class _AnaEkranState extends State<AnaEkran> {
     _mesajSayisiniGuncelle();
     _sonKullanilanlariYukle();
     _checkAndRequestReview();
+    _checkAndShowDisclaimer();
     AnalyticsHelper.logScreenOpen('ana_ekran_opened');
+  }
+
+  Future<void> _checkAndShowDisclaimer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenDisclaimer = prefs.getBool('has_seen_disclaimer') ?? false;
+      
+      if (!hasSeenDisclaimer) {
+        // Kısa gecikme sonrası göster (ekran yüklendikten sonra)
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          setState(() {
+            _showDisclaimer = true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Sorumluluk reddi kontrol hatası: $e');
+    }
   }
 
   Future<void> _checkAndRequestReview() async {
@@ -898,150 +918,182 @@ class _AnaEkranState extends State<AnaEkran> {
 
     final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Sosyal Güvenlik Mobil',
-          style: TextStyle(color: themeColor),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          // Bildirim ikonu
-          if (_kullanici != null)
-            Stack(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.notifications_outlined, color: themeColor),
-                  onPressed: _showMesajBildirimDialog,
-                ),
-                if (_mesajSayisi > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '$_mesajSayisi',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          _buildBody(themeColor),
+          
+          // Sorumluluk Reddi Popup
+          if (_showDisclaimer)
+            Container(
+              color: Colors.black54,
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.92,
+                    constraints: BoxConstraints(
+                      maxWidth: 400,
+                      minHeight: 200,
+                    ),
+                    margin: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                    decoration: BoxDecoration(
+                      color: themeColor,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            color: Colors.white, size: 42),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Sorumluluk Reddi',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            'Bu uygulama, herhangi bir kamu kurumu, devlet dairesi veya resmi kuruluş tarafından geliştirilmemiştir. SGK, e-Devlet ya da Çalışma ve Sosyal Güvenlik Bakanlığı ile herhangi bir bağlantısı bulunmamaktadır.\n\nUygulama yalnızca bilgi sağlamak amacıyla hazırlanmıştır. Sunulan hesaplamalar resmi belge niteliği taşımaz. Bu nedenle herhangi bir sorumluluk kabul edilmez.',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.white,
+                              height: 1.6,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('has_seen_disclaimer', true);
+                              setState(() {
+                                _showDisclaimer = false;
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: themeColor,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Okudum, Anladım',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
         ],
       ),
 
-      body: _buildBody(),
-
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex >= 0 ? _selectedIndex : 0,
-          onTap: (index) {
-            setState(() => _selectedIndex = index);
-            
-            // Navigation logic
-            if (index == 0) {
-            // Ayarlar (Menü)
+      bottomNavigationBar: _FancyBottomBar(
+        color: themeColor,
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() => _selectedIndex = index);
+          
+          // 0=Ayarlar, 1=Özellikler (orta), 2=Hesaplamalar (sağ)
+          if (index == 0) {
             _showFullScreenMenu(context);
-            // Index'i sıfırla
-            Future.delayed(Duration(milliseconds: 100), () {
-              if (mounted) setState(() => _selectedIndex = -1);
-            });
-            } else if (index == 1) {
-              // Arama
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AramaEkrani()),
-              );
-              // Index'i sıfırla
-              Future.delayed(Duration(milliseconds: 100), () {
-                if (mounted) setState(() => _selectedIndex = -1);
-              });
-            } else if (index == 2) {
-              // Son Hesaplamalar ekranına git
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SonHesaplamalarEkrani()),
-              );
-              // Index'i sıfırla
-              Future.delayed(Duration(milliseconds: 100), () {
-                if (mounted) setState(() => _selectedIndex = -1);
-              });
-            } else if (index == 3) {
-              // Tüm Özellikler ekranına git
-              AnalyticsHelper.logCustomEvent('all_features_tapped');
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AllFeaturesScreen(categories: categories)),
-              );
-              // Index'i sıfırla
-              Future.delayed(Duration(milliseconds: 100), () {
-                if (mounted) setState(() => _selectedIndex = -1);
-              });
-            }
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: themeColor,
-          unselectedItemColor: themeColor,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          elevation: 0,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_circle_outlined, size: 26),
-              activeIcon: Icon(Icons.account_circle_rounded, size: 28),
-              label: 'Ayarlar',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search_outlined, size: 26),
-              activeIcon: Icon(Icons.search_rounded, size: 28),
-              label: 'Ara',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined, size: 26),
-              activeIcon: Icon(Icons.history_rounded, size: 28),
-              label: 'Son Hesaplamalar',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.apps_outlined, size: 26),
-              activeIcon: Icon(Icons.apps_rounded, size: 28),
-              label: 'Tüm Özellikler',
-            ),
-          ],
-        ),
+          } else if (index == 1) {
+            AnalyticsHelper.logCustomEvent('all_features_tapped');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => AllFeaturesScreen(categories: categories)),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SonHesaplamalarEkrani()),
+            );
+          }
+          
+          Future.delayed(Duration(milliseconds: 100), () {
+            if (mounted) setState(() => _selectedIndex = -1);
+          });
+        },
       ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(Color themeColor) {
     return CustomScrollView(
         slivers: [
+          // Kaybolan AppBar
+          SliverAppBar(
+            title: Text(
+              'Sosyal Güvenlik Mobil',
+              style: TextStyle(color: themeColor),
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            floating: true,
+            snap: true,
+            actions: [
+              // Bildirim ikonu
+              if (_kullanici != null)
+                Stack(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.notifications_outlined, color: themeColor),
+                      onPressed: _showMesajBildirimDialog,
+                    ),
+                    if (_mesajSayisi > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '$_mesajSayisi',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+            ],
+          ),
+          
           // Sık Kullanılanlar
           SliverToBoxAdapter(
             child: _SikKullanilanlar(),
@@ -1052,7 +1104,7 @@ class _AnaEkranState extends State<AnaEkran> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
               child: Text(
-                '💼 Çalışma Hayatım',
+                '👤 Çalışma Hayatım',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -1619,24 +1671,27 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 }
 
-// Tüm özellikler ekranı - ExpansionTile ile (önceki modern tasarım)
+// Tüm özellikler ekranı - uygulama teması ile uyumlu (beyaz/gri + tema rengi)
 class AllFeaturesScreen extends StatelessWidget {
   final List<Category> categories;
   const AllFeaturesScreen({super.key, required this.categories});
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
+
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
           'Tüm Özellikler',
-          style: TextStyle(color: Theme.of(context).primaryColor),
+          style: TextStyle(color: themeColor),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Theme.of(context).primaryColor),
+          icon: Icon(Icons.arrow_back_rounded, color: themeColor),
           onPressed: () => Navigator.pop(context),
         ),
         leadingWidth: 56,
@@ -1645,419 +1700,259 @@ class AllFeaturesScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         itemCount: categories.length + 1, // +1 for "Diğer Özellikler"
         itemBuilder: (context, i) {
-          // Son item "Diğer Özellikler" bölümü - ExpansionTile olarak
+          // Son item "Diğer Özellikler" bölümü
           if (i == categories.length) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.teal.withOpacity(0.08),
-                    Colors.teal.withOpacity(0.04),
-                  ],
+            return _buildCategoryCard(
+              context: context,
+              themeColor: themeColor,
+              icon: Icons.more_horiz,
+              title: 'Diğer Özellikler',
+              subtitle: 'Emeklilik Takip, CV Oluştur ve diğer araçlar',
+              children: [
+                _buildFeatureTile(
+                  context: context,
+                  themeColor: themeColor,
+                  icon: Icons.track_changes,
+                  title: 'Emeklilik Takip',
+                  subtitle: 'Emeklilik durumunu takip et',
+                  onTap: () {
+                    AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_takip'});
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()));
+                  },
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.teal.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ExpansionTile(
-                leading: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.teal.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.more_horiz, color: Colors.teal, size: 24),
-                ),
-                title: Text(
-                  'Diğer Özellikler',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: Colors.black87,
-                  ),
-                ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    'Emeklilik Takip, CV Oluştur ve diğer araçlar',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
-                children: [
-                  // Emeklilik Takip
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {
-                          AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_takip'});
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()),
-                          );
-                        },
-                        splashColor: Colors.teal.withOpacity(0.08),
-                        highlightColor: Colors.teal.withOpacity(0.04),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.teal.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  Icons.track_changes,
-                                  color: Colors.teal,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Emeklilik Takip',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Text(
-                                        'Emeklilik durumunu takip et',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.chevron_right,
-                                size: 20,
-                                color: Colors.grey[400],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // CV Oluştur
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {
-                          AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'cv_olustur'});
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const CvApp()),
-                          );
-                        },
-                        splashColor: Colors.teal.withOpacity(0.08),
-                        highlightColor: Colors.teal.withOpacity(0.04),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.teal.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  Icons.description,
-                                  color: Colors.teal,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'CV Oluştur',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Text(
-                                        'Profesyonel CV şablonları',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.chevron_right,
-                                size: 20,
-                                color: Colors.grey[400],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-          
-          final cat = categories[i];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  cat.color.withOpacity(0.08),
-                  cat.color.withOpacity(0.04),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: cat.color.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
+                _buildFeatureTile(
+                  context: context,
+                  themeColor: themeColor,
+                  icon: Icons.description,
+                  title: 'CV Oluştur',
+                  subtitle: 'Profesyonel CV şablonları',
+                  onTap: () {
+                    AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'cv_olustur'});
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const CvApp()));
+                  },
                 ),
               ],
+            );
+          }
+
+          final cat = categories[i];
+          return _buildCategoryCard(
+            context: context,
+            themeColor: themeColor,
+            icon: cat.icon,
+            title: cat.title,
+            subtitle: cat.description,
+            children: cat.items.map((it) {
+              if (it.hasSubItems && it.subItems != null) {
+                return _buildExpandableItem(context, themeColor, it);
+              }
+              return _buildFeatureTile(
+                context: context,
+                themeColor: themeColor,
+                icon: it.icon,
+                title: it.title,
+                subtitle: it.subtitle,
+                onTap: it.onTap ?? () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('"${it.title}" (yakında)'))),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard({
+    required BuildContext context,
+    required Color themeColor,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        childrenPadding: const EdgeInsets.only(left: 8, right: 8, bottom: 12),
+        iconColor: themeColor,
+        collapsedIconColor: themeColor,
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: themeColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: themeColor, size: 24),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            subtitle,
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+        ),
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildFeatureTile({
+    required BuildContext context,
+    required Color themeColor,
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          splashColor: themeColor.withOpacity(0.08),
+          highlightColor: themeColor.withOpacity(0.04),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: themeColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: themeColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      if (subtitle != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            subtitle,
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey[400]),
+              ],
             ),
-            child: ExpansionTile(
-              leading: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: cat.color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(cat.icon, color: cat.color, size: 24),
-              ),
-              title: Text(
-                cat.title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  cat.description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandableItem(BuildContext context, Color themeColor, FeatureItem it) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        childrenPadding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+        iconColor: themeColor,
+        collapsedIconColor: themeColor,
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: themeColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(it.icon, size: 18, color: themeColor),
+        ),
+        title: Text(
+          it.title,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+        ),
+        subtitle: it.subtitle != null
+            ? Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(it.subtitle!, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              )
+            : null,
+        children: (it.subItems ?? [])
+            .map(
+              (subItem) => Padding(
+                padding: const EdgeInsets.only(left: 8, right: 8, bottom: 4),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: subItem.onTap ??
+                        () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('"${subItem.title}" (yakında)'))),
+                    splashColor: themeColor.withOpacity(0.08),
+                    highlightColor: themeColor.withOpacity(0.04),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: themeColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(subItem.icon, size: 16, color: themeColor),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              subItem.title,
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey[800]),
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey[400]),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-              children: cat.items
-                  .map(
-                    (it) {
-                      final itemColor = it.color ?? cat.color;
-                      if (it.hasSubItems && it.subItems != null) {
-                        // Alt öğeleri olan item için ExpansionTile
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: itemColor.withOpacity(0.05),
-                          ),
-                          child: ExpansionTile(
-                            leading: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: itemColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(it.icon, size: 18, color: itemColor),
-                            ),
-                            title: Text(
-                              it.title,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: it.subtitle != null
-                                ? Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                      it.subtitle!,
-                                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                    ),
-                                  )
-                                : null,
-                            children: it.subItems!
-                                .map(
-                                  (subItem) => Padding(
-                                    padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(8),
-                                        onTap: subItem.onTap ??
-                                            () => ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(content: Text('"${subItem.title}" (yakında)')),
-                                                ),
-                                        splashColor: itemColor.withOpacity(0.08),
-                                        highlightColor: itemColor.withOpacity(0.04),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                width: 32,
-                                                height: 32,
-                                                decoration: BoxDecoration(
-                                                  color: itemColor.withOpacity(0.08),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Icon(
-                                                  subItem.icon,
-                                                  size: 16,
-                                                  color: itemColor,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: Text(
-                                                  subItem.title,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.grey[800],
-                                                  ),
-                                                ),
-                                              ),
-                                              Icon(
-                                                Icons.chevron_right,
-                                                size: 16,
-                                                color: Colors.grey[400],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        );
-                      } else {
-                        // Normal item
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: it.onTap ??
-                                  () => ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('"${it.title}" (yakında)')),
-                                      ),
-                              splashColor: itemColor.withOpacity(0.08),
-                              highlightColor: itemColor.withOpacity(0.04),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: itemColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(
-                                        it.icon,
-                                        color: itemColor,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            it.title,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                          if (it.subtitle != null)
-                                            Padding(
-                                              padding: const EdgeInsets.only(top: 2),
-                                              child: Text(
-                                                it.subtitle!,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.chevron_right,
-                                      size: 20,
-                                      color: Colors.grey[400],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                  )
-                  .toList(),
-            ),
-          );
-        },
+            )
+            .toList(),
       ),
     );
   }
@@ -2273,7 +2168,7 @@ class _SikKullanilanlar extends StatelessWidget {
               color: Colors.grey[800],
             ),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 12),
           SizedBox(
             height: 48,
             child: Stack(
@@ -2445,3 +2340,157 @@ class _MenuAction {
   final VoidCallback onTap;
   _MenuAction(this.icon, this.title, this.onTap);
 }
+
+// Fancy Bottom Bar Components
+class _FancyBottomBar extends StatelessWidget {
+  final Color color;
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _FancyBottomBar({
+    required this.color,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 70,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.white,
+            Colors.grey[50]!,
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 25,
+            offset: const Offset(0, -5),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Center(
+                  child: _NavItem(
+                    label: "Ayarlar",
+                    icon: Icons.person_rounded,
+                    selected: currentIndex == 0,
+                    onTap: () => onTap(0),
+                    color: color,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: _NavItem(
+                    label: "Tüm Özellikler",
+                    icon: Icons.grid_view_rounded,
+                    selected: currentIndex == 1,
+                    onTap: () => onTap(1),
+                    color: color,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: _NavItem(
+                    label: "Son Hesaplamalar",
+                    icon: Icons.history_rounded,
+                    selected: currentIndex == 2,
+                    onTap: () => onTap(2),
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _NavItem({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      splashColor: Colors.grey.withOpacity(0.2),
+      highlightColor: Colors.grey.withOpacity(0.1),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? Colors.grey[300] : null,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedScale(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutBack,
+              scale: selected ? 1.1 : 1.0,
+              child: Icon(
+                icon,
+                size: 25,
+                color: selected ? Colors.grey[800] : Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 3),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 280),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                color: selected ? Colors.grey[800] : Colors.grey[600],
+                letterSpacing: selected ? 0.3 : 0,
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
