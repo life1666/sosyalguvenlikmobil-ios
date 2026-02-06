@@ -34,7 +34,7 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
   bool _obscureConfirm = true;
   
   // Expansion durumları
-  bool _girisAyarlariAcik = true; // İlk açılışta açık
+  bool _girisAyarlariAcik = false; // İlk açılışta kapalı
   bool _kisiselBilgilerAcik = false;
   bool _digerAyarlarAcik = false;
   

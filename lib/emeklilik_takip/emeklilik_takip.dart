@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import '../screens/hesaplamalar_ekrani.dart';
+import '../hesaplamalar/4a_hesapla.dart';
+import '../hesaplamalar/4b_hesapla.dart';
+import '../hesaplamalar/4c_hesapla.dart';
 import '../utils/analytics_helper.dart';
 
 void main() {
@@ -228,8 +230,10 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
         title: const Text('Emeklilik Tarihi Ekle'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Emeklilik hesaplama yaparak takip başlatabilirsiniz. Hesaplamalar ekranına yönlendirileceksiniz.'),
+            Text('Takip başlatmak için hesaplama türünü seçin.'),
+            SizedBox(height: 16),
           ],
         ),
         actions: [
@@ -240,16 +244,53 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const HesaplamalarEkrani(autoOpenEmeklilik: true),
-                ),
-              );
+              _showEmeklilikTurSecim();
             },
-            child: const Text('Hesaplama Yap'),
+            child: const Text('Hesaplama Türü Seç'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEmeklilikTurSecim() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Hesaplama türü seçin', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.badge_outlined),
+                title: const Text('4/a (SSK) Emeklilik Hesaplama'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4aSayfasi()));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.store_outlined),
+                title: const Text('4/b (Bağ-kur) Emeklilik Hesaplama'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4bSayfasi()));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.work_outline),
+                title: const Text('4/c (Memur) Emeklilik Hesaplama'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const EmeklilikHesaplamaSayfasi()));
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -304,14 +345,7 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
                 ),
                 const SizedBox(height: 32),
                 FilledButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const HesaplamalarEkrani(autoOpenEmeklilik: true),
-                      ),
-                    );
-                  },
+                  onPressed: _showEmeklilikTurSecim,
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text('Emeklilik Hesabı Ekle'),
                   style: FilledButton.styleFrom(

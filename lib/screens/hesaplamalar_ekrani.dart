@@ -6,7 +6,6 @@ import '../hesaplamalar/brutten_nete.dart';
 import '../hesaplamalar/asgari_iscilik.dart';
 import '../hesaplamalar/rapor_parasi.dart';
 import '../hesaplamalar/askerlik_dogum.dart';
-import '../hesaplamalar/yurtdisi_borclanma.dart';
 import '../hesaplamalar/issizlik_sorguhesap.dart';
 import '../hesaplamalar/kidem_alabilir.dart';
 import '../hesaplamalar/kidem_hesap.dart';
@@ -190,7 +189,7 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
     } else if (title == 'Yurt Dışı Borçlanması Prim Tutarı Hesaplama') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const YurtDisiBorclanmaHesaplamaScreen()),
+        MaterialPageRoute(builder: (context) => const BorclanmaHesaplamaScreen()),
       );
     } else if (title == 'Borçlanma Başvurusu') {
       _acBorclanmaBasvuru();

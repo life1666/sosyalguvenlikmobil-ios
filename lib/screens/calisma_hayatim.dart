@@ -422,94 +422,70 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                 ),
               ),
             
-            // Kariyer Özeti Container - diğer tüm kutuları sarar (resimdeki gibi)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.grey[200]!,
-                  width: 1,
+            // Üst bilgiler: İlk İşe Başlama + Mevcut İşyeri Başlangıç
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSummaryItem(
+                    Icons.calendar_today,
+                    'İlk İşe Başlama Tarihim',
+                    _formatDate(_ilkIseGirisTarihi),
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSummaryItem(
+                    Icons.business,
+                    'Mevcut İş Başlama Tarihim',
+                    _formatDate(_mevcutIsyeriBaslangic),
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Üst bilgiler: İlk İşe Başlama + Mevcut İşyeri Başlangıç
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSummaryItem(
-                          Icons.calendar_today,
-                          'İlk İşe Başlama Tarihim',
-                          _formatDate(_ilkIseGirisTarihi),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildSummaryItem(
-                          Icons.business,
-                          'Mevcut İş Başlama Tarihim',
-                          _formatDate(_mevcutIsyeriBaslangic),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Emeklilik Takibi (Tam genişlik)
-                  _buildRetirementTracking(retirementInfo, themeColor),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Kıdem Tazminatı + Yıllık İzin (yan yana)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _buildMiniInfoCardLeftIconCompact(
-                          icon: Icons.payments_rounded,
-                          iconColor: Colors.orange,
-                          title: 'Kıdem Tazminatım',
-                          value: severancePay != null
-                              ? _formatCurrency(severancePay['net']!)
-                              : '-',
-                          isEstimated: true,
-                          onInfoTap: () => _showSeverancePayDetails(severancePay),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildMiniInfoCardLeftIconCompact(
-                          icon: Icons.event_available_rounded,
-                          iconColor: Colors.blue,
-                          title: 'Yıllık İznim',
-                          value: annualLeave != null
-                              ? '$annualLeave Gün'
-                              : '-',
-                          subtitle: 'Bu Yıl',
-                          onInfoTap: () => _showAnnualLeaveDetails(annualLeave),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Maaş ve Kesinti Analizi (Tam genişlik)
-                  if (deductions != null) _buildSalaryAnalysis(deductions, themeColor),
-                ],
-              ),
+                ),
+              ],
             ),
+            
+            const SizedBox(height: 12),
+            
+            // Emeklilik Takibi (Tam genişlik)
+            _buildRetirementTracking(retirementInfo, themeColor),
+            
+            const SizedBox(height: 12),
+            
+            // Kıdem Tazminatı + Yıllık İzin (yan yana)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildMiniInfoCardLeftIconCompact(
+                    icon: Icons.payments_rounded,
+                    iconColor: themeColor,
+                    title: 'Kıdem Tazminatım',
+                    value: severancePay != null
+                        ? _formatCurrency(severancePay['net']!)
+                        : '-',
+                    isEstimated: true,
+                    onInfoTap: () => _showSeverancePayDetails(severancePay),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildMiniInfoCardLeftIconCompact(
+                    icon: Icons.event_available_rounded,
+                    iconColor: themeColor,
+                    title: 'Yıllık İznim',
+                    value: annualLeave != null
+                        ? '$annualLeave Gün'
+                        : '-',
+                    subtitle: 'Bu Yıl',
+                    onInfoTap: () => _showAnnualLeaveDetails(annualLeave),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Maaş ve Kesinti Analizi (Tam genişlik)
+            if (deductions != null) _buildSalaryAnalysis(deductions, themeColor),
 
             const SizedBox(height: 12),
 
@@ -660,24 +636,21 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildRetirementDetailRow(
-                      icon: Icons.check_circle_outline,
                       iconColor: themeColor,
-                      label: 'Tamamlanan',
-                      value: '${currentDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} gün',
+                      label: 'Tamamlanan Gün',
+                      value: currentDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.'),
                     ),
                     const SizedBox(height: 10),
                     _buildRetirementDetailRow(
-                      icon: Icons.schedule,
-                      iconColor: Colors.grey[600]!,
-                      label: 'Kalan',
-                      value: '${totalRemainingDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} gün',
+                      iconColor: themeColor,
+                      label: 'Kalan Gün',
+                      value: totalRemainingDays.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.'),
                     ),
                     const SizedBox(height: 10),
                     _buildRetirementDetailRow(
-                      icon: Icons.event_outlined,
-                      iconColor: Colors.orange,
-                      label: 'Tahmini Süre',
-                      value: '~$remainingYears yıl${remainingDaysOnly > 0 ? ' $remainingDaysOnly gün' : ''}',
+                      iconColor: themeColor,
+                      label: 'Kalan Yıl',
+                      value: '$remainingYears yıl${remainingDaysOnly > 0 ? ' $remainingDaysOnly gün' : ''}',
                     ),
                   ],
                 ),
@@ -690,15 +663,18 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   }
 
   Widget _buildRetirementDetailRow({
-    required IconData icon,
     required Color iconColor,
     required String label,
     required String value,
   }) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: iconColor),
-        const SizedBox(width: 6),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: iconColor, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             '$label:',
@@ -1072,6 +1048,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   void _showSeverancePayDetails(Map<String, double>? severancePay) {
     if (severancePay == null) return;
 
+    final themeColor = Theme.of(context).primaryColor;
     final now = DateTime.now();
     final workYears = _mevcutIsyeriBaslangic != null 
         ? now.year - _mevcutIsyeriBaslangic!.year 
@@ -1089,7 +1066,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.payments_rounded, color: Colors.orange, size: 28),
+            Icon(Icons.payments_rounded, color: themeColor, size: 28),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
@@ -1116,17 +1093,17 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: themeColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
+                        Icon(Icons.info_outline, color: themeColor, size: 20),
+                        const SizedBox(width: 8),
+                        const Expanded(
                           child: Text(
                             'Kıdem Tazminatı Nedir?',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -1134,8 +1111,8 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
-                    Text(
+                    const SizedBox(height: 8),
+                    const Text(
                       'En az 1 yıl çalıştıktan sonra işten ayrılırken, belirli koşullarda işvereninizin size ödemekle yükümlü olduğu tazminattır. Hesaplama günlük brüt maaş × çalışma günü şeklinde yapılır ve tavan ücreti kontrolü ile damga vergisi (%0.759) uygulanır.',
                       style: TextStyle(fontSize: 12),
                     ),
@@ -1159,6 +1136,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   void _showAnnualLeaveDetails(int? annualLeave) {
     if (annualLeave == null) return;
 
+    final themeColor = Theme.of(context).primaryColor;
     final now = DateTime.now();
     final workYears = _mevcutIsyeriBaslangic != null 
         ? now.year - _mevcutIsyeriBaslangic!.year 
@@ -1169,7 +1147,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.event_available_rounded, color: Colors.blue, size: 28),
+            Icon(Icons.event_available_rounded, color: themeColor, size: 28),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
@@ -1192,17 +1170,17 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: themeColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
+                        Icon(Icons.info_outline, color: themeColor, size: 20),
+                        const SizedBox(width: 8),
+                        const Expanded(
                           child: Text(
                             'Yıllık İzin Süresi',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -1210,8 +1188,8 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
-                    Text(
+                    const SizedBox(height: 8),
+                    const Text(
                       '• 1-5 yıl arası: 14 gün\n• 5-15 yıl arası: 20 gün\n• 15 yıl ve üzeri: 26 gün',
                       style: TextStyle(fontSize: 12),
                     ),

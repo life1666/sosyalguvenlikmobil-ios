@@ -556,6 +556,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
   String? _secilenBorclanma;
   final List<String> _borclanmaSureleri = const [
     'Askerlik Borçlanması',
+    'Yurt Dışı Borçlanması',
     'Ücretsiz Doğum veya Analık İzni Süreleri',
     'Aylıksız İzin Süreleri (4/c Kapsamında)',
     'Doktora veya Uzmanlık Eğitimi Süreleri',
@@ -568,6 +569,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
 
   final Map<String, IconData> _borclanmaIconMap = const {
     'Askerlik Borçlanması': Icons.military_tech,
+    'Yurt Dışı Borçlanması': Icons.public,
     'Ücretsiz Doğum veya Analık İzni Süreleri': Icons.child_care,
     'Aylıksız İzin Süreleri (4/c Kapsamında)': Icons.no_accounts,
     'Doktora veya Uzmanlık Eğitimi Süreleri': Icons.school,
@@ -755,7 +757,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Borçlanma Hesaplama',
+          'SGK Prim Borçlanma Tutarı Hesaplama',
           style: TextStyle(color: Colors.indigo),
         ),
         centerTitle: false,
