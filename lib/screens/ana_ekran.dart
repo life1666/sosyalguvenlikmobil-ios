@@ -15,7 +15,6 @@ import 'yanmenu/iletisim_ekrani.dart';
 import 'yanmenu/sozlesme_ekrani.dart';
 import 'yanmenu/kvkk_ekrani.dart';
 import '../../cv/cv_olustur.dart';
-import '../../emeklilik_takip/emeklilik_takip.dart';
 import '../../sozluk/sozluk.dart';
 import '../../sonhesaplama/sonhesaplama.dart';
 import '../../mevzuat/asgariucret.dart';
@@ -81,7 +80,6 @@ class Category {
 // Öne Çıkanlar: Firebase'den en çok kullanılanları göstermek için feature id -> bilgi
 const Map<String, Map<String, dynamic>> _kOneCikanlarFeatureInfo = {
   'emeklilik_4a': {'title': 'Emeklilik Hesaplama', 'icon': Icons.calculate_outlined},
-  'emeklilik_takip': {'title': 'Emeklilik Takip', 'icon': Icons.track_changes_outlined},
   'cv_olustur': {'title': 'CV Oluştur', 'icon': Icons.description_outlined},
   'kidem_ihbar': {'title': 'Kıdem Tazminatı Hesaplama', 'icon': Icons.receipt_long_outlined},
   'issizlik': {'title': 'İşsizlik Maaşı Hesaplama', 'icon': Icons.work_outline},
@@ -214,8 +212,6 @@ class _AnaEkranState extends State<AnaEkran> {
       Navigator.push(context, MaterialPageRoute(builder: (_) => SalaryCalculatorScreen()));
     } else if (screen == 'cv_olustur') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const CvApp()));
-    } else if (screen == 'emeklilik_takip') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()));
     } else if (screen == 'netten_brute') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const NettenBruteScreen()));
     } else if (screen == 'kidem_alabilir') {
@@ -570,51 +566,6 @@ class _AnaEkranState extends State<AnaEkran> {
             ],
           ),
           FeatureItem(
-            title: 'SGK Prim Borçlanma Tutarı Hesaplama',
-            subtitle: 'Askerlik, doğum ve yurt dışı borçlanma',
-            icon: Icons.account_balance_outlined,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'borclanma'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BorclanmaHesaplamaScreen()),
-              );
-            },
-          ),
-          FeatureItem(
-            title: 'Asgari İşçilik Hesaplama',
-            subtitle: 'Asgari işçilik matrahı ve prim hesaplama',
-            icon: Icons.handyman_outlined,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'asgari_iscilik'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HesaplamaSayfasi()),
-              );
-            },
-          ),
-          FeatureItem(
-            title: 'Emeklilik Takip',
-            subtitle: 'Emeklilik durumunu takip et',
-            icon: Icons.track_changes_outlined,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_takip'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const EmeklilikTakipApp()),
-              );
-            },
-          ),
-        ],
-      ),
-      Category(
-        title: 'Tazminatlar',
-        description: 'Kıdem ve ihbar tazminatı işlemleri',
-        icon: Icons.receipt_long_outlined,
-        color: const Color(0xFFE53935),
-        svgPath: 'assets/emeklilik.svg',
-        items: [
-          FeatureItem(
             title: 'Kıdem - İhbar Tazminatı Hesaplama',
             subtitle: 'Kıdem ve ihbar tazminatı hesaplama',
             icon: Icons.calculate_outlined,
@@ -640,6 +591,63 @@ class _AnaEkranState extends State<AnaEkran> {
                     child: const KidemTazminatiScreen(),
                   ),
                 ),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'İşsizlik Maaşı Hesaplama',
+            subtitle: 'İşsizlik maaşı hesaplama',
+            icon: Icons.work_outline,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'İşsizlik Maaşı Başvurusu',
+            subtitle: 'İŞKUR başvuru sayfasına yönlendirir',
+            icon: Icons.description_outlined,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik_basvuru'});
+              launchUrl(Uri.parse('https://www.iskur.gov.tr/'), mode: LaunchMode.externalApplication);
+            },
+          ),
+          FeatureItem(
+            title: 'SGK Prim Borçlanma Tutarı Hesaplama',
+            subtitle: 'Askerlik, doğum ve yurt dışı borçlanma',
+            icon: Icons.account_balance_outlined,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'borclanma'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BorclanmaHesaplamaScreen()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Rapor Parası Hesaplama',
+            subtitle: 'Rapor parası hesaplama',
+            icon: Icons.local_hospital_outlined,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'rapor'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RaporParasiScreen()),
+              );
+            },
+          ),
+          FeatureItem(
+            title: 'Asgari İşçilik Hesaplama',
+            subtitle: 'Asgari işçilik matrahı ve prim hesaplama',
+            icon: Icons.handyman_outlined,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'asgari_iscilik'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HesaplamaSayfasi()),
               );
             },
           ),
@@ -677,15 +685,6 @@ class _AnaEkranState extends State<AnaEkran> {
             },
           ),
           FeatureItem(
-            title: 'Mesai Takip',
-            subtitle: 'Günlük mesai takibi',
-            icon: Icons.access_time_outlined,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'mesai_takip'});
-              Navigator.of(context).pushNamed('/mesai');
-            },
-          ),
-          FeatureItem(
             title: 'Asgari Ücret',
             subtitle: 'Güncel asgari ücret bilgileri',
             icon: Icons.account_balance_wallet_outlined,
@@ -706,45 +705,6 @@ class _AnaEkranState extends State<AnaEkran> {
         color: const Color(0xFFFB8C00),
         svgPath: 'assets/cv.svg',
         items: [
-          FeatureItem(
-            title: 'İşsizlik Maaşı İşlemleri',
-            subtitle: 'İşsizlik maaşı hesaplama ve başvuru',
-            icon: Icons.work_outline,
-            hasSubItems: true,
-            subItems: [
-              FeatureItem(
-                title: 'İşsizlik Maaşı Hesaplama',
-                icon: Icons.calculate_outlined,
-                onTap: () {
-                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik'});
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()),
-                  );
-                },
-              ),
-              FeatureItem(
-                title: 'İşsizlik Maaşı Başvurusu',
-                icon: Icons.description_outlined,
-                onTap: () {
-                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik_basvuru'});
-                  launchUrl(Uri.parse('https://www.iskur.gov.tr/'), mode: LaunchMode.externalApplication);
-                },
-              ),
-            ],
-          ),
-          FeatureItem(
-            title: 'Rapor Parası Hesaplama',
-            subtitle: 'Rapor parası hesaplama',
-            icon: Icons.local_hospital_outlined,
-            onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'rapor'});
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RaporParasiScreen()),
-              );
-            },
-          ),
           FeatureItem(
             title: 'Yıllık İzin Süresi Hesaplama',
             subtitle: 'Yıllık ücretli izin süresi hesaplama',
@@ -850,70 +810,53 @@ class _AnaEkranState extends State<AnaEkran> {
   Widget _buildBody() {
     return CustomScrollView(
       slivers: [
-        // Modern AppBar
+        // AppBar: indigo
         SliverAppBar(
-          backgroundColor: const Color(0xFFF8F9FA),
+          backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
           floating: true,
           snap: true,
           pinned: false,
-          leading: IconButton(
-            icon: _kullanici != null && _kullanici!.email != null && _kullanici!.email!.isNotEmpty
-                ? CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    radius: 14,
-                    child: Text(
-                      _kullanici!.email!.trim()[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  )
-                : Icon(Icons.person_outline_rounded, color: const Color(0xFF64748B)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => HesabimEkrani()),
-              ).then((_) {
-                if (mounted) setState(() => _refreshKey++);
-              });
-            },
+          expandedHeight: 56,
+          toolbarHeight: 56,
+          flexibleSpace: Container(
+            color: Theme.of(context).primaryColor,
           ),
+          leading: const SizedBox.shrink(),
+          leadingWidth: 0,
           title: Text(
             'İş & SGK Asistan',
-            style: TextStyle(
-              color: Theme.of(context).primaryColor,
+            style: const TextStyle(
+              color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
             ),
           ),
-          titleSpacing: 20,
-          centerTitle: true,
+          titleSpacing: 16,
+          centerTitle: false,
           actions: [
-          if (_kullanici != null)
-            Stack(
+            if (_kullanici != null)
+              Stack(
                 clipBehavior: Clip.none,
-              children: [
-                IconButton(
-                    icon: Icon(
+                children: [
+                  IconButton(
+                    icon: const Icon(
                       Icons.notifications_none_rounded,
-                      color: const Color(0xFF64748B),
+                      color: Colors.white,
                       size: 26,
                     ),
-                  onPressed: _showMesajBildirimDialog,
-                ),
-                if (_mesajSayisi > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
+                    onPressed: _showMesajBildirimDialog,
+                  ),
+                  if (_mesajSayisi > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
                         padding: EdgeInsets.all(_mesajSayisi > 9 ? 3 : 5),
-                      decoration: BoxDecoration(
+                        decoration: BoxDecoration(
                           color: const Color(0xFFEF4444),
-                        shape: BoxShape.circle,
+                          shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
                               color: const Color(0xFFEF4444).withOpacity(0.3),
@@ -921,69 +864,136 @@ class _AnaEkranState extends State<AnaEkran> {
                               offset: Offset(0, 2),
                             ),
                           ],
-                      ),
-                      constraints: BoxConstraints(
+                        ),
+                        constraints: const BoxConstraints(
                           minWidth: 18,
                           minHeight: 18,
-                      ),
-                      child: Text(
-                          _mesajSayisi > 9 ? '9+' : '$_mesajSayisi',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                            fontWeight: FontWeight.w700,
                         ),
-                        textAlign: TextAlign.center,
+                        child: Text(
+                          _mesajSayisi > 9 ? '9+' : '$_mesajSayisi',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
+            IconButton(
+              icon: _kullanici != null && _kullanici!.email != null && _kullanici!.email!.isNotEmpty
+                  ? CircleAvatar(
+                      backgroundColor: Colors.white,
+                      radius: 16,
+                      child: Text(
+                        _kullanici!.email!.trim()[0].toUpperCase(),
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.account_circle_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => HesabimEkrani()),
+                ).then((_) {
+                  if (mounted) setState(() => _refreshKey++);
+                });
+              },
             ),
-            SizedBox(width: 8),
           ],
         ),
 
-        // Öne Çıkanlar (Firebase'den en çok kullanılan 3-4 özellik veya varsayılan)
-        SliverToBoxAdapter(
-          child: _ModernQuickAccess(
-            items: _oneCikanlarItems ?? _defaultOneCikanlarItems(),
-            onTap: _onQuickAccessTap,
-          ),
-        ),
+        // Öne Çıkanlar (Firebase'den en çok kullanılan 3-4 özellik veya varsayılan) — şimdilik kapalı, Çalışma Hayatım yukarı taşınsın
+        // SliverToBoxAdapter(
+        //   child: _ModernQuickAccess(
+        //     items: _oneCikanlarItems ?? _defaultOneCikanlarItems(),
+        //     onTap: _onQuickAccessTap,
+        //   ),
+        // ),
 
-        // Çalışma Hayatım
+        // Çalışma Hayatım kutusu: indigo kutu arkada, beyaz kutu önde
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 24,
-        decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: BorderRadius.circular(2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
                   ),
-                ),
-                SizedBox(width: 12),
-                Text(
-                  'Çalışma Hayatım',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1E293B),
-                    letterSpacing: -0.3,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 4,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Çalışma Hayatım',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1E293B),
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                          child: CalismaHayatimContent(key: ValueKey(_refreshKey)),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-            child: CalismaHayatimContent(key: ValueKey(_refreshKey)),
+                ],
+              ),
+            ],
           ),
         ),
       ],
@@ -1992,10 +2002,9 @@ class AllFeaturesScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView.separated(
+      body: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: allTiles.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, i) => allTiles[i],
       ),
     );
@@ -2058,7 +2067,7 @@ class AllFeaturesScreen extends StatelessWidget {
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         initiallyExpanded: initiallyExpanded,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         childrenPadding: const EdgeInsets.only(left: 24, right: 24, bottom: 8),
         iconColor: color,
         collapsedIconColor: color,
@@ -2100,3 +2109,4 @@ class _DialogAction {
     this.isOutlined = false,
   });
 }
+

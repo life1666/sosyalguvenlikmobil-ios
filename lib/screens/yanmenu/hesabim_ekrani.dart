@@ -5,6 +5,7 @@ import 'dart:io' show Platform;
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -49,6 +50,7 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
   DateTime? _dogumTarihi;
   DateTime? _ilkIseGirisTarihi;
   DateTime? _mevcutIsyeriBaslangic;
+  String _cinsiyet = 'Erkek';
   String _sigortaKolu = '4/a (SSK)'; // Varsayılan olarak SSK
   
   final _kisiselBilgilerFormKey = GlobalKey<FormState>();
@@ -93,17 +95,54 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
             _ilkIseGirisTarihiController.text = _formatDate(_ilkIseGirisTarihi!);
           }
           _toplamPrimGunController.text = (map['toplamPrimGun'] as int?)?.toString() ?? '';
+          _cinsiyet = map['cinsiyet'] as String? ?? 'Erkek';
           if (map['mevcutIsyeriBaslangic'] != null) {
             _mevcutIsyeriBaslangic = DateTime.fromMillisecondsSinceEpoch(map['mevcutIsyeriBaslangic'] as int);
             _mevcutIsyeriBaslangicController.text = _formatDate(_mevcutIsyeriBaslangic!);
           }
-          _guncelBrutMaasController.text = (map['guncelBrutMaas'] as num?)?.toString() ?? '';
+          final brutVal = (map['guncelBrutMaas'] as num?)?.toDouble();
+          _guncelBrutMaasController.text = brutVal == null || brutVal == 0 ? '' : _formatBrutMaas(brutVal);
           _sigortaKolu = map['sigortaKolu'] as String? ?? '4/a (SSK)';
         });
       }
     } catch (e) {
       debugPrint('Kişisel bilgiler yüklenirken hata: $e');
     }
+  }
+
+  /// TR format (50.000,00) veya düz sayı (50000 / 50000.0). Virgül varsa nokta binlik; yoksa nokta ondalık (silinmez).
+  double _parseBrutMaas(String value) {
+    final raw = value.replaceAll(' TL', '').trim();
+    if (raw.isEmpty) return 0.0;
+    if (raw.contains(',')) {
+      final t = raw.replaceAll('.', '').replaceAll(',', '.');
+      return double.tryParse(t) ?? 0.0;
+    }
+    if (raw.contains('.')) {
+      final afterLastDot = raw.substring(raw.lastIndexOf('.') + 1);
+      if (afterLastDot.length == 3 && RegExp(r'^\d{3}$').hasMatch(afterLastDot)) {
+        return double.tryParse(raw.replaceAll('.', '')) ?? 0.0;
+      }
+      return double.tryParse(raw) ?? 0.0;
+    }
+    return double.tryParse(raw) ?? 0.0;
+  }
+
+  /// Brütten nete _formatPlain gibi: binlik nokta, ondalık virgül (50.000,00).
+  String _formatBrutMaas(double n) {
+    if (n == 0) return '';
+    n = n.abs();
+    final fixed = n.toStringAsFixed(2);
+    final parts = fixed.split('.');
+    String intPart = parts[0];
+    final frac = parts[1];
+    final buf = StringBuffer();
+    for (int i = 0; i < intPart.length; i++) {
+      final posFromEnd = intPart.length - i;
+      buf.write(intPart[i]);
+      if (posFromEnd > 1 && posFromEnd % 3 == 1) buf.write('.');
+    }
+    return '${buf.toString()},$frac';
   }
   
   // Kişisel bilgileri kaydet
@@ -112,16 +151,36 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     
     try {
       final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now();
+      final newPrim = int.tryParse(_toplamPrimGunController.text) ?? 0;
+      int? referansTarihiMs = now.millisecondsSinceEpoch;
+      final existing = prefs.getString('kisisel_bilgiler');
+      if (existing != null && existing.isNotEmpty) {
+        try {
+          final map = jsonDecode(existing) as Map<String, dynamic>;
+          final oldPrim = int.tryParse((map['toplamPrimGun'] ?? '').toString()) ?? 0;
+          if (oldPrim == newPrim && map['primGunuReferansTarihi'] != null) {
+            referansTarihiMs = map['primGunuReferansTarihi'] as int;
+          }
+        } catch (_) {}
+      }
       final data = {
         'dogumTarihi': _dogumTarihi?.millisecondsSinceEpoch,
         'ilkIseGirisTarihi': _ilkIseGirisTarihi?.millisecondsSinceEpoch,
-        'toplamPrimGun': int.tryParse(_toplamPrimGunController.text) ?? 0,
+        'toplamPrimGun': newPrim,
         'mevcutIsyeriBaslangic': _mevcutIsyeriBaslangic?.millisecondsSinceEpoch,
-        'guncelBrutMaas': double.tryParse(_guncelBrutMaasController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0.0,
+        'guncelBrutMaas': _parseBrutMaas(_guncelBrutMaasController.text),
+        'cinsiyet': _cinsiyet,
         'sigortaKolu': _sigortaKolu,
-        'kayitTarihi': DateTime.now().millisecondsSinceEpoch,
+        'kayitTarihi': now.millisecondsSinceEpoch,
+        'primGunuReferansTarihi': referansTarihiMs,
       };
       await prefs.setString('kisisel_bilgiler', jsonEncode(data));
+      
+      final savedBrut = (data['guncelBrutMaas'] as num).toDouble();
+      if (savedBrut > 0 && mounted) {
+        setState(() => _guncelBrutMaasController.text = _formatBrutMaas(savedBrut));
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -620,6 +679,7 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
         _dogumTarihi = null;
         _ilkIseGirisTarihi = null;
         _mevcutIsyeriBaslangic = null;
+        _cinsiyet = 'Erkek';
         _sigortaKolu = '4/a (SSK)';
       });
       
@@ -944,6 +1004,41 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                       ),
                       const SizedBox(height: 16),
                       
+                      // Cinsiyet (SSK emeklilik yaşı için gerekli)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          'Cinsiyet',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Erkek'),
+                              selected: _cinsiyet == 'Erkek',
+                              onSelected: (v) => setState(() => _cinsiyet = 'Erkek'),
+                              selectedColor: Colors.indigo.withOpacity(0.3),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Kadın'),
+                              selected: _cinsiyet == 'Kadın',
+                              onSelected: (v) => setState(() => _cinsiyet = 'Kadın'),
+                              selectedColor: Colors.indigo.withOpacity(0.3),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      
                       // İlk İşe Giriş Tarihi
                       TextFormField(
                         controller: _ilkIseGirisTarihiController,
@@ -1029,14 +1124,15 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Güncel Brüt Maaş
+                      // Güncel Brüt Maaş (brütten nete ile aynı format: 50.000,00)
                       TextFormField(
                         controller: _guncelBrutMaasController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                         decoration: InputDecoration(
                           labelText: 'Güncel Brüt Maaş (TL)',
                           labelStyle: const TextStyle(color: Colors.indigo),
-                          hintText: 'Örn: 35000',
+                          hintText: 'Örn: 50.000,00',
                           hintStyle: TextStyle(color: Colors.grey[400]),
                           prefixIcon: const Icon(Icons.attach_money, color: Colors.indigo),
                           filled: true,
@@ -1046,12 +1142,20 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                           focusedBorder: focusedBorder,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         ),
+                        onEditingComplete: () {
+                          if (_guncelBrutMaasController.text.trim().isNotEmpty) {
+                            final val = _parseBrutMaas(_guncelBrutMaasController.text);
+                            if (val > 0) {
+                              _guncelBrutMaasController.text = _formatBrutMaas(val);
+                            }
+                          }
+                        },
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Güncel brüt maaş giriniz';
                           }
-                          final parsed = double.tryParse(value.replaceAll('.', '').replaceAll(',', '.'));
-                          if (parsed == null || parsed <= 0) {
+                          final parsed = _parseBrutMaas(value);
+                          if (parsed <= 0) {
                             return 'Geçerli bir tutar giriniz';
                           }
                           return null;

@@ -7,7 +7,7 @@ class ThemeHelper {
   factory ThemeHelper() => _instance;
   ThemeHelper._internal();
 
-  Color _themeColor = Colors.indigo; // Varsayılan indigo (orijinal renk)
+  Color _themeColor = Colors.indigo; // Varsayılan tema
   double _fontSize = 14.0; // Varsayılan 14 punto
   
   Color get themeColor => _themeColor;

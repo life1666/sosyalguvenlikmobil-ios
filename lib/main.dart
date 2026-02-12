@@ -73,7 +73,7 @@ class SgkBilgiPlatformu extends StatefulWidget {
 class _SgkBilgiPlatformuState extends State<SgkBilgiPlatformu> {
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   final ThemeHelper _themeHelper = ThemeHelper();
-  Color _themeColor = Colors.indigo; // Varsayılan indigo (orijinal renk)
+  Color _themeColor = Colors.indigo; // Varsayılan tema (app bar alt bar ile beyaz)
   double _fontSize = 14.0; // Varsayılan 14 punto
 
   @override
