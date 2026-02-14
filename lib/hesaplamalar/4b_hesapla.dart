@@ -1096,13 +1096,14 @@ class _EmeklilikHesaplama4bSayfasiState extends State<EmeklilikHesaplama4bSayfas
       appBar: AppBar(
         title: const Text(
           '4/b (Bağ-Kur) Emeklilik Hesaplama',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -1145,7 +1146,7 @@ class _EmeklilikHesaplama4bSayfasiState extends State<EmeklilikHesaplama4bSayfas
                     child: ElevatedButton(
                       onPressed: _hesaplaEmeklilik,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         textStyle: const TextStyle(fontWeight: FontWeight.w500),
@@ -1551,7 +1552,7 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
                       height: 44,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
+                backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
@@ -1716,7 +1717,7 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
                     height: 44,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),

@@ -82,13 +82,14 @@ class _MakalelerViewState extends State<MakalelerView> {
       appBar: AppBar(
         title: const Text(
           'Makaleler',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -99,7 +100,7 @@ class _MakalelerViewState extends State<MakalelerView> {
             padding: const EdgeInsets.all(16.0),
             child: CupertinoSlidingSegmentedControl<String>(
               groupValue: _selectedKategori,
-              backgroundColor: Colors.indigo.withOpacity(0.06),
+              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.06),
               thumbColor: Colors.white,
               children: {
                 for (final k in _kategoriler)
@@ -108,7 +109,7 @@ class _MakalelerViewState extends State<MakalelerView> {
                     child: Text(
                       '${k.baslik} (${k.liste.length})',
                       style: TextStyle(
-                        color: _selectedKategori == k.baslik ? Colors.indigo : Colors.black87,
+                        color: _selectedKategori == k.baslik ? Theme.of(context).primaryColor : Colors.black87,
                         fontWeight: _selectedKategori == k.baslik ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
@@ -172,8 +173,8 @@ class _MakaleListe extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => MakaleDetailScreen(makale: m)),
               );
             },
-            splashColor: Colors.indigo.withOpacity(0.2),
-            highlightColor: Colors.indigo.withOpacity(0.1),
+            splashColor: Theme.of(context).primaryColor.withOpacity(0.2),
+            highlightColor: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
@@ -225,13 +226,14 @@ class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
       appBar: AppBar(
         title: Text(
           widget.makale.title,
-          style: const TextStyle(color: Colors.indigo),
+          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
+        titleSpacing: 16,
+        centerTitle: false,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),

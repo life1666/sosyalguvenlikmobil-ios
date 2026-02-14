@@ -883,13 +883,14 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
       appBar: AppBar(
         title: const Text(
           'Netten Brüte Maaş Hesaplama',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -983,7 +984,7 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        backgroundColor: Colors.indigo,
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         textStyle: const TextStyle(fontWeight: FontWeight.w600),
                       ),
@@ -1259,13 +1260,14 @@ class ResultsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Hesaplama Sonuçları',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
         actions: [
@@ -1290,7 +1292,7 @@ class ResultsScreen extends StatelessWidget {
                 ),
               ),
             ],
-            icon: const Icon(Icons.share, color: Colors.indigo),
+            icon: const Icon(Icons.share, color: Colors.white),
           ),
         ],
       ),

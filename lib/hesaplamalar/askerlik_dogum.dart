@@ -400,19 +400,12 @@ class _CupertinoField extends StatelessWidget {
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      valueText.isEmpty ? 'Seçiniz' : valueText,
-                      style: TextStyle(
-                        color: isPlaceholder ? Colors.grey[700] : Colors.black,
-                        fontWeight: AppW.body,
-                      ),
-                    ),
-                  ),
-                  const Icon(CupertinoIcons.chevron_down, size: 18, color: Colors.indigo),
-                ],
+              child: Text(
+                valueText.isEmpty ? 'Seçiniz' : valueText,
+                style: TextStyle(
+                  color: isPlaceholder ? Colors.grey[700] : Colors.black,
+                  fontWeight: AppW.body,
+                ),
               ),
             ),
           ),
@@ -758,13 +751,14 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
       appBar: AppBar(
         title: const Text(
           'SGK Prim Borçlanma Tutarı Hesaplama',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -816,7 +810,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
                         await _hesapla();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         textStyle: const TextStyle(fontWeight: FontWeight.w600),
@@ -995,7 +989,7 @@ class ResultSheet extends StatelessWidget {
           child: Center(
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
+                backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),

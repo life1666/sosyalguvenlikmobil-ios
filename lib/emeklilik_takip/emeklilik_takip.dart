@@ -303,16 +303,18 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
           title: const Text(
             'Emeklilik Takip',
             style: TextStyle(
-              color: Colors.indigo,
+              color: Colors.white,
               fontSize: 20,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
             ),
           ),
+          titleSpacing: 16,
           centerTitle: false,
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
             onPressed: () => Navigator.maybePop(context),
           ),
         ),
@@ -325,14 +327,14 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
                 Icon(
                   Icons.calendar_today_outlined,
                   size: 120,
-                  color: Colors.indigo.withValues(alpha: 0.5),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
                 ),
                 const SizedBox(height: 24),
                 Text(
                   'Emeklilik Takibiniz Yok',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
+                        color: Theme.of(context).primaryColor,
                       ),
                 ),
                 const SizedBox(height: 12),
@@ -350,7 +352,7 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
                   label: const Text('Emeklilik Hesabı Ekle'),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    backgroundColor: Colors.indigo,
+                    backgroundColor: Theme.of(context).primaryColor,
                   ),
                 ),
               ],
@@ -372,21 +374,23 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
         title: const Text(
           'Emeklilik Takip',
           style: TextStyle(
-            color: Colors.indigo,
+            color: Colors.white,
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
           ),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.indigo),
+            icon: const Icon(Icons.edit_outlined, color: Colors.white),
             onPressed: _showAddRetirementDialog,
             tooltip: 'Düzenle',
           ),

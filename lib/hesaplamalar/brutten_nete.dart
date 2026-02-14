@@ -999,17 +999,19 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     final statusLabel = _pickedStatus ? _employeeStatusInternal : '';
     final incentiveLabel = _pickedIncentive ? _selectedIncentiveInternal : '';
 
+    final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Brütten Nete Maaş Hesaplama',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: themeColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -1102,7 +1104,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        backgroundColor: Colors.indigo,
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         textStyle: const TextStyle(fontWeight: FontWeight.w600),
                       ),

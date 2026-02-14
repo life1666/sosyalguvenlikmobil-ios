@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../ana_ekran.dart';
 
@@ -20,7 +21,6 @@ class GirisEkrani extends StatefulWidget {
 class _GirisEkraniState extends State<GirisEkrani> {
   bool _sifreGizli = true;
   bool _kayitModu = false;
-  bool _showDisclaimer = true;
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
@@ -157,104 +157,27 @@ class _GirisEkraniState extends State<GirisEkrani> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     final body = buildLoginBody(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _kayitModu ? 'Kayıt Ol' : 'Giriş Yap',
-          style: const TextStyle(color: Colors.indigo),
-        ),
-        centerTitle: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
       body: Stack(
         children: [
           body,
-          if (_showDisclaimer)
-            Center(
-              child: SingleChildScrollView(
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.92,
-                  constraints: BoxConstraints(
-                    maxWidth: 400,
-                    minHeight: 200,
-                  ),
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-                  decoration: BoxDecoration(
-                    color: Colors.indigo,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.07),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          color: Colors.white, size: 38),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Sorumluluk Reddi',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 18),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 20.0, right: 8.0),
-                        child: Text(
-                          'Bu uygulama, herhangi bir kamu kurumu, devlet dairesi veya resmi kuruluş tarafından geliştirilmemiştir. SGK, e-Devlet ya da Çalışma ve Sosyal Güvenlik Bakanlığı ile herhangi bir bağlantısı bulunmamaktadır. Uygulama yalnızca bilgi sağlamak amacıyla hazırlanmıştır. Sunulan hesaplamalar resmi belge niteliği taşımaz. Bu nedenle herhangi bir sorumluluk kabul edilmez.',
-                          style: TextStyle(
-                            fontSize: 15.5,
-                            color: Colors.white,
-                            height: 1.7,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _showDisclaimer = false;
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.indigo,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: const Text(
-                            'Okudum, Anladım',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top,
+            right: 12,
+            child: Material(
+              color: Colors.transparent,
+              child: IconButton(
+                icon: Icon(Icons.close_rounded, color: themeColor, size: 28),
+                onPressed: () => Navigator.maybePop(context),
+                style: IconButton.styleFrom(
+                  backgroundColor: themeColor.withOpacity(0.1),
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
@@ -281,9 +204,15 @@ class _GirisEkraniState extends State<GirisEkrani> {
           ],
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32),
-        child: Form(
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            16,
+            24,
+            MediaQuery.of(context).padding.bottom + 24,
+          ),
+          child: Form(
           key: _formKey,
           child: ListView(
             children: [
@@ -470,7 +399,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
               // 🔐 Google Giriş
               ElevatedButton.icon(
                 onPressed: _googleIleGirisYap,
-                icon: const Icon(Icons.login, size: 20),
+                icon: const FaIcon(FontAwesomeIcons.google, size: 20),
                 label: const Text('Google ile Giriş Yap'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -539,6 +468,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

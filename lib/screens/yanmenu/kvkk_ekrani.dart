@@ -9,13 +9,14 @@ class KvkkEkrani extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'KVKK',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -26,7 +27,7 @@ class KvkkEkrani extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: [
               Colors.white,
-              Colors.indigo.withValues(alpha: 0.02),
+              Theme.of(context).primaryColor.withValues(alpha: 0.02),
             ],
           ),
         ),

@@ -17,6 +17,7 @@ class _IletisimEkraniState extends State<IletisimEkrani> {
   User? _currentUser;
   bool _sorumlulukKabulEdildi = false;
   final ScrollController _scrollController = ScrollController();
+  bool _initialScrollDone = false;
 
   @override
   void initState() {
@@ -222,13 +223,14 @@ class _IletisimEkraniState extends State<IletisimEkrani> {
       appBar: AppBar(
         title: const Text(
           'İletişim',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -328,6 +330,16 @@ class _IletisimEkraniState extends State<IletisimEkrani> {
                         if (bTime == null) return -1;
                         return aTime.compareTo(bTime);
                       });
+
+                      // Ekran ilk açıldığında listeyi en alta (en son mesajlara) kaydır
+                      if (!_initialScrollDone && sortedDocs.isNotEmpty) {
+                        _initialScrollDone = true;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (_scrollController.hasClients) {
+                            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                          }
+                        });
+                      }
 
                       return ListView.builder(
                         controller: _scrollController,

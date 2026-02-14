@@ -20,6 +20,7 @@ class _TemaAyarlariEkraniState extends State<TemaAyarlariEkrani> {
   // Tema renkleri
   final List<Color> _themeColors = [
     Colors.indigo,      // Varsayılan
+    const Color(0xFF94A3B8), // Gri (slate)
     Colors.blue,
     Colors.pink,
     Colors.grey,
@@ -71,14 +72,21 @@ class _TemaAyarlariEkraniState extends State<TemaAyarlariEkrani> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Tema Ayarları',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: _selectedThemeColor,
+        backgroundColor: themeColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
@@ -92,7 +100,7 @@ class _TemaAyarlariEkraniState extends State<TemaAyarlariEkrani> {
             end: Alignment.bottomCenter,
             colors: [
               Colors.white,
-              _selectedThemeColor.withOpacity(0.02),
+              themeColor.withOpacity(0.02),
             ],
           ),
         ),

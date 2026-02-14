@@ -28,6 +28,8 @@ class MonthResult {
   final double incomeTaxBeforeExempt; // istisna öncesi aylık GV
   final double incomeTaxExemption; // uygulanan asgari ücret GV istisnası
   final double cumulativeTaxBase; // kümülatif GV matrahı (istisna öncesi)
+  /// Hangi vergi diliminde (oran %15, %20, %27, %35, %40)
+  final int incomeTaxBracketPercent;
   // Damga
   final double stampTax;
   final double stampTaxBeforeExempt;
@@ -50,6 +52,7 @@ class MonthResult {
     required this.incomeTaxBeforeExempt,
     required this.incomeTaxExemption,
     required this.cumulativeTaxBase,
+    required this.incomeTaxBracketPercent,
     required this.stampTax,
     required this.stampTaxBeforeExempt,
     required this.stampTaxExemption,
@@ -303,6 +306,16 @@ class SalaryEngine {
     };
   }
 
+  /// Kümülatif matraha göre hangi vergi diliminde (oran %15, %20, %27, %35, %40)
+  int _incomeTaxBracketPercentFromCumulativeK(int cumulativeK) {
+    if (cumulativeK <= 0) return (tax.rates[0] * 100).round();
+    final cumTl = _fromKurus(cumulativeK);
+    for (int i = 0; i < tax.brackets.length; i++) {
+      if (cumTl <= tax.brackets[i]) return (tax.rates[i] * 100).round();
+    }
+    return (tax.rates[tax.rates.length - 1] * 100).round();
+  }
+
   /// BRÜT → NET (tek ay)  ✅ kuruş motorlu
   MonthResult calculateNetFromGross({
     required double grossMonthly,
@@ -346,6 +359,7 @@ class SalaryEngine {
 
     final employerCostK = grossK + sgkEmployerK + unempEmployerK;
 
+    final bracketPercent = _incomeTaxBracketPercentFromCumulativeK(cumulativeThisK);
     return MonthResult(
       year: year,
       monthIndex: monthIndex,
@@ -359,6 +373,7 @@ class SalaryEngine {
       incomeTaxBeforeExempt: _round2(_fromKurus(taxPack['taxBeforeExemptionK']!)),
       incomeTaxExemption: _round2(_fromKurus(taxPack['exemptionK']!)),
       cumulativeTaxBase: _round2(_fromKurus(cumulativeThisK)),
+      incomeTaxBracketPercent: bracketPercent,
       stampTax: _round2(_fromKurus(stampK)),
       stampTaxBeforeExempt: _round2(_fromKurus(stampBeforeK)),
       stampTaxExemption: _round2(_fromKurus(stampExK)),

@@ -198,7 +198,7 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final themeColor = Theme.of(context).primaryColor;
     final tt = Theme.of(context).textTheme;
 
     final bool anyOpen = _openIndex != null;
@@ -207,13 +207,19 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
       appBar: AppBar(
         title: const Text(
           'Hesaplamalar',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: themeColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -238,8 +244,8 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: () => _onTapRow(index),
-                            splashColor: Colors.indigo.withOpacity(0.2),
-                            highlightColor: Colors.indigo.withOpacity(0.1),
+                            splashColor: themeColor.withOpacity(0.2),
+                            highlightColor: themeColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
@@ -251,7 +257,7 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
                                       Icon(
                                         item['ikon'] as IconData,
                                         size: 24,
-                                        color: Colors.indigo,
+                                        color: themeColor,
                                       ),
                                       const SizedBox(width: 12),
                                       Text(item['baslik'] as String, style: tt.bodyMedium),
@@ -287,8 +293,8 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
                               color: Colors.transparent,
                               child: InkWell(
                                 onTap: () => _onTapRow(i),
-                                splashColor: Colors.indigo.withOpacity(0.2),
-                                highlightColor: Colors.indigo.withOpacity(0.1),
+                                splashColor: themeColor.withOpacity(0.2),
+                                highlightColor: themeColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
@@ -300,7 +306,7 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
                                           Icon(
                                             hesaplamalar[i]['ikon'] as IconData,
                                             size: 24,
-                                            color: Colors.indigo,
+                                            color: themeColor,
                                           ),
                                           const SizedBox(width: 12),
                                           Text(hesaplamalar[i]['baslik'] as String, style: tt.bodyMedium),
@@ -389,12 +395,13 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
 
   // Alt menü satırı (ikon yok)
   Widget _altRow(String text, TextTheme tt) {
+    final themeColor = Theme.of(context).primaryColor;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _onTapAltMenuItem(text),
-        splashColor: Colors.indigo.withOpacity(0.2),
-        highlightColor: Colors.indigo.withOpacity(0.1),
+        splashColor: themeColor.withOpacity(0.2),
+        highlightColor: themeColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           // 42 = 24px ikon + 12px boşluk + 6 ekstra; dış yatay pad zaten kPageHPad ile veriliyor

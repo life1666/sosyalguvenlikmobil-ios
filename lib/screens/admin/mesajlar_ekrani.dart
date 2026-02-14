@@ -174,7 +174,7 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.indigo,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                     ),
@@ -255,7 +255,7 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                                     child: Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: Colors.indigo.withValues(alpha: 0.1),
+                                        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Column(
@@ -385,7 +385,7 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
+                          backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -416,13 +416,14 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
         appBar: AppBar(
           title: const Text(
             "Erişim Reddedildi",
-            style: TextStyle(color: Colors.indigo),
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
           ),
+          titleSpacing: 16,
           centerTitle: false,
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
             onPressed: () => Navigator.maybePop(context),
           ),
         ),
@@ -433,7 +434,7 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
               end: Alignment.bottomCenter,
               colors: [
                 Colors.white,
-                Colors.indigo.withValues(alpha: 0.02),
+                Theme.of(context).primaryColor.withValues(alpha: 0.02),
               ],
             ),
           ),
@@ -485,13 +486,14 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
       appBar: AppBar(
         title: const Text(
           "Gelen Mesajlar",
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -502,7 +504,7 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
             end: Alignment.bottomCenter,
             colors: [
               Colors.white,
-              Colors.indigo.withValues(alpha: 0.02),
+              Theme.of(context).primaryColor.withValues(alpha: 0.02),
             ],
           ),
         ),
@@ -534,7 +536,7 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
             if (!snapshot.hasData) {
               return Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.indigo),
+                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
                 ),
               );
             }
@@ -550,22 +552,22 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.indigo.withValues(alpha: 0.1),
+                          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.inbox_outlined,
                           size: 64,
-                          color: Colors.indigo,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         'Henüz Mesaj Yok',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.indigo,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -735,12 +737,12 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.indigo.withValues(alpha: 0.1),
+                                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.person_outline,
-                                color: Colors.indigo,
+                                color: Theme.of(context).primaryColor,
                                 size: 20,
                               ),
                             ),
@@ -748,13 +750,13 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
                             Expanded(
                               child: Text(
                                 email,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.indigo,
-                                  ),
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
+                            ),
                               if (hasResponse)
                                 Container(
                                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),

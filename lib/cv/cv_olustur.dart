@@ -889,20 +889,21 @@ class _CvBuilderPageState extends State<CvBuilderPage> {
       appBar: AppBar(
         title: const Text(
           'CV Oluştur',
-          style: TextStyle(color: Colors.indigo),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
         actions: [
           TextButton.icon(
             onPressed: _preview,
-            icon: const Icon(Icons.visibility_outlined, color: Colors.indigo),
-            label: const Text('Önizle', style: TextStyle(color: Colors.indigo)),
+            icon: const Icon(Icons.visibility_outlined, color: Colors.white),
+            label: const Text('Önizle', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

@@ -740,12 +740,13 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       appBar: AppBar(
         title: Text(
           _titleForTab(_currentTabIndex),
-          style: const TextStyle(color: Colors.indigo),
+          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
+        titleSpacing: 16,
+        centerTitle: false,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.indigo),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: IndexedStack(
         index: _currentTabIndex,
@@ -758,7 +759,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentTabIndex,
         onTap: (i) => setState(() => _currentTabIndex = i),
-        selectedItemColor: Colors.indigo,
+        selectedItemColor: Theme.of(context).primaryColor,
         unselectedItemColor: Colors.grey,
         backgroundColor: Colors.white,
         elevation: 8,
@@ -785,7 +786,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   Widget _buildSettingsTab() {
     final year = _salaryYear;
     final supportsMW = _minWageByYear.containsKey(year);
-    const headingStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.indigo);
+    final headingStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).primaryColor);
 
     _leaveDaysCtrl.text =
         (_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1);
@@ -913,7 +914,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                             const Spacer(),
                             Switch(
                               value: _salaryMode == SalaryMode.minimumWage,
-                              activeColor: Colors.indigo,
+                              activeTrackColor: Theme.of(context).primaryColor,
                               onChanged: (v) {
                                 setState(() {
                                   _salaryMode =
@@ -932,7 +933,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                             const Spacer(),
                             Switch(
                               value: _isRetired,
-                              activeColor: Colors.indigo,
+                              activeTrackColor: Theme.of(context).primaryColor,
                               onChanged: (v) {
                                 setState(() {
                                   _isRetired = v;
@@ -1332,8 +1333,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                   Expanded(
                     child: TextButton(
                       style: TextButton.styleFrom(
-                        backgroundColor: Colors.indigo.withOpacity(0.1),
-                        foregroundColor: Colors.indigo,
+                        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                        foregroundColor: Theme.of(context).primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -1401,7 +1402,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Bitti', style: TextStyle(color: Colors.indigo)),
+                    child: Text('Bitti', style: TextStyle(color: Theme.of(context).primaryColor)),
                   ),
                 ],
               ),
@@ -1449,7 +1450,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Bitti', style: TextStyle(color: Colors.indigo)),
+                    child: Text('Bitti', style: TextStyle(color: Theme.of(context).primaryColor)),
                   ),
                 ],
               ),
@@ -1492,7 +1493,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Bitti', style: TextStyle(color: Colors.indigo)),
+                    child: Text('Bitti', style: TextStyle(color: Theme.of(context).primaryColor)),
                   ),
                 ],
               ),
@@ -1642,7 +1643,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (hasOvertime) _dot(Colors.indigo),
+                        if (hasOvertime) _dot(Theme.of(context).primaryColor),
                         if (hasPaid) _dot(Colors.green),
                         if (hasUnpaid) _dot(Colors.amber),
                         if (hasDeduction) _dot(Colors.red),
@@ -1676,6 +1677,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         incomeTaxBeforeExempt: 0,
         incomeTaxExemption: 0,
         cumulativeTaxBase: 0,
+        incomeTaxBracketPercent: 15,
         stampTax: 0,
         stampTaxBeforeExempt: 0,
         stampTaxExemption: 0,
@@ -1871,7 +1873,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Bitti', style: TextStyle(color: Colors.indigo)),
+                    child: Text('Bitti', style: TextStyle(color: Theme.of(context).primaryColor)),
                   ),
                 ],
               ),
@@ -1911,6 +1913,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         incomeTaxBeforeExempt: 0,
         incomeTaxExemption: 0,
         cumulativeTaxBase: 0,
+        incomeTaxBracketPercent: 15,
         stampTax: 0,
         stampTaxBeforeExempt: 0,
         stampTaxExemption: 0,
@@ -2050,6 +2053,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
           incomeTaxBeforeExempt: 0,
           incomeTaxExemption: 0,
           cumulativeTaxBase: 0,
+          incomeTaxBracketPercent: 15,
           stampTax: 0,
           stampTaxBeforeExempt: 0,
           stampTaxExemption: 0,
@@ -2121,6 +2125,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
           incomeTaxBeforeExempt: 0,
           incomeTaxExemption: 0,
           cumulativeTaxBase: 0,
+          incomeTaxBracketPercent: 15,
           stampTax: 0,
           stampTaxBeforeExempt: 0,
           stampTaxExemption: 0,

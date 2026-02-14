@@ -210,10 +210,10 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
                   Expanded(
                     child: Text(
                       hesaplama.hesaplamaTuru,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                   ),
@@ -325,27 +325,31 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'Son Hesaplamalar',
           style: TextStyle(
-            color: Colors.indigo,
+            color: Colors.white,
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
           ),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: themeColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
         actions: [
           if (_hesaplamalar.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.indigo),
+              icon: const Icon(Icons.delete_outline, color: Colors.white),
               tooltip: 'Tümünü Sil',
               onPressed: () async {
                 final confirmed = await showDialog<bool>(
@@ -381,7 +385,7 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
         ],
       ),
       body: _yukleniyor
-          ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
+          ? Center(child: CircularProgressIndicator(color: themeColor))
           : _hesaplamalar.isEmpty
               ? Center(
                   child: Column(
@@ -414,86 +418,63 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
                 )
               : RefreshIndicator(
                   onRefresh: _yukle,
-                  color: Colors.indigo,
+                  color: themeColor,
                   child: ListView.separated(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: _hesaplamalar.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, __) => const SizedBox.shrink(),
                     itemBuilder: (context, index) {
                       final hesaplama = _hesaplamalar[index];
-                      return Material(
-                        color: Colors.white,
-                        elevation: 1,
-                        borderRadius: BorderRadius.circular(12),
-                        child: InkWell(
-                          onTap: () => _detayGoster(hesaplama),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: Colors.indigo.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.calculate_rounded,
-                                    color: Colors.indigo,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        hesaplama.hesaplamaTuru,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black87,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                      return InkWell(
+                        onTap: () => _detayGoster(hesaplama),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calculate_rounded, color: themeColor, size: 22),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      hesaplama.hesaplamaTuru,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF1E293B),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(
                                         _formatTarih(hesaplama.tarihSaat),
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[600],
-                                        ),
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
                                       ),
-                                      if (hesaplama.sonuclar.isNotEmpty) ...[
-                                        const SizedBox(height: 6),
-                                        Text(
+                                    ),
+                                    if (hesaplama.sonuclar.isNotEmpty) ...[
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
                                           hesaplama.sonuclar.entries.first.value,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[700],
-                                          ),
+                                          style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
+                                      ),
                                     ],
-                                  ),
+                                  ],
                                 ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    color: Colors.red,
-                                    size: 20,
-                                  ),
-                                  onPressed: () => _sil(hesaplama.id),
-                                  tooltip: 'Sil',
-                                ),
-                              ],
-                            ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                onPressed: () => _sil(hesaplama.id),
+                                tooltip: 'Sil',
+                              ),
+                            ],
                           ),
                         ),
                       );

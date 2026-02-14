@@ -254,17 +254,18 @@ class _AramaEkraniState extends State<AramaEkrani> {
         title: const Text(
           'Ara',
           style: TextStyle(
-            color: Colors.indigo,
+            color: Colors.white,
             fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
           ),
         ),
+        titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
-        titleSpacing: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         bottom: PreferredSize(
@@ -278,9 +279,9 @@ class _AramaEkraniState extends State<AramaEkrani> {
               child: TextField(
                 controller: _aramaController,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Ne yapmak istiyorsun?',
-                  prefixIcon: Icon(Icons.search_rounded, color: Colors.indigo),
+                  prefixIcon: Icon(Icons.search_rounded, color: Theme.of(context).primaryColor),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),

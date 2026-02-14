@@ -810,7 +810,7 @@ class _AnaEkranState extends State<AnaEkran> {
   Widget _buildBody() {
     return CustomScrollView(
       slivers: [
-        // AppBar: indigo
+        // AppBar: indigo (primaryColor)
         SliverAppBar(
           backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
@@ -824,9 +824,9 @@ class _AnaEkranState extends State<AnaEkran> {
           ),
           leading: const SizedBox.shrink(),
           leadingWidth: 0,
-          title: Text(
+          title: const Text(
             'İş & SGK Asistan',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -902,12 +902,18 @@ class _AnaEkranState extends State<AnaEkran> {
                       size: 32,
                     ),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => HesabimEkrani()),
-                ).then((_) {
-                  if (mounted) setState(() => _refreshKey++);
-                });
+                if (_kullanici == null) {
+                  Navigator.of(context).pushNamed('/giris').then((_) {
+                    if (mounted) setState(() => _refreshKey++);
+                  });
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => HesabimEkrani()),
+                  ).then((_) {
+                    if (mounted) setState(() => _refreshKey++);
+                  });
+                }
               },
             ),
           ],
@@ -1244,6 +1250,7 @@ class _AnaEkranState extends State<AnaEkran> {
           isAdmin: _isAdmin(_kullanici),
           isPremium: _isPremium,
           appVersion: _appVersion,
+          adminUIDs: [adminUID, mevzuatUzmaniUID],
           onMenuItemTap: (action) => action(),
           onLaunchURL: _launchURL,
           onRateApp: _rateApp,
@@ -1414,7 +1421,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? Theme.of(context).primaryColor : const Color(0xFF94A3B8);
+    final color = Theme.of(context).primaryColor;
 
     return Expanded(
       child: InkWell(
@@ -1442,12 +1449,13 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-// Tam ekran Ayarlar sayfası
+// Tam ekran Ayarlar sayfası — auth state dinlenir, çıkış yapınca aynı ekranda güncellenir
 class _AyarlarEkrani extends StatelessWidget {
   final User? kullanici;
   final bool isAdmin;
   final bool isPremium;
   final String appVersion;
+  final List<String> adminUIDs;
   final Function(VoidCallback) onMenuItemTap;
   final Function(String) onLaunchURL;
   final VoidCallback onRateApp;
@@ -1459,6 +1467,7 @@ class _AyarlarEkrani extends StatelessWidget {
     required this.isAdmin,
     required this.isPremium,
     required this.appVersion,
+    required this.adminUIDs,
     required this.onMenuItemTap,
     required this.onLaunchURL,
     required this.onRateApp,
@@ -1468,114 +1477,99 @@ class _AyarlarEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: const Color(0xFF1E293B)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Ayarlar',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1E293B),
-          ),
-        ),
-        centerTitle: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Premium durumu kutusu
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-              child: _PremiumKutu(isPremium: isPremium),
-            ),
+      body: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        initialData: kullanici,
+        builder: (context, snapshot) {
+          final currentUser = snapshot.data;
+          final isAdminNow = currentUser != null && adminUIDs.contains(currentUser.uid);
+          final isPremiumNow = currentUser != null ? isPremium : false;
 
-            // Menu items
-            if (kullanici == null)
-            _MenuItem(
-              icon: Icons.login_rounded,
-              title: 'Giriş Yap / Kayıt Ol',
-              onTap: () => onMenuItemTap(() {
-                Navigator.of(context).pushNamed('/giris');
-              }),
-            )
-          else
-            _MenuItem(
-              icon: Icons.person_outline_rounded,
-              title: 'Hesabım',
-              onTap: () => onMenuItemTap(() {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => HesabimEkrani())).then((_) => onRefresh());
-              }),
-            ),
-
-          _MenuItem(
-            icon: Icons.mail_outline_rounded,
-            title: 'İletişim',
-            onTap: () => onMenuItemTap(() {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => IletisimEkrani()));
-            }),
-          ),
-
-          _MenuItem(
-            icon: Icons.star_outline_rounded,
-            title: 'Uygulamayı Puanla',
-            onTap: () => onMenuItemTap(onRateApp),
-          ),
-
-          _MenuItem(
-            icon: Icons.share_outlined,
-            title: 'Uygulamayı Paylaş',
-            onTap: () => onMenuItemTap(onShareApp),
-          ),
-
-          _MenuItem(
-            icon: Icons.description_outlined,
-            title: 'Sözleşmeler',
-            onTap: () => onMenuItemTap(() {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => SozlesmeEkrani()));
-            }),
-          ),
-
-          _MenuItem(
-            icon: Icons.privacy_tip_outlined,
-            title: 'KVKK',
-            onTap: () => onMenuItemTap(() {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => KvkkEkrani()));
-            }),
-          ),
-
-          if (isAdmin)
-            _MenuItem(
-              icon: Icons.message_outlined,
-              title: 'Gelen Mesajlar',
-              onTap: () => onMenuItemTap(() {
-                Navigator.of(context).pushNamed('/mesajlar');
-              }),
-            ),
-
-          if (kullanici != null)
-            _MenuItem(
-              icon: Icons.logout_rounded,
-              title: 'Çıkış Yap',
-              textColor: const Color(0xFFEF4444),
-              onTap: () => onMenuItemTap(() async {
-                await FirebaseAuth.instance.signOut();
-              }),
-            ),
-
-          // Sosyal medya
+          return Stack(
+            children: [
+              SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 56),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                        child: _PremiumKutu(isPremium: isPremiumNow),
+                      ),
+                      if (currentUser == null)
+                        _MenuItem(
+                          icon: Icons.login_rounded,
+                          title: 'Giriş Yap / Kayıt Ol',
+                          onTap: () => onMenuItemTap(() {
+                            Navigator.of(context).pushNamed('/giris');
+                          }),
+                        )
+                      else
+                        _MenuItem(
+                          icon: Icons.person_outline_rounded,
+                          title: 'Hesabım',
+                          onTap: () => onMenuItemTap(() {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => HesabimEkrani())).then((_) => onRefresh());
+                          }),
+                        ),
+                      _MenuItem(
+                        icon: Icons.mail_outline_rounded,
+                        title: 'İletişim',
+                        onTap: () => onMenuItemTap(() {
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => IletisimEkrani()));
+                        }),
+                      ),
+                      _MenuItem(
+                        icon: Icons.star_outline_rounded,
+                        title: 'Uygulamayı Puanla',
+                        onTap: () => onMenuItemTap(onRateApp),
+                      ),
+                      _MenuItem(
+                        icon: Icons.share_outlined,
+                        title: 'Uygulamayı Paylaş',
+                        onTap: () => onMenuItemTap(onShareApp),
+                      ),
+                      _MenuItem(
+                        icon: Icons.description_outlined,
+                        title: 'Sözleşmeler',
+                        onTap: () => onMenuItemTap(() {
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => SozlesmeEkrani()));
+                        }),
+                      ),
+                      _MenuItem(
+                        icon: Icons.privacy_tip_outlined,
+                        title: 'KVKK',
+                        onTap: () => onMenuItemTap(() {
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => KvkkEkrani()));
+                        }),
+                      ),
+                      if (isAdminNow)
+                        _MenuItem(
+                          icon: Icons.message_outlined,
+                          title: 'Gelen Mesajlar',
+                          onTap: () => onMenuItemTap(() {
+                            Navigator.of(context).pushNamed('/mesajlar');
+                          }),
+                        ),
+                      if (currentUser != null)
+                        _MenuItem(
+                          icon: Icons.logout_rounded,
+                          title: 'Çıkış Yap',
+                          textColor: const Color(0xFFEF4444),
+                          onTap: () => onMenuItemTap(() async {
+                            await FirebaseAuth.instance.signOut();
+                          }),
+                        ),
+                      // Sosyal medya
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                Divider(color: const Color(0xFFE2E8F0)),
+                Divider(color: themeColor.withOpacity(0.25)),
                 SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1616,7 +1610,7 @@ class _AyarlarEkrani extends StatelessWidget {
                   'v$appVersion',
                   style: TextStyle(
                     fontSize: 12,
-                    color: const Color(0xFF94A3B8),
+                    color: themeColor.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -1624,8 +1618,27 @@ class _AyarlarEkrani extends StatelessWidget {
           ),
 
             SizedBox(height: MediaQuery.of(context).padding.bottom + 24),
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top,
+                right: 12,
+                child: Material(
+                  color: Colors.transparent,
+                  child: IconButton(
+                    icon: Icon(Icons.close_rounded, color: themeColor, size: 28),
+                    onPressed: () => Navigator.pop(context),
+                    style: IconButton.styleFrom(
+                      backgroundColor: themeColor.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1638,15 +1651,16 @@ class _PremiumKutu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: isPremium
             ? const Color(0xFFE8F5E9)
-            : const Color(0xFFF8F9FA),
+            : themeColor.withOpacity(0.06),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isPremium ? const Color(0xFF81C784) : const Color(0xFFE2E8F0),
+          color: isPremium ? const Color(0xFF81C784) : themeColor.withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -1658,12 +1672,12 @@ class _PremiumKutu extends StatelessWidget {
             decoration: BoxDecoration(
               color: isPremium
                   ? const Color(0xFF4CAF50).withValues(alpha: 0.15)
-                  : const Color(0xFF94A3B8).withValues(alpha: 0.15),
+                  : themeColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               isPremium ? Icons.workspace_premium_rounded : Icons.workspace_premium_outlined,
-              color: isPremium ? const Color(0xFF2E7D32) : const Color(0xFF64748B),
+              color: isPremium ? const Color(0xFF2E7D32) : themeColor,
               size: 24,
             ),
           ),
@@ -1678,7 +1692,7 @@ class _PremiumKutu extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isPremium ? const Color(0xFF1B5E20) : const Color(0xFF1E293B),
+                    color: isPremium ? const Color(0xFF1B5E20) : themeColor,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1688,7 +1702,7 @@ class _PremiumKutu extends StatelessWidget {
                       : 'Tüm özelliklere erişmek için Premium\'a geçin.',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isPremium ? const Color(0xFF388E3C) : const Color(0xFF64748B),
+                    color: isPremium ? const Color(0xFF388E3C) : themeColor.withOpacity(0.8),
                   ),
                 ),
               ],
@@ -1715,7 +1729,8 @@ class _MenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = textColor ?? const Color(0xFF1E293B);
+    final themeColor = Theme.of(context).primaryColor;
+    final color = textColor ?? themeColor;
 
     return InkWell(
       onTap: onTap,
@@ -1725,16 +1740,17 @@ class _MenuItem extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 22),
             SizedBox(width: 16),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: color,
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: color,
+                ),
               ),
             ),
-            Spacer(),
-            Icon(Icons.chevron_right_rounded, color: const Color(0xFF94A3B8), size: 20),
+            Icon(Icons.chevron_right_rounded, color: themeColor.withOpacity(0.7), size: 20),
           ],
         ),
       ),
@@ -1753,6 +1769,7 @@ class _SocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).primaryColor;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -1760,12 +1777,12 @@ class _SocialButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: themeColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Center(
           child: IconTheme(
-            data: IconThemeData(color: const Color(0xFF64748B)),
+            data: IconThemeData(color: themeColor),
             child: icon,
           ),
         ),
@@ -1987,18 +2004,21 @@ class AllFeaturesScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Tüm Özellikler',
           style: TextStyle(
-            color: const Color(0xFF1E293B),
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
           ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
+        titleSpacing: 16,
+        centerTitle: false,
+        backgroundColor: themeColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: const Color(0xFF1E293B)),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../mesaitakip/mesaihesaplama.dart';
-import 'package:syncfusion_flutter_gauges/gauges.dart';
 import '../hesaplamalar/emeklilik_4a_helper.dart';
 
 class CalismaHayatimEkrani extends StatefulWidget {
@@ -355,6 +355,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
       'sgk': 7000.0,
       'issizlik': 500.0,
       'gelirVergisi': 1792.0,
+      'gelirVergisiDilimPercent': 27.0,
       'damgaVergisi': 500.0,
       'net': 40208.0,
     };
@@ -484,6 +485,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
         'sgk': currentMonthResult.sgkEmployee,
         'issizlik': currentMonthResult.unemploymentEmployee,
         'gelirVergisi': currentMonthResult.incomeTax,
+        'gelirVergisiDilimPercent': currentMonthResult.incomeTaxBracketPercent.toDouble(),
         'damgaVergisi': currentMonthResult.stampTax,
         'toplam': totalDeductions,
         'net': currentMonthResult.net,
@@ -694,6 +696,12 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     final requiredDays = normalRetirement['requiredDays'] as int? ?? 7200;
     final totalRemainingDays = (requiredDays - currentDays).clamp(0, requiredDays);
     final gerekliGunDolu = currentDays >= requiredDays;
+    final currentAge = normalRetirement['currentAge'] as int?;
+    final requiredAge = (normalRetirement['requiredAge'] as num?)?.toInt() ?? 60;
+    final dayProgress01 = (progress / 100.0).clamp(0.0, 1.0);
+    final ageProgress01 = (currentAge != null && requiredAge > 0)
+        ? (currentAge / requiredAge).clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       width: double.infinity,
@@ -739,19 +747,14 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
           ),
           const SizedBox(height: 16),
 
-          // Sol: Gauge göstergesi, Sağ: Detaylar
+          // Sol: Çift donut (dış = prim, iç = yaş), Sağ: Detaylar
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Sol: Syncfusion Animasyonlu Gauge
-              _AnimatedGaugeWidget(
-                progress: progress,
-                themeColor: themeColor,
-                currentDays: currentDays,
-                currentAge: normalRetirement['currentAge'] as int?,
-                requiredAge: normalRetirement['requiredAge'] as int? ?? 60,
+              _DualDonutProgressWidget(
+                dayProgress01: dayProgress01,
+                ageProgress01: ageProgress01,
               ),
-              
               const SizedBox(width: 12),
               
               // Sağ: Detay Bilgileri (nokta renkleri gauge ile eşleşir: gün = yeşil, yıl = mavi)
@@ -922,11 +925,12 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     final sgkPercent = (sgk / brut * 100);
     final gelirVergisiPercent = (gelirVergisi / brut * 100);
     final damgaVergisiPercent = (damgaVergisi / brut * 100);
+    final gelirVergisiDilimPercent = deductions['gelirVergisiDilimPercent']?.round() ?? (gelirVergisiPercent.round());
 
     final segments = [
       {'label': 'Net ele Geçen', 'value': net, 'percent': netPercent, 'color': Colors.blue},
       {'label': 'SGK Primi', 'value': sgk, 'percent': sgkPercent, 'color': Colors.orange},
-      {'label': 'Gelir Vergisi', 'value': gelirVergisi, 'percent': gelirVergisiPercent, 'color': Colors.red},
+      {'label': 'Gelir Vergisi', 'value': gelirVergisi, 'percent': gelirVergisiPercent, 'color': Colors.red, 'bracketPercent': gelirVergisiDilimPercent},
       {'label': 'Damga Vergisi', 'value': damgaVergisi, 'percent': damgaVergisiPercent, 'color': Colors.purple},
     ];
 
@@ -993,6 +997,7 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
                             label: seg['label'] as String,
                             percent: (seg['percent'] as double),
                             amount: seg['value'] as double,
+                            bracketPercent: seg['bracketPercent'] as int?,
                           ),
                         ),
                       const Divider(height: 18),
@@ -1039,8 +1044,11 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     required String label,
     required double percent,
     required double amount,
+    int? bracketPercent,
   }) {
-    final leftText = '$label (%${percent.toStringAsFixed(0)})';
+    final leftText = bracketPercent != null
+        ? '$label (%$bracketPercent)'
+        : '$label (%${percent.toStringAsFixed(0)})';
     return Row(
       children: [
         Container(
@@ -1461,7 +1469,10 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
               const SizedBox(height: 8),
               _buildDetailRow('SGK Primi (%14)', _formatCurrency(sgk)),
               _buildDetailRow('İşsizlik Primi (%1)', _formatCurrency(issizlik)),
-              _buildDetailRow('Gelir Vergisi', _formatCurrency(gelirVergisi)),
+              _buildDetailRow(
+                'Gelir Vergisi (${_gelirVergisiDilimLabel(deductions)})',
+                _formatCurrency(gelirVergisi),
+              ),
               _buildDetailRow('Damga Vergisi (%0.759)', _formatCurrency(damgaVergisi)),
               const Divider(height: 20),
               _buildDetailRow('Toplam Kesinti', _formatCurrency(toplam), color: Colors.red),
@@ -1499,6 +1510,12 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     );
   }
 
+  String _gelirVergisiDilimLabel(Map<String, double> deductions) {
+    final p = deductions['gelirVergisiDilimPercent']?.round();
+    if (p == null) return 'Gelir vergisi';
+    return '%$p';
+  }
+
   // Detay satırı widget'ı
   Widget _buildDetailRow(String label, String value, {bool isBold = false, Color? color}) {
     return Padding(
@@ -1529,198 +1546,243 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
   }
 }
 
-// Ultra Dinamik Gauge Widget - Dış halka: prim günü, İç halka: yaş
-class _AnimatedGaugeWidget extends StatefulWidget {
-  final double progress;
-  final Color themeColor;
-  final int currentDays;
-  final int? currentAge;
-  final int requiredAge;
+// Çift donut: dış = prim günü, iç = yaş (yüzde etiketleri halka üzerinde)
+class _DualDonutProgressWidget extends StatefulWidget {
+  final double dayProgress01;
+  final double ageProgress01;
 
-  const _AnimatedGaugeWidget({
-    required this.progress,
-    required this.themeColor,
-    required this.currentDays,
-    this.currentAge,
-    this.requiredAge = 60,
+  const _DualDonutProgressWidget({
+    required this.dayProgress01,
+    required this.ageProgress01,
   });
 
   @override
-  State<_AnimatedGaugeWidget> createState() => _AnimatedGaugeWidgetState();
+  State<_DualDonutProgressWidget> createState() => _DualDonutProgressWidgetState();
 }
 
-class _AnimatedGaugeWidgetState extends State<_AnimatedGaugeWidget>
+class _DualDonutProgressWidgetState extends State<_DualDonutProgressWidget>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _valueAnim;
-  late Animation<double> _ageValueAnim;
-
-  double get _ageProgress => widget.currentAge != null && widget.requiredAge > 0
-      ? ((widget.currentAge! / widget.requiredAge) * 100).clamp(0.0, 100.0)
-      : 0.0;
+  // Maaş kesinti donutu ile aynı dolma süresi (50 s)
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 50000),
+  );
+  late final Animation<double> _a = CurvedAnimation(
+    parent: _c,
+    curve: Curves.easeOutCubic,
+  );
 
   @override
   void initState() {
     super.initState();
-    _setupAnimation();
-  }
-
-  @override
-  void didUpdateWidget(covariant _AnimatedGaugeWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.progress != widget.progress ||
-        oldWidget.currentAge != widget.currentAge) {
-      _setupAnimation(restartFromZero: true);
-    }
-  }
-
-  void _setupAnimation({bool restartFromZero = false}) {
-    final daysDurationMs = (widget.progress * 500).toInt().clamp(300, 100000);
-    final ageDurationMs = (_ageProgress * 500).toInt().clamp(300, 100000);
-    final durationMs = daysDurationMs > ageDurationMs ? daysDurationMs : ageDurationMs;
-
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: durationMs),
-    );
-
-    _valueAnim = Tween<double>(
-      begin: 0,
-      end: widget.progress,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
-
-    _ageValueAnim = Tween<double>(
-      begin: 0,
-      end: _ageProgress,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _controller.forward(from: 0);
+      if (mounted) _c.forward(from: 0);
     });
   }
 
   @override
+  void didUpdateWidget(covariant _DualDonutProgressWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dayProgress01 != widget.dayProgress01 ||
+        oldWidget.ageProgress01 != widget.ageProgress01) {
+      _c.forward(from: 0);
+    }
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    _c.dispose();
     super.dispose();
   }
 
-  static const Color _disGaugeGreen = Color(0xFF76B900); // NVIDIA yeşili
-  static const Color _icGaugeMavi = Color(0xFF2196F3);   // Maaş kesinti donut mavisi
-  static const double _gaugePercentBaseSize = 18.0;
-  static const double _innerRadiusFactor = 0.68;
-  static const double _outerRadiusFactor = 0.95;
+  static const Color _outerGreen = Color(0xFF76B900);
+  static const Color _innerBlue = Color(0xFF2196F3);
 
   @override
   Widget build(BuildContext context) {
+    final dayTarget = widget.dayProgress01.clamp(0.0, 1.0);
+    final ageTarget = widget.ageProgress01.clamp(0.0, 1.0);
+
     return SizedBox(
       width: 140,
       height: 140,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Çift halka: iç = yaş, dış = gün (animasyonlu)
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) {
-              final dayVal = _valueAnim.value;
-              final ageVal = _ageValueAnim.value;
-
-              return SfRadialGauge(
-                axes: <RadialAxis>[
-                  // İç halka: Yaş (60’a göre ilerleme)
-                  RadialAxis(
-                    radiusFactor: 0.68,
-                    minimum: 0,
-                    maximum: 100,
-                    showLabels: false,
-                    showTicks: false,
-                    startAngle: 270,
-                    endAngle: 270,
-                    axisLineStyle: AxisLineStyle(
-                      thickness: 0.32,
-                      cornerStyle: CornerStyle.bothCurve,
-                      color: Colors.grey[200],
-                      thicknessUnit: GaugeSizeUnit.factor,
-                    ),
-                    pointers: <GaugePointer>[
-                      RangePointer(
-                        value: ageVal,
-                        cornerStyle: CornerStyle.bothCurve,
-                        width: 0.32,
-                        sizeUnit: GaugeSizeUnit.factor,
-                        enableAnimation: false,
-                        color: _icGaugeMavi,
-                      ),
-                    ],
-                    annotations: ageVal >= 5
-                        ? <GaugeAnnotation>[
-                            GaugeAnnotation(
-                              angle: 0,
-                              positionFactor: 0,
-                              widget: Text(
-                                '%${ageVal.toInt()}',
-                                style: TextStyle(
-                                  fontSize: _gaugePercentBaseSize,
-                                  fontWeight: FontWeight.w800,
-                                  color: _icGaugeMavi,
-                                  height: 1.0,
-                                ),
-                              ),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  // Dış halka: Prim günü (7200’e göre ilerleme) — NVIDIA yeşili
-                  RadialAxis(
-                    radiusFactor: 0.95,
-                    minimum: 0,
-                    maximum: 100,
-                    showLabels: false,
-                    showTicks: false,
-                    startAngle: 270,
-                    endAngle: 270,
-                    axisLineStyle: AxisLineStyle(
-                      thickness: 0.26,
-                      cornerStyle: CornerStyle.bothCurve,
-                      color: Colors.grey[200],
-                      thicknessUnit: GaugeSizeUnit.factor,
-                    ),
-                    pointers: <GaugePointer>[
-                      RangePointer(
-                        value: dayVal,
-                        cornerStyle: CornerStyle.bothCurve,
-                        width: 0.26,
-                        sizeUnit: GaugeSizeUnit.factor,
-                        enableAnimation: false,
-                        color: _disGaugeGreen,
-                      ),
-                    ],
-                    annotations: dayVal >= 5
-                        ? <GaugeAnnotation>[
-                            GaugeAnnotation(
-                              angle: 315,
-                              positionFactor: 1.26,
-                              widget: Text(
-                                '%${dayVal.toInt()}',
-                                style: TextStyle(
-                                  fontSize: _gaugePercentBaseSize,
-                                  fontWeight: FontWeight.w800,
-                                  color: _disGaugeGreen,
-                                  height: 1.0,
-                                ),
-                              ),
-                            ),
-                          ]
-                        : null,
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
+      child: AnimatedBuilder(
+        animation: _a,
+        builder: (context, _) {
+          return CustomPaint(
+            size: const Size(140, 140),
+            painter: _DualDonutPainter(
+              dayProgress01: dayTarget * _a.value,
+              ageProgress01: ageTarget * _a.value,
+              outerColor: _outerGreen,
+              innerColor: _innerBlue,
+              bgColor: Colors.grey.shade200,
+            ),
+          );
+        },
       ),
     );
+  }
+}
+
+class _DualDonutPainter extends CustomPainter {
+  final double dayProgress01;
+  final double ageProgress01;
+  final Color outerColor;
+  final Color innerColor;
+  final Color bgColor;
+
+  _DualDonutPainter({
+    required this.dayProgress01,
+    required this.ageProgress01,
+    required this.outerColor,
+    required this.innerColor,
+    required this.bgColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final startAngle = -math.pi / 2;
+
+    final outerRadius = size.width / 2 - 12;
+    final innerRadius = outerRadius * 0.62;
+
+    final outerStroke = outerRadius * 0.32;
+    final innerStroke = outerRadius * 0.30;
+
+    final bgPaint = Paint()
+      ..color = bgColor
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.butt;
+
+    final outerPaint = Paint()
+      ..color = outerColor
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.butt;
+
+    final innerPaint = Paint()
+      ..color = innerColor
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.butt;
+
+    bgPaint.strokeWidth = outerStroke;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: outerRadius),
+      startAngle,
+      2 * math.pi,
+      false,
+      bgPaint,
+    );
+
+    final outerSweep = 2 * math.pi * dayProgress01.clamp(0.0, 1.0);
+    outerPaint.strokeWidth = outerStroke;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: outerRadius),
+      startAngle,
+      outerSweep,
+      false,
+      outerPaint,
+    );
+
+    bgPaint.strokeWidth = innerStroke;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: innerRadius),
+      startAngle,
+      2 * math.pi,
+      false,
+      bgPaint,
+    );
+
+    final innerSweep = 2 * math.pi * ageProgress01.clamp(0.0, 1.0);
+    innerPaint.strokeWidth = innerStroke;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: innerRadius),
+      startAngle,
+      innerSweep,
+      false,
+      innerPaint,
+    );
+
+    _drawProgressLabel(
+      canvas: canvas,
+      center: center,
+      startAngle: startAngle,
+      sweepAngle: outerSweep,
+      radius: outerRadius,
+      strokeWidth: outerStroke,
+      text: '%${(dayProgress01 * 100).toInt()}',
+    );
+
+    _drawProgressLabel(
+      canvas: canvas,
+      center: center,
+      startAngle: startAngle,
+      sweepAngle: innerSweep,
+      radius: innerRadius,
+      strokeWidth: innerStroke,
+      text: '%${(ageProgress01 * 100).toInt()}',
+    );
+  }
+
+  void _drawProgressLabel({
+    required Canvas canvas,
+    required Offset center,
+    required double startAngle,
+    required double sweepAngle,
+    required double radius,
+    required double strokeWidth,
+    required String text,
+  }) {
+    if (sweepAngle < 0.60) return;
+
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          height: 1.0,
+          shadows: [
+            Shadow(blurRadius: 3.5, color: Colors.black54, offset: Offset(1, 1.5)),
+          ],
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout(minWidth: 0, maxWidth: double.infinity);
+
+    if (tp.width + 20 > sweepAngle * radius * 0.92) return;
+
+    final textRadius = radius - strokeWidth * 0.05;
+
+    double fraction = 0.72;
+    if (sweepAngle > 5.0) {
+      fraction = 0.55;
+    } else if (sweepAngle < 2.2) {
+      fraction = 0.84;
+    }
+
+    final angle = startAngle + sweepAngle * fraction;
+
+    final pos = Offset(
+      center.dx + textRadius * math.cos(angle),
+      center.dy + textRadius * math.sin(angle),
+    );
+
+    tp.paint(
+      canvas,
+      Offset(pos.dx - tp.width / 2, pos.dy - tp.height / 2),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DualDonutPainter oldDelegate) {
+    return oldDelegate.dayProgress01 != dayProgress01 ||
+        oldDelegate.ageProgress01 != ageProgress01 ||
+        oldDelegate.outerColor != outerColor ||
+        oldDelegate.innerColor != innerColor ||
+        oldDelegate.bgColor != bgColor;
   }
 }
 
@@ -1862,7 +1924,7 @@ class _KidemTazminatiAnimatedCardImplState extends State<_KidemTazminatiAnimated
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(seconds: 10),
     );
     _animation = Tween<double>(begin: netYesterday, end: todayNet).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
