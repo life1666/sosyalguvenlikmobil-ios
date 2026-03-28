@@ -9,6 +9,7 @@ import '../sonhesaplama/sonhesaplama.dart';
 import '../utils/analytics_helper.dart';
 import '../utils/theme_helper.dart';
 
+
 /// =================== GLOBAL KNOB’LAR ===================
 
 const double kPageHPad = 16.0;          // Sol/sağ eşit boşluk
@@ -446,7 +447,9 @@ class _AppInlineError extends StatelessWidget {
 }
 
 class EmeklilikHesaplamaSayfasi extends StatefulWidget {
-  const EmeklilikHesaplamaSayfasi({super.key});
+  final bool inline;
+  final VoidCallback? onBack;
+  const EmeklilikHesaplamaSayfasi({super.key, this.inline = false, this.onBack});
 
   @override
   _EmeklilikHesaplamaSayfasiState createState() =>
@@ -468,6 +471,8 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
   int? primGunSayisi;
 
   Map<String, dynamic>? hesaplamaSonucu;
+
+  bool _showingResult = false;
 
   static const List<String> _trAylar = [
     'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
@@ -1036,20 +1041,266 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
-      ),
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.92,
-        child: FinancialReportSheet(
-          sonuc: hesaplamaSonucu!,
-          hesaplamaTuru: '4/c (Memur)',
-          sigortaBaslangicTarihi: sigortaBaslangicTarihi,
+    if (mounted) setState(() => _showingResult = true);
+  }
+
+  List<Widget> _build4cSonucDetayRows(Map<String, String> detaylar, Map<String, dynamic> tahmini) {
+    const green = Color(0xFF2ECC71);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+    final widgets = <Widget>[];
+
+    final detayEntries = detaylar.entries.toList();
+    detayEntries.sort((a, b) {
+      if (a.key == 'Normal Emeklilik') return -1;
+      if (b.key == 'Normal Emeklilik') return 1;
+      if (a.key == 'Yaş Haddinden Emeklilik') return -1;
+      if (b.key == 'Yaş Haddinden Emeklilik') return 1;
+      return a.key.compareTo(b.key);
+    });
+
+    for (final e in detayEntries) {
+      widgets.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: Text(
+                e.key,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: slate400),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: Text(
+                e.value,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: slate800),
+              ),
+            ),
+          ],
         ),
+      ));
+    }
+
+    final tahminKeys = tahmini.keys.toList()..sort();
+    for (final key in tahminKeys) {
+      final v = tahmini[key];
+      if (v is! Map) continue;
+      final mesaj = v['mesaj'];
+      if (mesaj == null || mesaj.toString().trim().isEmpty) continue;
+      widgets.add(Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: Text(
+                key,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: slate400),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: Text(
+                mesaj.toString(),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: green),
+              ),
+            ),
+          ],
+        ),
+      ));
+    }
+
+    return widgets;
+  }
+
+  Widget _buildResultView() {
+    if (hesaplamaSonucu == null) return const SizedBox.shrink();
+
+    final emekliMi = Map<String, dynamic>.from(hesaplamaSonucu!['emekliMi'] ?? {});
+    final mesajMap = hesaplamaSonucu!['mesaj'];
+    final birlesikMesaj = mesajMap is Map
+        ? (mesajMap['birlesik'] as String? ?? '')
+        : (mesajMap is String ? mesajMap : '');
+    final detaylar = Map<String, String>.from(
+      (hesaplamaSonucu!['detaylar'] is Map && (hesaplamaSonucu!['detaylar'] as Map)['birlesik'] != null)
+          ? (hesaplamaSonucu!['detaylar'] as Map)['birlesik'] as Map? ?? {}
+          : {},
+    );
+    final tahmini = Map<String, dynamic>.from(hesaplamaSonucu!['tahminiSonuclar'] ?? {});
+    final ekBilgi = Map<String, String>.from(
+      (hesaplamaSonucu!['ekBilgi'] as Map?)?.cast<String, String>() ?? {},
+    );
+
+    final normalOk = emekliMi['normal'] == true;
+    final yasOk = emekliMi['yasHaddi'] == true;
+
+    late final String bannerMesaj;
+    late final Color bannerBg;
+    late final Color bannerBorder;
+    late final Color bannerText;
+    late final IconData bannerIcon;
+    late final Color bannerIconColor;
+
+    if (birlesikMesaj.trim().isNotEmpty) {
+      bannerMesaj = birlesikMesaj;
+      bannerBg = const Color(0xFFFEF2F2);
+      bannerBorder = Colors.red.withOpacity(0.3);
+      bannerText = const Color(0xFF991B1B);
+      bannerIcon = Icons.error_rounded;
+      bannerIconColor = Colors.red;
+    } else if (normalOk || yasOk) {
+      if (normalOk && yasOk) {
+        bannerMesaj =
+            'Normal emeklilik ve yaş haddinden emeklilik şartlarını sağlıyorsunuz.';
+      } else if (normalOk) {
+        bannerMesaj = 'Normal emekliliğe hak kazandınız.';
+      } else {
+        bannerMesaj = 'Yaş haddinden emekliliğe hak kazandınız.';
+      }
+      bannerBg = const Color(0xFFECFDF5);
+      bannerBorder = const Color(0xFF2ECC71).withOpacity(0.3);
+      bannerText = const Color(0xFF065F46);
+      bannerIcon = Icons.check_circle_rounded;
+      bannerIconColor = const Color(0xFF2ECC71);
+    } else {
+      bannerMesaj =
+          'Henüz emekliliğe hak kazanamadınız. Koşul ve tahmini bilgiler aşağıdadır.';
+      bannerBg = const Color(0xFFFFFBEB);
+      bannerBorder = const Color(0xFFF59E0B).withOpacity(0.35);
+      bannerText = const Color(0xFF7C2D12);
+      bannerIcon = Icons.info_rounded;
+      bannerIconColor = const Color(0xFFD97706);
+    }
+
+    const green = Color(0xFF2ECC71);
+    const slate50 = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate200 = Color(0xFFE2E8F0);
+    const slate500 = Color(0xFF64748B);
+    const slate800 = Color(0xFF1E293B);
+
+    final sonucSatirlari = _build4cSonucDetayRows(detaylar, tahmini);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: bannerBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: bannerBorder),
+            ),
+            child: Row(
+              children: [
+                Icon(bannerIcon, color: bannerIconColor, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    bannerMesaj,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: bannerText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (sonucSatirlari.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: slate100),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Hesaplama Sonuçları',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: slate800),
+                  ),
+                  const SizedBox(height: 16),
+                  ...sonucSatirlari,
+                ],
+              ),
+            ),
+          ],
+          if (ekBilgi.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: slate50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: slate200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final e in ekBilgi.entries)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Text(
+                        '${e.key}: ${e.value}',
+                        style: const TextStyle(fontSize: 12, color: slate500),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() => _showingResult = false),
+              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+              label: const Text('Geri Dön', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: green,
+                side: const BorderSide(color: green),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () => setState(() => _showingResult = false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Yeniden Hesapla',
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 100),
+        ],
       ),
     );
   }
@@ -1129,8 +1380,121 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
 
   @override
   Widget build(BuildContext context) {
+    const green = Color(0xFF2ECC71);
+    const gray = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+    final themeColor = Theme.of(context).primaryColor;
+
+    final body = _showingResult
+        ? _buildResultView()
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (widget.inline)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        if (widget.onBack != null) widget.onBack!();
+                      },
+                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                      label: const Text('Geri', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: TextButton.styleFrom(foregroundColor: slate400),
+                    ),
+                  ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: slate100),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: green.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.account_balance_rounded, color: green, size: 28),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Emeklilik Hesaplama (4/c Emekli Sandığı)',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: slate800),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        _buildCupertinoGenderField(),
+                        _buildCupertinoDateFormField(
+                          etiket: 'Doğum Tarihiniz',
+                          value: dogumTarihi,
+                          min: DateTime(1950, 1, 1),
+                          max: DateTime(2050, 1, 1),
+                          onChanged: (dt) => setState(() => dogumTarihi = dt),
+                        ),
+                        _buildCupertinoDateFormField(
+                          etiket: 'Sigorta Başlangıç Tarihiniz',
+                          value: sigortaBaslangicTarihi,
+                          min: DateTime(1960, 1, 1),
+                          max: DateTime(2050, 1, 1),
+                          onChanged: (dt) => setState(() => sigortaBaslangicTarihi = dt),
+                        ),
+                        _buildNumberField(
+                          label: 'Prim Gün Sayınız',
+                          initialValue: primGunSayisi?.toString(),
+                          onSaved: (val) => primGunSayisi = int.parse(val!),
+                          validator: (val) =>
+                              val == null || val.isEmpty || int.tryParse(val) == null
+                                  ? kMsgEnterValidNumber
+                                  : null,
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _hesaplaEmeklilik,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: green,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Hesapla',
+                              style: TextStyle(color: Colors.white, fontSize: 16 * kTextScale, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _buildEkBilgiArea(),
+                const SizedBox(height: 100),
+              ],
+            ),
+          );
+
+    if (widget.inline) return body;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      backgroundColor: gray,
       appBar: AppBar(
         title: const Text(
           '4/c (Memur) Emeklilik Hesaplama',
@@ -1138,68 +1502,20 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
         ),
         titleSpacing: 16,
         centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: themeColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (_showingResult) {
+              setState(() => _showingResult = false);
+            } else {
+              Navigator.maybePop(context);
+            }
+          },
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: kPageHPad, vertical: 16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildCupertinoGenderField(),
-                  _buildCupertinoDateFormField(
-                    etiket: 'Doğum Tarihiniz',
-                    value: dogumTarihi,
-                    min: DateTime(1950, 1, 1),
-                    max: DateTime(2050, 1, 1),
-                    onChanged: (dt) => setState(() => dogumTarihi = dt),
-                  ),
-                  _buildCupertinoDateFormField(
-                    etiket: 'Sigorta Başlangıç Tarihiniz',
-                    value: sigortaBaslangicTarihi,
-                    min: DateTime(1960, 1, 1),
-                    max: DateTime(2050, 1, 1),
-                    onChanged: (dt) => setState(() => sigortaBaslangicTarihi = dt),
-                  ),
-                  _buildNumberField(
-                    label: 'Prim Gün Sayınız',
-                    initialValue: primGunSayisi?.toString(),
-                    onSaved: (val) => primGunSayisi = int.parse(val!),
-                    validator: (val) =>
-                    val == null || val.isEmpty || int.tryParse(val) == null
-                        ? kMsgEnterValidNumber
-                        : null,
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _hesaplaEmeklilik,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      child: Text('Hesapla', style: TextStyle(fontSize: 20 * kTextScale)),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildEkBilgiArea(),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+      body: body,
     );
   }
 

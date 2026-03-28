@@ -303,6 +303,268 @@ double parseTL(String input) {
   return double.tryParse(normalized) ?? 0.0;
 }
 
+// =================== TOP-LEVEL HESAPLAMA FONKSİYONLARI ===================
+
+const Map<String, String> kidemExitCodes = {
+  '1': 'Deneme Süreli İş Sözleşmesinin İşverence Feshi',
+  '2': 'Deneme Süreli İş Sözleşmesinin İşçi Tarafından Feshi',
+  '3': 'Belirsiz Süreli İş Sözleşmesinin İşçi Tarafından Feshi (İstifa)',
+  '4': 'Belirsiz Süreli İş Sözleşmesinin İşveren Tarafından Haklı Sebep Bildirilmeden Feshi',
+  '5': 'Belirli Süreli İş Sözleşmesinin Sona Ermesi',
+  '8': 'Emeklilik (yaşlılık) veya Toptan Ödeme Nedeniyle',
+  '9': 'Malulen Emeklilik Nedeniyle',
+  '10': 'Ölüm',
+  '11': 'İş Kazası Sonucu Ölüm',
+  '12': 'Askerlik',
+  '13': 'Kadın İşçinin Evlenmesi',
+  '14': 'Emeklilik İçin Yaş Dışında Diğer Şartların Tamamlanması',
+  '15': 'Toplu İşçi Çıkarma',
+  '16': 'Sözleşme Sona Ermeden Aynı İşverene Ait Diğer İşyerine Nakil',
+  '17': 'İşyerinin Kapanması',
+  '18': 'İşin Sona Ermesi',
+  '19': 'Mevsim Bitimi',
+  '20': 'Kampanya Bitimi',
+  '21': 'Statü Değişikliği',
+  '22': 'Diğer Nedenler',
+  '23': 'İşçi Tarafından Zorunlu Nedenle Fesih',
+  '24': 'İşçi Tarafından Sağlık Nedeniyle Fesih',
+  '25': 'İşçi Tarafından İşverenin Ahlak ve İyiniyet Kurallarına Aykırı Davranışı Nedeni ile Fesih',
+  '26': 'Disiplin Kurulu Kararı Nedeni ile Fesih',
+  '27': 'İşveren Tarafından Zorunlu Nedenlerle ve Tutukluluk Nedeniyle Fesih',
+  '28': 'İşveren Tarafından Sağlık Nedeni ile Fesih)',
+  '29': 'İşveren Tarafından İşçinin Ahlak ve İyiniyet Kurallarına Aykırı Davranışı Nedeni ile Fesih',
+  '30': 'Vize Süresinin Bitimi',
+  '31': 'Borçlar Kanunu, Sendikalar Kanunu, Grev Ve Lokavt Kanunu Gereği Fesih',
+  '32': '4046 Sayılı Kanun Kapsamında Özelleştirme Nedeniyle Fesih',
+  '33': 'Gazeteci Tarafından Sözleşmenin Feshi',
+  '34': 'İşyerinin Devri veya Niteliğinin Değişmesi Nedeniyle Fesih',
+  '35': '6495 Sayılı Kanun Nedeniyle Devlet Memurluğuna Geçenler',
+  '36': 'KHK ile İşyerinin Kapatılması',
+  '37': 'KHK ile Kamu Görevinden Çıkarma',
+  '38': 'Doğum Nedeniyle İşten Ayrılma',
+  '39': '696 KHK İle Kamu İşçisi Kadrosuna Geçiş',
+  '40': '696 KHK İle Kamu İşçiliğine Geçilememesi Sebebiyle Çıkış',
+  '41': 'Resen İşten Ayrılış Bildirgesi Düzenlenenler',
+  '42': '4857 Sayılı Kanun Madde 25-II-a',
+  '43': '4857 Sayılı Kanun Madde 25-II-b',
+  '44': '4857 Sayılı Kanun Madde 25-II-c',
+  '45': '4857 Sayılı Kanun Madde 25-II-d',
+  '46': '4857 Sayılı Kanun Madde 25-II-e',
+  '47': '4857 Sayılı Kanun Madde 25-II-f',
+  '48': '4857 Sayılı Kanun Madde 25-II-g',
+  '49': '4857 Sayılı Kanun Madde 25-II-h',
+  '50': '4857 Sayılı Kanun Madde 25-II-ı',
+};
+
+bool kidemIsEligibleForNotice(String code) {
+  return ['4', '15', '17', '18', '31', '32', '34', '40'].contains(code);
+}
+
+bool kidemIsEligibleForSeverance(String code) {
+  return [
+    '4','5','8','9','10','11','12','13','14','15','17',
+    '18','19','20','23','24','25','31','32','33','34',
+    '35','36','39','40'
+  ].contains(code);
+}
+
+double kidemGetTavanUcreti(DateTime exitDate) {
+  final year = exitDate.year;
+  final month = exitDate.month;
+  if (year < 2020) return 6379.86;
+  if (year == 2020) return month < 7 ? 6379.86 : 6730.15;
+  if (year == 2021) return month < 7 ? 7117.17 : 8284.51;
+  if (year == 2022) return month < 7 ? 10848.59 : 15371.40;
+  if (year == 2023) return month < 7 ? 19982.31 : 23489.83;
+  if (year == 2024) return month < 7 ? 35058.58 : 41828.42;
+  if (year == 2025) return month < 7 ? 46655.43 : 53919.68;
+  if (year == 2026) return month < 7 ? 64948.77 : 64948.77;
+  return 64948.77;
+}
+
+double kidemCalcProgressiveTax(double base, List<double> brackets, List<double> rates) {
+  double total = 0.0;
+  double prev = 0.0;
+  for (int i = 0; i < brackets.length; i++) {
+    final limit = brackets[i];
+    if (base <= prev) break;
+    final slice = (base > limit) ? (limit - prev) : (base - prev);
+    if (slice > 0) total += slice * rates[i];
+    prev = limit;
+  }
+  if (base > prev) {
+    total += (base - prev) * rates[brackets.length];
+  }
+  return total;
+}
+
+Map<String, dynamic> kidemCalculateSeverancePay(double salary, DateTime start, DateTime end) {
+  double ceiling = kidemGetTavanUcreti(end);
+  int daysWorked = end.difference(start).inDays + 1;
+  double dailySalary = salary / 365;
+  double severancePay = dailySalary * daysWorked;
+
+  bool exceedsCeiling = dailySalary > ceiling / 365;
+  if (exceedsCeiling) {
+    severancePay = (ceiling / 365) * daysWorked;
+  }
+
+  double stampTax = severancePay * 0.00759;
+  double netSeverancePay = severancePay - stampTax;
+
+  return {
+    'brut': severancePay,
+    'net': netSeverancePay,
+    'stampTax': stampTax,
+    'daysWorked': daysWorked,
+    'exceedsCeiling': exceedsCeiling,
+  };
+}
+
+Map<String, double> kidemCalculateNoticePay(double salary, DateTime start, DateTime end) {
+  int daysWorked = end.difference(start).inDays + 1;
+  int noticeDays;
+
+  if (daysWorked < 180) {
+    noticeDays = 14;
+  } else if (daysWorked < 540) {
+    noticeDays = 28;
+  } else if (daysWorked < 1095) {
+    noticeDays = 42;
+  } else {
+    noticeDays = 56;
+  }
+
+  double dailySalary = salary / 30;
+  double noticePay = dailySalary * noticeDays;
+
+  final int y = end.year;
+  late final List<double> brackets;
+  late final List<double> rates;
+
+  if (y >= 2026) {
+    brackets = [190000, 400000, 1500000, 5300000];
+    rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+  } else if (y == 2025) {
+    brackets = [158000, 330000, 1200000, 4300000];
+    rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+  } else if (y == 2024) {
+    brackets = [110000, 230000, 870000, 3000000];
+    rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+  } else if (y == 2023) {
+    brackets = [70000, 150000, 550000, 1900000];
+    rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+  } else if (y == 2022) {
+    brackets = [32000, 70000, 250000, 880000];
+    rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+  } else {
+    brackets = [190000, 400000, 1500000, 5300000];
+    rates = [0.15, 0.20, 0.27, 0.35, 0.40];
+  }
+
+  final double incomeTax = kidemCalcProgressiveTax(noticePay, brackets, rates);
+  double stampTax = noticePay * 0.00759;
+  double netNoticePay = noticePay - incomeTax - stampTax;
+
+  return {
+    'brut': noticePay,
+    'net': netNoticePay,
+    'incomeTax': incomeTax,
+    'stampTax': stampTax,
+  };
+}
+
+Map<String, dynamic> hesaplaKidemIhbar({
+  required String exitCodeFull,
+  required DateTime startDate,
+  required DateTime endDate,
+  required double grossSalary,
+}) {
+  final codePart = exitCodeFull.split(' ').first.replaceAll('-', '').trim();
+  final code = int.tryParse(codePart)?.toString() ?? codePart;
+
+  final sevEligible0 = kidemIsEligibleForSeverance(code);
+  final notEligible0 = kidemIsEligibleForNotice(code);
+
+  if (!sevEligible0 && !notEligible0) {
+    return {
+      'basarili': false,
+      'mesaj': 'Bu Şartlar Altında Kıdem Tazminatına Hak Kazanamıyorsunuz.',
+      'detaylar': <String, String>{
+        'İşten Çıkış Kodu': exitCodeFull,
+        'Kıdem Tazminatı': 'Hak Kazanılmadı.',
+        'İhbar Tazminatı': 'Hak Kazanılmadı.',
+      },
+      'ekBilgi': <String, String>{
+        'Not': 'İşten Çıkış Kodundan Dolayı Kıdem Ve İhbar Tazminatına Hak Kazanamıyorsunuz.',
+        'Kontrol Tarihi': formatDateDDMMYYYY(DateTime.now()),
+      },
+    };
+  }
+
+  final severance = kidemCalculateSeverancePay(grossSalary, startDate, endDate);
+  final notice = kidemCalculateNoticePay(grossSalary, startDate, endDate);
+
+  bool severanceEligible = sevEligible0;
+  bool noticeEligible = notEligible0;
+
+  if (severance['daysWorked'] < 365) {
+    severanceEligible = false;
+  }
+
+  Map<String, String> detaylar = {};
+  double totalBrut = 0;
+  double totalNet = 0;
+
+  detaylar['İşten Çıkış Kodu'] = exitCodeFull;
+
+  if (severanceEligible) {
+    totalBrut += severance['brut'];
+    totalNet += severance['net'];
+    detaylar['Çalışılan Gün'] = severance['daysWorked'].toString();
+    detaylar['Kıdem Tazminatı (Brüt)'] = formatTL(severance['brut']);
+    detaylar['Damga Vergisi (Kıdem)'] = formatTL(severance['stampTax']);
+    detaylar['Kıdem Tazminatı (Net)'] = formatTL(severance['net']);
+    if (severance['exceedsCeiling']) {
+      detaylar['Tavan Uyarısı'] = 'Ücret tavanı aşıyor, tavan üzerinden hesaplandı.';
+    }
+  } else {
+    detaylar['Kıdem Tazminatı'] = 'Hak Kazanılmadı.';
+  }
+
+  if (noticeEligible) {
+    totalBrut += notice['brut']!;
+    totalNet += notice['net']!;
+    detaylar['İhbar Tazminatı (Brüt)'] = formatTL(notice['brut']!);
+    detaylar['Gelir Vergisi (İhbar)'] = formatTL(notice['incomeTax']!);
+    detaylar['Damga Vergisi (İhbar)'] = formatTL(notice['stampTax']!);
+    detaylar['İhbar Tazminatı (Net)'] = formatTL(notice['net']!);
+  } else {
+    detaylar['İhbar Tazminatı'] = 'Hak Kazanılmadı.';
+  }
+
+  detaylar['Toplam Hak Edilen (Brüt)'] = formatTL(totalBrut);
+  detaylar['Toplam Hak Edilen (Net)'] = formatTL(totalNet);
+
+  Map<String, String> ekBilgi = {
+    'Kontrol Tarihi': formatDateDDMMYYYY(DateTime.now()),
+    'Not': severance['daysWorked'] < 365
+        ? 'Kıdem için aynı işveren bünyesinde en az 1 yıl çalışma şartı aranır.'
+        : 'Hesaplama tamamlandı.',
+  };
+
+  return {
+    'basarili': (severanceEligible || noticeEligible),
+    'mesaj': (severanceEligible || noticeEligible)
+        ? 'Hesaplama Başarıyla Tamamlandı!'
+        : 'Bu Şartlar Altında Kıdem Tazminatına Hak Kazanamıyorsunuz.',
+    'detaylar': detaylar,
+    'ekBilgi': ekBilgi,
+  };
+}
+
+// =================== TOP-LEVEL FONKSİYONLAR SONU ===================
+
 /// CustomCurrencyFormatter — REFERANS KOD DAVRANIŞI
 class CustomCurrencyFormatter extends TextInputFormatter {
   String _thousands(String digits) {
@@ -427,7 +689,9 @@ class _CupertinoField extends StatelessWidget {
 ///  HESAP EKRANI
 /// =====================
 class CompensationCalculatorScreen extends StatefulWidget {
-  const CompensationCalculatorScreen({super.key});
+  final bool inline;
+  final VoidCallback? onBack;
+  const CompensationCalculatorScreen({super.key, this.inline = false, this.onBack});
 
   @override
   State<CompensationCalculatorScreen> createState() =>
@@ -456,56 +720,7 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'
   ];
 
-  final Map<String, String> exitCodes = const {
-    '1': 'Deneme Süreli İş Sözleşmesinin İşverence Feshi',
-    '2': 'Deneme Süreli İş Sözleşmesinin İşçi Tarafından Feshi',
-    '3': 'Belirsiz Süreli İş Sözleşmesinin İşçi Tarafından Feshi (İstifa)',
-    '4': 'Belirsiz Süreli İş Sözleşmesinin İşveren Tarafından Haklı Sebep Bildirilmeden Feshi',
-    '5': 'Belirli Süreli İş Sözleşmesinin Sona Ermesi',
-    '8': 'Emeklilik (yaşlılık) veya Toptan Ödeme Nedeniyle',
-    '9': 'Malulen Emeklilik Nedeniyle',
-    '10': 'Ölüm',
-    '11': 'İş Kazası Sonucu Ölüm',
-    '12': 'Askerlik',
-    '13': 'Kadın İşçinin Evlenmesi',
-    '14': 'Emeklilik İçin Yaş Dışında Diğer Şartların Tamamlanması',
-    '15': 'Toplu İşçi Çıkarma',
-    '16': 'Sözleşme Sona Ermeden Aynı İşverene Ait Diğer İşyerine Nakil',
-    '17': 'İşyerinin Kapanması',
-    '18': 'İşin Sona Ermesi',
-    '19': 'Mevsim Bitimi',
-    '20': 'Kampanya Bitimi',
-    '21': 'Statü Değişikliği',
-    '22': 'Diğer Nedenler',
-    '23': 'İşçi Tarafından Zorunlu Nedenle Fesih',
-    '24': 'İşçi Tarafından Sağlık Nedeniyle Fesih',
-    '25': 'İşçi Tarafından İşverenin Ahlak ve İyiniyet Kurallarına Aykırı Davranışı Nedeni ile Fesih',
-    '26': 'Disiplin Kurulu Kararı Nedeni ile Fesih',
-    '27': 'İşveren Tarafından Zorunlu Nedenlerle ve Tutukluluk Nedeniyle Fesih',
-    '28': 'İşveren Tarafından Sağlık Nedeni ile Fesih)',
-    '29': 'İşveren Tarafından İşçinin Ahlak ve İyiniyet Kurallarına Aykırı Davranışı Nedeni ile Fesih',
-    '30': 'Vize Süresinin Bitimi',
-    '31': 'Borçlar Kanunu, Sendikalar Kanunu, Grev Ve Lokavt Kanunu Gereği Fesih',
-    '32': '4046 Sayılı Kanun Kapsamında Özelleştirme Nedeniyle Fesih',
-    '33': 'Gazeteci Tarafından Sözleşmenin Feshi',
-    '34': 'İşyerinin Devri veya Niteliğinin Değişmesi Nedeniyle Fesih',
-    '35': '6495 Sayılı Kanun Nedeniyle Devlet Memurluğuna Geçenler',
-    '36': 'KHK ile İşyerinin Kapatılması',
-    '37': 'KHK ile Kamu Görevinden Çıkarma',
-    '38': 'Doğum Nedeniyle İşten Ayrılma',
-    '39': '696 KHK İle Kamu İşçisi Kadrosuna Geçiş',
-    '40': '696 KHK İle Kamu İşçiliğine Geçilememesi Sebebiyle Çıkış',
-    '41': 'Resen İşten Ayrılış Bildirgesi Düzenlenenler',
-    '42': '4857 Sayılı Kanun Madde 25-II-a',
-    '43': '4857 Sayılı Kanun Madde 25-II-b',
-    '44': '4857 Sayılı Kanun Madde 25-II-c',
-    '45': '4857 Sayılı Kanun Madde 25-II-d',
-    '46': '4857 Sayılı Kanun Madde 25-II-e',
-    '47': '4857 Sayılı Kanun Madde 25-II-f',
-    '48': '4857 Sayılı Kanun Madde 25-II-g',
-    '49': '4857 Sayılı Kanun Madde 25-II-h',
-    '50': '4857 Sayılı Kanun Madde 25-II-ı',
-  };
+  final Map<String, String> exitCodes = kidemExitCodes;
 
   final GlobalKey _resultKey = GlobalKey();
   final ScrollController _scrollController = ScrollController();
@@ -517,153 +732,16 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     super.dispose();
   }
 
-  /// ✅ İhbar GV: kademeli tarife (kümülatif bilinmediği için yaklaşık)
-  double _calcProgressiveTax(double base, List<double> brackets, List<double> rates) {
-    double total = 0.0;
-    double prev = 0.0;
-
-    for (int i = 0; i < brackets.length; i++) {
-      final limit = brackets[i];
-      if (base <= prev) break;
-
-      final slice = (base > limit) ? (limit - prev) : (base - prev);
-      if (slice > 0) total += slice * rates[i];
-
-      prev = limit;
-    }
-
-    if (base > prev) {
-      total += (base - prev) * rates[brackets.length];
-    }
-
-    return total;
-  }
-
-  /// Tavan ücreti
-  double getTavanUcreti(DateTime exitDate) {
-    final year = exitDate.year;
-    final month = exitDate.month;
-
-    if (year < 2020) return 6379.86;
-    if (year == 2020) return month < 7 ? 6379.86 : 6730.15;
-    if (year == 2021) return month < 7 ? 7117.17 : 8284.51;
-    if (year == 2022) return month < 7 ? 10848.59 : 15371.40;
-    if (year == 2023) return month < 7 ? 19982.31 : 23489.83;
-    if (year == 2024) return month < 7 ? 35058.58 : 41828.42;
-    if (year == 2025) return month < 7 ? 46655.43 : 53919.68;
-
-    // ✅ 2026 ilk 6 ay tavan (temmuz sonrası bilinmiyorsa aynı bırakıldı)
-    if (year == 2026) return month < 7 ? 64948.77 : 64948.77;
-
-    return 64948.77;
-  }
-
   String formatSayi(double sayi) => formatTL(sayi);
   double parseSayi(String input) => parseTL(input);
 
-  Map<String, dynamic> calculateSeverancePay(double salary, DateTime start, DateTime end) {
-    double ceiling = getTavanUcreti(end);
-    int daysWorked = end.difference(start).inDays + 1;
-    double dailySalary = salary / 365;
-    double severancePay = dailySalary * daysWorked;
-
-    bool exceedsCeiling = dailySalary > ceiling / 365;
-    if (exceedsCeiling) {
-      severancePay = (ceiling / 365) * daysWorked;
-    }
-
-    double stampTax = severancePay * 0.00759;
-    double netSeverancePay = severancePay - stampTax;
-
-    return {
-      'brut': severancePay,
-      'net': netSeverancePay,
-      'stampTax': stampTax,
-      'daysWorked': daysWorked,
-      'exceedsCeiling': exceedsCeiling,
-    };
-  }
-
-  Map<String, double> calculateNoticePay(double salary, DateTime start, DateTime end) {
-    int daysWorked = end.difference(start).inDays + 1;
-    int noticeDays;
-
-    if (daysWorked < 180) {
-      noticeDays = 14;
-    } else if (daysWorked < 540) {
-      noticeDays = 28;
-    } else if (daysWorked < 1095) {
-      noticeDays = 42;
-    } else {
-      noticeDays = 56;
-    }
-
-    double dailySalary = salary / 30;
-    double noticePay = dailySalary * noticeDays;
-
-    // ✅ Kademeli tarife (yıla göre) — kümülatif matrah bilinmediği için yaklaşık
-    final int y = end.year;
-
-    late final List<double> brackets;
-    late final List<double> rates;
-
-    if (y >= 2026) {
-      brackets = [190000, 400000, 1500000, 5300000];
-      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
-    } else if (y == 2025) {
-      brackets = [158000, 330000, 1200000, 4300000];
-      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
-    } else if (y == 2024) {
-      brackets = [110000, 230000, 870000, 3000000];
-      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
-    } else if (y == 2023) {
-      brackets = [70000, 150000, 550000, 1900000];
-      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
-    } else if (y == 2022) {
-      brackets = [32000, 70000, 250000, 880000];
-      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
-    } else {
-      brackets = [190000, 400000, 1500000, 5300000];
-      rates = [0.15, 0.20, 0.27, 0.35, 0.40];
-    }
-
-    final double incomeTax = _calcProgressiveTax(noticePay, brackets, rates);
-
-    double stampTax = noticePay * 0.00759;
-    double netNoticePay = noticePay - incomeTax - stampTax;
-
-    return {
-      'brut': noticePay,
-      'net': netNoticePay,
-      'incomeTax': incomeTax,
-      'stampTax': stampTax,
-    };
-  }
-
-  bool isEligibleForNotice(String code) {
-    return ['4', '15', '17', '18', '31', '32', '34', '40'].contains(code);
-  }
-
-  bool isEligibleForSeverance(String code) {
-    return [
-      '4','5','8','9','10','11','12','13','14','15','17',
-      '18','19','20','23','24','25','31','32','33','34',
-      '35','36','39','40'
-    ].contains(code);
-  }
-
-  Future<void> _calculateCompensation() async {
-    try {
-      await _showHesaplamaSonucu();
-    } catch (e) {
-      showCenterNotice(
-        context,
-        title: 'Hata',
-        message: 'Beklenmeyen bir sorun oluştu: $e',
-        type: AppNoticeType.error,
-      );
-    }
-  }
+  double getTavanUcreti(DateTime exitDate) => kidemGetTavanUcreti(exitDate);
+  Map<String, dynamic> calculateSeverancePay(double salary, DateTime start, DateTime end) =>
+      kidemCalculateSeverancePay(salary, start, end);
+  Map<String, double> calculateNoticePay(double salary, DateTime start, DateTime end) =>
+      kidemCalculateNoticePay(salary, start, end);
+  bool isEligibleForNotice(String code) => kidemIsEligibleForNotice(code);
+  bool isEligibleForSeverance(String code) => kidemIsEligibleForSeverance(code);
 
   Future<void> _showHesaplamaSonucu() async {
     if (selectedExitCode == null) {
@@ -857,21 +935,32 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
       }
     }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
-      ),
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.90,
-        child: ResultSheet(
-          title: 'Hesaplama Sonucu',
-          detaylar: detaylar,
-        ),
-      ),
-    );
+    debugPrint('>>> _openResultSheet setState çağrılıyor, mounted=$mounted');
+    if (mounted) setState(() => _showingResult = true);
+    debugPrint('>>> _showingResult=$_showingResult');
+  }
+
+  Future<void> _calculateCompensation() async {
+    debugPrint('>>> _calculateCompensation BAŞLADI');
+    debugPrint('>>> selectedExitCode=$selectedExitCode');
+    debugPrint('>>> startGun=$startGun startAy=$startAy startYil=$startYil');
+    debugPrint('>>> endGun=$endGun endAy=$endAy endYil=$endYil');
+    debugPrint('>>> salary=${grossSalaryController.text}');
+    try {
+      await _showHesaplamaSonucu();
+      debugPrint('>>> _showHesaplamaSonucu BİTTİ, _showingResult=$_showingResult');
+    } catch (e, st) {
+      debugPrint('>>> Hesaplama HATA: $e');
+      debugPrint('>>> Stack: $st');
+      if (mounted) {
+        showCenterNotice(
+          context,
+          title: 'Hata',
+          message: 'Beklenmeyen bir sorun oluştu: $e',
+          type: AppNoticeType.error,
+        );
+      }
+    }
   }
 
   // ------------ Cupertino Picker Yardımcıları ------------
@@ -1131,124 +1220,356 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     }
   }
 
-  // ---------- UI ----------
+  bool _showingResult = false;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Kıdem ve İhbar Tazminatı Hesaplama',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+    const green = Color(0xFF2ECC71);
+    const gray = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate200 = Color(0xFFE2E8F0);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+
+    final body = _showingResult ? _buildResultView() : SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            if (widget.inline)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () {
+                    if (widget.onBack != null) widget.onBack!();
+                  },
+                  icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                  label: const Text('Geri', style: TextStyle(fontWeight: FontWeight.w600)),
+                  style: TextButton.styleFrom(foregroundColor: slate400),
+                ),
+              ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: slate100),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 56, height: 56,
+                    decoration: BoxDecoration(
+                      color: green.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.trending_up_rounded, color: green, size: 28),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Kıdem ve İhbar Tazminatı',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: slate800),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  _akisiPickerField(
+                    label: 'İşten Çıkış Kodunuz',
+                    value: selectedExitCode == null
+                        ? null
+                        : '${selectedExitCode!} - ${exitCodes[selectedExitCode]!}',
+                    onTap: _pickExitCode,
+                  ),
+                  const SizedBox(height: 16),
+                  _akisiDateField(
+                    label: 'İşe Giriş Tarihi',
+                    value: startGun != null ? _composeDateText(startGun, startAy, startYil) : null,
+                    onTap: _pickStartDate,
+                  ),
+                  const SizedBox(height: 16),
+                  _akisiDateField(
+                    label: 'İşten Çıkış Tarihi',
+                    value: endGun != null ? _composeDateText(endGun, endAy, endYil) : null,
+                    onTap: _pickEndDate,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: grossSalaryController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                      CustomCurrencyFormatter(),
+                      LengthLimitingTextInputFormatter(15),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: 'Son Ay Giydirilmiş Brüt Ücret',
+                      labelStyle: const TextStyle(color: slate400, fontSize: 14),
+                      suffixText: 'TL',
+                      suffixStyle: const TextStyle(color: Color(0xFF4F46E5), fontSize: 14, fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: Colors.grey.withOpacity(0.06),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: slate200)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: slate200)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: green)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        FocusScope.of(context).unfocus();
+                        await Future.delayed(const Duration(milliseconds: 10));
+                        await _calculateCompensation();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: green,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Hesapla',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 100),
+          ],
         ),
-        titleSpacing: 16,
-        centerTitle: false,
+      );
+
+    if (widget.inline) return body;
+
+
+    return Scaffold(
+      backgroundColor: gray,
+      appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (_showingResult) {
+              setState(() => _showingResult = false);
+            } else {
+              Navigator.pop(context);
+            }
+          },
+        ),
+        title: const Text(
+          'Kıdem ve İhbar Tazminatı',
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
-      body: SafeArea(
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 12),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate.fixed([
-                  _CupertinoField(
-                    label: 'İşten Çıkış Kodunuz',
-                    valueText: selectedExitCode == null
-                        ? 'Seçiniz'
-                        : '${selectedExitCode!} - ${exitCodes[selectedExitCode]!}',
-                    onTap: _pickExitCode,
-                  ),
-                  const SizedBox(height: 8),
-                  _CupertinoField(
-                    label: 'İşe Giriş Tarihi',
-                    valueText: _composeDateText(startGun, startAy, startYil),
-                    onTap: _pickStartDate,
-                  ),
-                  const SizedBox(height: 8),
-                  _CupertinoField(
-                    label: 'İşten Çıkış Tarihi',
-                    valueText: _composeDateText(endGun, endAy, endYil),
-                    onTap: _pickEndDate,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildAmountField('Son Ay Giydirilmiş Brüt Ücret', grossSalaryController),
-                  const SizedBox(height: 12),
-                  _buildHesaplaButton(),
-                  const SizedBox(height: 12),
-                ]),
-              ),
-            ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(kPageHPad, 0, kPageHPad, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Divider(),
-                    _InfoNotice(),
-                  ],
-                ),
-              ),
-            ),
+      body: body,
+    );
+  }
+
+  Widget _akisiPickerField({required String label, String? value, required VoidCallback onTap}) {
+    const slate200 = Color(0xFFE2E8F0);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: slate200),
+        ),
+        child: Row(
+          children: [
+            Expanded(child: Text(value ?? label,
+              style: TextStyle(fontSize: 14, color: value != null ? slate800 : slate400),
+              maxLines: 2, overflow: TextOverflow.ellipsis,
+            )),
+            const Icon(Icons.expand_more_rounded, color: slate400, size: 22),
           ],
         ),
       ),
     );
   }
 
-  /// HESAPLA BUTONU — Odak kapat + mikro gecikme → hesapla
-  Widget _buildHesaplaButton() {
-    return SizedBox(
-      height: 46,
-      child: ElevatedButton(
-        onPressed: () async {
-          FocusScope.of(context).unfocus();
-          await Future.delayed(const Duration(milliseconds: 10));
-          await _calculateCompensation();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
-          minimumSize: const Size.fromHeight(46),
+  Widget _akisiDateField({required String label, String? value, required VoidCallback onTap}) {
+    const slate200 = Color(0xFFE2E8F0);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: slate200),
         ),
-        child: Text('Hesapla', style: TextStyle(fontSize: 17 * kTextScale)),
+        child: Row(
+          children: [
+            Expanded(child: Text(value ?? label,
+              style: TextStyle(fontSize: 14, color: value != null ? slate800 : slate400),
+            )),
+            const Icon(Icons.calendar_today_rounded, color: slate400, size: 20),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAmountField(String label, TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: context.sFormLabel),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Brüt Ücret',
-            suffix: Text('TL', style: TextStyle(color: Colors.indigo, fontSize: 14)),
+  Widget _buildResultView() {
+    if (_hesaplamaSonucu == null) return const SizedBox.shrink();
+    final basarili = _hesaplamaSonucu!['basarili'] as bool? ?? false;
+    final mesaj = _hesaplamaSonucu!['mesaj'] as String? ?? '';
+    final detaylar = (_hesaplamaSonucu!['detaylar'] as Map?)?.cast<String, String>() ?? {};
+    final ekBilgi = (_hesaplamaSonucu!['ekBilgi'] as Map?)?.cast<String, String>() ?? {};
+
+    const green = Color(0xFF2ECC71);
+    const slate50 = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate200 = Color(0xFFE2E8F0);
+    const slate400 = Color(0xFF94A3B8);
+    const slate500 = Color(0xFF64748B);
+    const slate800 = Color(0xFF1E293B);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: basarili ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: basarili ? green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(basarili ? Icons.check_circle_rounded : Icons.error_rounded,
+                  color: basarili ? green : Colors.red, size: 28),
+                const SizedBox(width: 12),
+                Expanded(child: Text(mesaj,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                    color: basarili ? const Color(0xFF065F46) : const Color(0xFF991B1B)))),
+              ],
+            ),
           ),
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: Colors.black, fontWeight: AppW.body),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            CustomCurrencyFormatter(),
-            LengthLimitingTextInputFormatter(15),
+          if (detaylar.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: slate100),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Hesaplama Sonuçları',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: slate800)),
+                  const SizedBox(height: 16),
+                  ..._buildDetayRows(detaylar),
+                ],
+              ),
+            ),
           ],
-        ),
-      ],
+          if (ekBilgi.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: slate50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: slate200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final e in ekBilgi.entries)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Text('${e.key}: ${e.value}',
+                        style: const TextStyle(fontSize: 12, color: slate500)),
+                    ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() => _showingResult = false),
+              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+              label: const Text('Geri Dön', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: green,
+                side: const BorderSide(color: green),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () => setState(() => _showingResult = false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: const Text('Yeniden Hesapla',
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(height: 100),
+        ],
+      ),
     );
   }
+
+  List<Widget> _buildDetayRows(Map<String, String> detaylar) {
+    const green = Color(0xFF2ECC71);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+    final widgets = <Widget>[];
+    final entries = detaylar.entries.toList();
+    for (int i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      final prevKey = i > 0 ? entries[i - 1].key : '';
+      if ((e.key.startsWith('İhbar') && !prevKey.startsWith('İhbar')) || e.key.startsWith('Toplam')) {
+        widgets.add(const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)));
+      }
+      widgets.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(flex: 2, child: Text(e.key,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: slate400))),
+          const SizedBox(width: 8),
+          Expanded(flex: 3, child: Text(e.value,
+            style: TextStyle(fontSize: 14,
+              fontWeight: (e.key.contains('Net') || e.key.startsWith('Toplam')) ? FontWeight.w700 : FontWeight.w600,
+              color: (e.key.contains('Net') || e.key.startsWith('Toplam')) ? green : slate800))),
+        ]),
+      ));
+    }
+    return widgets;
+  }
+
 }
 
 /// Bilgilendirme (ikon ve metin AYNI SATIRDA)

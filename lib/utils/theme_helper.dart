@@ -9,20 +9,24 @@ class ThemeHelper {
 
   Color _themeColor = Colors.indigo; // Varsayılan tema
   double _fontSize = 14.0; // Varsayılan 14 punto
-  
+  bool _koyuMod = false;
+
   Color get themeColor => _themeColor;
   double get fontSize => _fontSize;
-  
+  bool get koyuMod => _koyuMod;
+
   // Tema değişikliği dinleyicileri
   final List<VoidCallback> _themeChangeListeners = [];
   final List<VoidCallback> _fontSizeChangeListeners = [];
+  final List<VoidCallback> _koyuModListeners = [];
 
   Future<void> loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final themeColorValue = prefs.getInt('theme_color') ?? Colors.indigo.value;
       final fontSize = prefs.getDouble('font_size') ?? 14.0;
-      
+      _koyuMod = prefs.getBool('sgk_koyu_mod') ?? false;
+
       _themeColor = Color(themeColorValue);
       _fontSize = fontSize;
     } catch (e) {
@@ -58,6 +62,27 @@ class ThemeHelper {
     } catch (e) {
       debugPrint('Font boyutu kaydedilirken hata: $e');
     }
+  }
+
+  Future<void> setKoyuMod(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('sgk_koyu_mod', value);
+      _koyuMod = value;
+      for (final listener in _koyuModListeners) {
+        listener();
+      }
+    } catch (e) {
+      debugPrint('Koyu mod kaydedilirken hata: $e');
+    }
+  }
+
+  void addKoyuModListener(VoidCallback listener) {
+    _koyuModListeners.add(listener);
+  }
+
+  void removeKoyuModListener(VoidCallback listener) {
+    _koyuModListeners.remove(listener);
   }
 
   void addThemeChangeListener(VoidCallback listener) {

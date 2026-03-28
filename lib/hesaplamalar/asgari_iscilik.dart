@@ -406,18 +406,23 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Asgari İşçilik Hesaplama',
       theme: uygulamaTemasi, // getter her çağrıldığında yeni ThemeData oluşturur
-      home: HesaplamaSayfasi(), // const kaldırıldı - hot reload için gerekli
+      home: HesaplamaSayfasi(),
     );
   }
 }
 
 class HesaplamaSayfasi extends StatefulWidget {
-  const HesaplamaSayfasi({super.key});
+  final bool inline;
+  final VoidCallback? onBack;
+  const HesaplamaSayfasi({super.key, this.inline = false, this.onBack});
   @override
   _HesaplamaSayfasiState createState() => _HesaplamaSayfasiState();
 }
 
 class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
+  bool _showingResult = false;
+  Map<String, dynamic>? _hesaplamaSonucu;
+
   @override
   void initState() {
     super.initState();
@@ -783,6 +788,7 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
 
     final sonuc = {
       'basarili': true,
+      'mesaj': 'Hesaplama başarıyla tamamlandı!',
       'detaylar': {
         'Birim Maliyet (${t.tarifeYili})': '${formatSayi(birimMaliyet)}/m²',
         'İnşaat Maliyeti': formatSayi(insaatMaliyeti),
@@ -840,18 +846,12 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
-      ),
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.90,
-        child: IscilikReportSheet(sonuc: sonuc),
-      ),
-    );
+    if (mounted) {
+      setState(() {
+        _hesaplamaSonucu = sonuc;
+        _showingResult = true;
+      });
+    }
   }
 
   // ---------- Seçiciler ----------
@@ -963,165 +963,388 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
     }
   }
 
-  // ---------- UI ----------
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false, // klavye açılınca ekran zıplamasın
-      appBar: AppBar(
-        title: const Text(
-          'Asgari İşçilik Hesaplama',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Üst form içeriği (scroll edilebilir)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 12),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate.fixed([
-                  if (_errors['tarife'] != null) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        _errors['tarife']!,
-                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ],
-                  _CupertinoDateField(
-                    label: 'İnşaat Başlangıç Tarihi',
-                    valueText: _fmtDate(baslangicTarihi),
-                    onTap: () => _pickDate(isStart: true),
-                    errorText: _errors['baslangic'],
-                  ),
-                  _CupertinoDateField(
-                    label: 'İnşaat Bitiş Tarihi',
-                    valueText: _fmtDate(bitisTarihi),
-                    onTap: () => _pickDate(isStart: false),
-                    errorText: _errors['bitis'],
-                  ),
-                  _CupertinoSelectField(
-                    label: 'Sınıf',
-                    valueText: secilenSinif != null ? '${secilenSinif!}. Sınıf' : 'Seçiniz',
-                    onTap: _pickSinif,
-                    errorText: _errors['sinif'],
-                  ),
-                  _CupertinoSelectField(
-                    label: 'Grup',
-                    valueText: secilenGrup != null ? '$secilenGrup Grubu' : 'Seçiniz',
-                    onTap: _pickGrup,
-                    errorText: _errors['grup'],
-                  ),
-                  _CupertinoSelectField(
-                    label: 'İnşaat Türü',
-                    valueText: secilenInsTuru ?? 'Seçiniz',
-                    onTap: _pickTur,
-                    errorText: _errors['tur'],
-                  ),
-
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('İnşaat Alanı (m²)', style: context.sFormLabel),
-                        const SizedBox(height: 4),
-                      TextFormField(
-                        controller: alanController,
-                        decoration: InputDecoration(
-                          hintText: 'm²',
-                            hintStyle: context.sBody.copyWith(
-                              color: Colors.grey[700],
-                              fontWeight: AppW.body,
-                            ),
-                            enabledBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                              borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                              borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
-                            ),
-                            errorBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                              borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth),
-                            ),
-                            focusedErrorBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                              borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
-                            ),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          errorText: _errors['alan'],
-                        ),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(10),
-                        ],
-                        onChanged: (_) {
-                          if (_errors['alan'] != null) {
-                            setState(() => _errors['alan'] = null);
-                          }
-                        },
-                      ),
-                    ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: () async => await _hesaplaVeGoster(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                        minimumSize: const Size.fromHeight(46),
-                      ),
-                      child: Text('Hesapla', style: TextStyle(fontSize: 17 * kTextScale)),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ]),
+  List<Widget> _buildAsgariDetayRows(Map<String, String> detaylar) {
+    const green = Color(0xFF2ECC71);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+    final widgets = <Widget>[];
+    for (final e in detaylar.entries) {
+      final highlight = e.key.contains('Ödenmesi Gereken Prim');
+      widgets.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: Text(
+                e.key,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: slate400),
               ),
             ),
-
-            // Alt blok: yer varsa dibine yapışır; yoksa listeyle birlikte kayar
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(kPageHPad, 0, kPageHPad, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Divider(),
-                    _InfoNotice(),
-                  ],
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: Text(
+                e.value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: highlight ? FontWeight.w700 : FontWeight.w600,
+                  color: highlight ? green : slate800,
                 ),
               ),
             ),
           ],
         ),
+      ));
+    }
+    return widgets;
+  }
+
+  Widget _buildResultView() {
+    if (_hesaplamaSonucu == null) return const SizedBox.shrink();
+    final basarili = _hesaplamaSonucu!['basarili'] as bool? ?? false;
+    final mesaj = _hesaplamaSonucu!['mesaj'] as String? ?? '';
+    final detaylar = (_hesaplamaSonucu!['detaylar'] as Map?)?.cast<String, String>() ?? {};
+    final ekBilgiRaw = (_hesaplamaSonucu!['ekBilgi'] as Map?)?.cast<String, String>() ?? {};
+    // Önceki alt sayfada yalnızca bu alanlar gösteriliyordu (tarife/açıklama metinleri gizli)
+    final ekBilgi = <String, String>{};
+    for (final k in ['Asgari İşçilik Oranı', 'Sınıf/Grup Referans Yılı']) {
+      final v = ekBilgiRaw[k];
+      if (v != null && v.isNotEmpty) ekBilgi[k] = v;
+    }
+
+    const green = Color(0xFF2ECC71);
+    const slate50 = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate200 = Color(0xFFE2E8F0);
+    const slate500 = Color(0xFF64748B);
+    const slate800 = Color(0xFF1E293B);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: basarili ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: basarili ? green.withOpacity(0.3) : Colors.red.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  basarili ? Icons.check_circle_rounded : Icons.error_rounded,
+                  color: basarili ? green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    mesaj,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: basarili ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (detaylar.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: slate100),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Hesaplama Sonuçları',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: slate800),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._buildAsgariDetayRows(detaylar),
+                ],
+              ),
+            ),
+          ],
+          if (ekBilgi.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: slate50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: slate200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final e in ekBilgi.entries)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Text(
+                        '${e.key}: ${e.value}',
+                        style: const TextStyle(fontSize: 12, color: slate500),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() => _showingResult = false),
+              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+              label: const Text('Geri Dön', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: green,
+                side: const BorderSide(color: green),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () => setState(() => _showingResult = false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Yeniden Hesapla',
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 100),
+        ],
       ),
+    );
+  }
+
+  // ---------- UI ----------
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF2ECC71);
+    const gray = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+
+    final body = _showingResult
+        ? _buildResultView()
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                if (widget.inline)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        if (widget.onBack != null) widget.onBack!();
+                      },
+                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                      label: const Text('Geri', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: TextButton.styleFrom(foregroundColor: slate400),
+                    ),
+                  ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: slate100),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.engineering_rounded, color: green, size: 28),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Asgari İşçilik Hesaplama',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: slate800),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      if (_errors['tarife'] != null) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            _errors['tarife']!,
+                            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                              color: Colors.red[700],
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                      _CupertinoDateField(
+                        label: 'İnşaat Başlangıç Tarihi',
+                        valueText: _fmtDate(baslangicTarihi),
+                        onTap: () => _pickDate(isStart: true),
+                        errorText: _errors['baslangic'],
+                      ),
+                      _CupertinoDateField(
+                        label: 'İnşaat Bitiş Tarihi',
+                        valueText: _fmtDate(bitisTarihi),
+                        onTap: () => _pickDate(isStart: false),
+                        errorText: _errors['bitis'],
+                      ),
+                      _CupertinoSelectField(
+                        label: 'Sınıf',
+                        valueText: secilenSinif != null ? '${secilenSinif!}. Sınıf' : 'Seçiniz',
+                        onTap: _pickSinif,
+                        errorText: _errors['sinif'],
+                      ),
+                      _CupertinoSelectField(
+                        label: 'Grup',
+                        valueText: secilenGrup != null ? '$secilenGrup Grubu' : 'Seçiniz',
+                        onTap: _pickGrup,
+                        errorText: _errors['grup'],
+                      ),
+                      _CupertinoSelectField(
+                        label: 'İnşaat Türü',
+                        valueText: secilenInsTuru ?? 'Seçiniz',
+                        onTap: _pickTur,
+                        errorText: _errors['tur'],
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('İnşaat Alanı (m²)', style: context.sFormLabel),
+                            const SizedBox(height: 4),
+                            TextFormField(
+                              controller: alanController,
+                              decoration: InputDecoration(
+                                hintText: 'm²',
+                                hintStyle: context.sBody.copyWith(
+                                  color: Colors.grey[700],
+                                  fontWeight: AppW.body,
+                                ),
+                                enabledBorder: const OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                                  borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+                                ),
+                                focusedBorder: const OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                                  borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
+                                ),
+                                errorBorder: const OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                                  borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth),
+                                ),
+                                focusedErrorBorder: const OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                                  borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+                                ),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                errorText: _errors['alan'],
+                              ),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(10),
+                              ],
+                              onChanged: (_) {
+                                if (_errors['alan'] != null) {
+                                  setState(() => _errors['alan'] = null);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () async => await _hesaplaVeGoster(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: green,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            'Hesapla',
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const _InfoNotice(),
+                const SizedBox(height: 100),
+              ],
+            ),
+          );
+
+    if (widget.inline) return body;
+
+    return Scaffold(
+      backgroundColor: gray,
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).primaryColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () {
+            if (_showingResult) {
+              setState(() => _showingResult = false);
+            } else {
+              Navigator.maybePop(context);
+            }
+          },
+        ),
+        title: const Text(
+          'Asgari İşçilik Hesaplama',
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+      ),
+      body: body,
     );
   }
 }
@@ -1302,161 +1525,6 @@ class _InfoNotice extends StatelessWidget {
           ),
           const SizedBox(height: 6),
         ],
-      ],
-    );
-  }
-}
-
-/// =======================================================
-/// ================= RAPOR ALT SAYFASI ===================
-/// =======================================================
-
-class IscilikReportSheet extends StatelessWidget {
-  final Map<String, dynamic> sonuc;
-  const IscilikReportSheet({super.key, required this.sonuc});
-
-  String _buildShareText(Map<String, String> detaylar, Map<String, String> ek) {
-    final b = StringBuffer('Asgari İşçilik Özeti\n');
-    if (ek['Asgari İşçilik Oranı'] != null) {
-      b.writeln('Asgari İşçilik Oranı: ${ek['Asgari İşçilik Oranı']}');
-    }
-    // Tarife Yılı / Özel Durum / Açıklama paylaşım metninden çıkarılmıştı
-    if (ek['Sınıf/Grup Referans Yılı'] != null) {
-      b.writeln('Sınıf/Grup Referans Yılı: ${ek['Sınıf/Grup Referans Yılı']}');
-    }
-
-    detaylar.forEach((k, v) => b.writeln('$k: $v'));
-    return b.toString().trim();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, String> detaylar =
-    Map<String, String>.from(sonuc['detaylar'] ?? {});
-    final Map<String, String> ek =
-    Map<String, String>.from(sonuc['ekBilgi'] ?? {});
-
-    final baseSmall = Theme.of(context).textTheme.bodySmall!;
-    final lineStyle = baseSmall.copyWith(
-      fontSize: (baseSmall.fontSize ?? 12) * kSumItemFontScale,
-      fontWeight: FontWeight.w400,
-      height: 1.5,
-      color: Colors.black87,
-    );
-
-    return Stack(
-      children: [
-        SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kReportMaxWidth),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 48,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Başlık (ince)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Hesaplama Sonucu',
-                      style: TextStyle(
-                        fontSize: 16 * kResultHeaderScale,
-                        fontWeight: kResultHeaderWeight,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-                      children: [
-                        // Ek Bilgiler — üstte (Tarife Yılı / Özel Durum / Açıklama gösterilmiyor)
-                        if (ek.isNotEmpty) ...[
-                          if (ek['Asgari İşçilik Oranı'] != null)
-                            Padding(
-                              padding: kSumItemPadding,
-                              child: Text(
-                                'Asgari İşçilik Oranı: ${ek['Asgari İşçilik Oranı']}',
-                                style: lineStyle.copyWith(
-                                  fontSize: lineStyle.fontSize! * 1.05,
-                                ),
-                              ),
-                            ),
-                          if (ek['Sınıf/Grup Referans Yılı'] != null)
-                            Padding(
-                              padding: kSumItemPadding,
-                              child: Text(
-                                'Sınıf/Grup Referans Yılı: ${ek['Sınıf/Grup Referans Yılı']}',
-                                style: lineStyle,
-                              ),
-                            ),
-                          const SizedBox(height: 10),
-                          Divider(color: Colors.black.withOpacity(.35), height: 16),
-                          const SizedBox(height: 2),
-                        ],
-
-                        // Detaylar
-                        ...detaylar.entries.map(
-                              (e) => Padding(
-                            padding: kSumItemPadding,
-                            child: Text('${e.key}: ${e.value}', style: lineStyle),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Alt orta paylaş
-        Positioned(
-          bottom: 10,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                await Clipboard.setData(
-                  ClipboardData(text: _buildShareText(detaylar, ek)),
-                );
-                if (context.mounted) {
-                  showCenterNotice(
-                    context,
-                    title: 'Paylaş',
-                    message: 'Özet panoya kopyalandı.',
-                    type: AppNoticeType.success,
-                  );
-                }
-              },
-              icon: const Icon(Icons.ios_share_rounded, size: 18),
-              label: const Text('Paylaş', style: TextStyle(fontWeight: FontWeight.w400)),
-            ),
-          ),
-        ),
       ],
     );
   }

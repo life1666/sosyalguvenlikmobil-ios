@@ -36,7 +36,10 @@ class Makale {
 ///  LİSTE + SEKME EKRANI
 /// =======================
 class MakalelerView extends StatefulWidget {
-  const MakalelerView({super.key});
+  /// Varsa bu sekme açılır (örn. `Çalışan`, `Emeklilik`, `İşveren`).
+  final String? initialKategoriBaslik;
+
+  const MakalelerView({super.key, this.initialKategoriBaslik});
 
   @override
   State<MakalelerView> createState() => _MakalelerViewState();
@@ -64,7 +67,12 @@ class _MakalelerViewState extends State<MakalelerView> {
   void initState() {
     super.initState();
     AnalyticsHelper.logScreenOpen('makaleler_opened');
-    _selectedKategori = _kategoriler[0].baslik; // İlk kategoriyi seçili yap
+    final want = widget.initialKategoriBaslik;
+    if (want != null && _kategoriler.any((k) => k.baslik == want)) {
+      _selectedKategori = want;
+    } else {
+      _selectedKategori = _kategoriler[0].baslik;
+    }
   }
 
   _MakaleKategori? get _aktifKategori {

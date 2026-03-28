@@ -374,7 +374,10 @@ class SalaryCalculatorApp extends StatelessWidget {
 }
 
 class SalaryCalculatorScreen extends StatefulWidget {
-  const SalaryCalculatorScreen({super.key});
+  final bool inline;
+  final VoidCallback? onBack;
+
+  const SalaryCalculatorScreen({super.key, this.inline = false, this.onBack});
 
   @override
   State<SalaryCalculatorScreen> createState() => _SalaryCalculatorScreenState();
@@ -408,6 +411,7 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
 
   List<DataRow> _monthlyRows = [];
   String? _errorMessage;
+  bool _showingResult = false;
 
   static const List<String> monthNames = [
     'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'
@@ -647,7 +651,6 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     _calculateNetSalaryForYear();
 
     try {
-      final monthlyNetSalaries = _getNetSalaries(_monthlyRows);
       final avgNet = _calcAverageNet(_monthlyRows);
       final yearlyNet = _calcSumNet(_monthlyRows);
 
@@ -681,20 +684,211 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
       debugPrint('Son hesaplama kaydedilirken hata: $e');
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ResultsScreen(
-          selectedYear: _selectedYearInternal,
-          monthlyRows: _monthlyRows,
-          monthNames: monthNames,
-          monthlyNetSalaries: _getNetSalaries(_monthlyRows),
-          firstMonthNet: _monthlyRows.length > 1 ? _getCellNet(_monthlyRows[0]) : 0,
-          lastMonthNet: _monthlyRows.length > 1 ? _getCellNet(_monthlyRows[_monthlyRows.length - 2]) : 0,
-          avgNet: _calcAverageNet(_monthlyRows),
-          yearlyNet: _calcSumNet(_monthlyRows),
-          avgEmployerCost: _calcAverageEmployerCost(_monthlyRows),
-          yearlyEmployerCost: _calcSumEmployerCost(_monthlyRows),
+    if (mounted) setState(() => _showingResult = true);
+  }
+
+  String _cellText(DataCell cell) {
+    if (cell.child is Text) return (cell.child as Text).data ?? '';
+    return '';
+  }
+
+  Widget _buildResultView() {
+    const green = Color(0xFF2ECC71);
+    const slate50 = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate200 = Color(0xFFE2E8F0);
+    const slate400 = Color(0xFF94A3B8);
+    const slate500 = Color(0xFF64748B);
+    const slate800 = Color(0xFF1E293B);
+
+    if (_monthlyRows.isEmpty) return const SizedBox.shrink();
+
+    final monthCount = _monthlyRows.length > 1 ? _monthlyRows.length - 1 : 0;
+    final totalRow = _monthlyRows.length > 1 ? _monthlyRows.last : null;
+
+    Widget detailRow(String label, String value, {bool emphasize = false}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: slate400),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: emphasize ? FontWeight.w800 : FontWeight.w600,
+                  color: emphasize ? green : slate800,
+                ),
+              ),
+            ),
+          ],
         ),
+      );
+    }
+
+    List<Widget> monthBlocks() {
+      final w = <Widget>[];
+      for (int i = 0; i < monthCount; i++) {
+        final row = _monthlyRows[i];
+        final name = _cellText(row.cells[0]);
+        w.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: slate800),
+                ),
+                const SizedBox(height: 8),
+                detailRow('Brüt', _cellText(row.cells[1])),
+                detailRow('Net', _cellText(row.cells[2]), emphasize: true),
+                detailRow('SGK (işçi)', _cellText(row.cells[3])),
+                detailRow('Gelir vergisi', _cellText(row.cells[7])),
+                detailRow('Damga vergisi', _cellText(row.cells[11])),
+                if (i < monthCount - 1)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Divider(height: 1, thickness: 1, color: slate200.withOpacity(0.8)),
+                  ),
+              ],
+            ),
+          ),
+        );
+      }
+      return w;
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: green.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: green, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Brütten nete hesaplama tamamlandı ($_selectedYearInternal).',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF065F46),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: slate100),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Aylık sonuçlar',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: slate800),
+                ),
+                const SizedBox(height: 16),
+                ...monthBlocks(),
+                if (totalRow != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Divider(height: 1, thickness: 1, color: slate200.withOpacity(0.8)),
+                  ),
+                  const Text(
+                    'Yıllık toplam',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: slate800),
+                  ),
+                  const SizedBox(height: 8),
+                  detailRow('Brüt', _cellText(totalRow.cells[1])),
+                  detailRow('Net', _cellText(totalRow.cells[2]), emphasize: true),
+                  detailRow('SGK (işçi)', _cellText(totalRow.cells[3])),
+                  detailRow('Gelir vergisi', _cellText(totalRow.cells[7])),
+                  detailRow('Damga vergisi', _cellText(totalRow.cells[11])),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: slate50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: slate200),
+            ),
+            child: Text(
+              'Ortalama net: ${_formatCurrency(_calcAverageNet(_monthlyRows))} · Yıllık net: ${_formatCurrency(_calcSumNet(_monthlyRows))}',
+              style: const TextStyle(fontSize: 12, color: slate500, height: 1.35),
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() => _showingResult = false),
+              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+              label: const Text('Geri Dön', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: green,
+                side: const BorderSide(color: green),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () => setState(() => _showingResult = false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Yeniden Hesapla',
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 100),
+        ],
       ),
     );
   }
@@ -888,21 +1082,10 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     });
   }
 
-  // --- Sonuç ekranına hazırlık ---
-  List<double> _getNetSalaries(List<DataRow> rows) {
-    final nets = <double>[];
-    for (int i = 0; i < 12 && i < rows.length - 1; i++) {
-      nets.add(_cellToDouble(rows[i].cells[2]));
-    }
-    return nets;
-  }
-
   double _cellToDouble(DataCell cell) {
     final text = cell.child is Text ? (cell.child as Text).data ?? '' : '';
     return double.tryParse(text.replaceAll('.', '').replaceAll(',', '.').replaceAll(' TL', '')) ?? 0;
   }
-
-  double _getCellNet(DataRow row) => _cellToDouble(row.cells[2]);
 
   double _calcAverageNet(List<DataRow> rows) {
     double sum = 0;
@@ -917,22 +1100,6 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     double sum = 0;
     for (int i = 0; i < 12 && i < rows.length - 1; i++) {
       sum += _cellToDouble(rows[i].cells[2]);
-    }
-    return sum;
-  }
-
-  double _calcAverageEmployerCost(List<DataRow> rows) {
-    double sum = 0; int n = 0;
-    for (int i = 0; i < 12 && i < rows.length - 1; i++) {
-      sum += _cellToDouble(rows[i].cells.last); n++;
-    }
-    return n == 0 ? 0 : (sum / n);
-  }
-
-  double _calcSumEmployerCost(List<DataRow> rows) {
-    double sum = 0;
-    for (int i = 0; i < 12 && i < rows.length - 1; i++) {
-      sum += _cellToDouble(rows[i].cells.last);
     }
     return sum;
   }
@@ -999,8 +1166,165 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
     final statusLabel = _pickedStatus ? _employeeStatusInternal : '';
     final incentiveLabel = _pickedIncentive ? _selectedIncentiveInternal : '';
 
+    const green = Color(0xFF2ECC71);
+    const gray = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate400 = Color(0xFF94A3B8);
+    const slate800 = Color(0xFF1E293B);
+
     final themeColor = Theme.of(context).primaryColor;
+
+    final body = _showingResult
+        ? _buildResultView()
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                if (widget.inline)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        if (widget.onBack != null) widget.onBack!();
+                      },
+                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                      label: const Text('Geri', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: TextButton.styleFrom(foregroundColor: slate400),
+                    ),
+                  ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: slate100),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.calculate_rounded, color: green, size: 28),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Brütten Nete Hesaplama',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: slate800),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      _CupertinoField(
+                        label: 'Yıl Seçiniz',
+                        valueText: yearLabel,
+                        onTap: () async {
+                          final idx = _years.indexOf(_selectedYearInternal);
+                          final sel = await _showCupertinoPicker<int>(
+                            items: _years, initialIndex: idx < 0 ? 0 : idx,
+                            itemBuilder: (y) => Text('$y'),
+                          );
+                          if (sel != null) {
+                            for (final c in _gross) { c.clear(); }
+                            setState(() {
+                              _pickedYear = true;
+                              _selectedYearInternal = sel;
+                              _monthlyRows.clear(); _errorMessage = null;
+                            });
+                            _updateConstants(sel);
+                          }
+                        },
+                      ),
+                      _CupertinoField(
+                        label: 'Çalışan Statüsü',
+                        valueText: statusLabel,
+                        onTap: () async {
+                          final idx = _employeeStatusOptions.indexOf(_employeeStatusInternal);
+                          final sel = await _showCupertinoPicker<String>(
+                            items: _employeeStatusOptions, initialIndex: idx < 0 ? 0 : idx,
+                          );
+                          if (sel != null) {
+                            setState(() {
+                              _pickedStatus = true;
+                              _employeeStatusInternal = sel;
+                            });
+                            _updateConstants(_selectedYearInternal);
+                          }
+                        },
+                      ),
+                      _CupertinoField(
+                        label: 'Teşvik Seçiniz',
+                        valueText: incentiveLabel,
+                        onTap: () async {
+                          final idx = _incentiveOptions.indexOf(_selectedIncentiveInternal);
+                          final sel = await _showCupertinoPicker<String>(
+                            items: _incentiveOptions, initialIndex: idx < 0 ? 0 : idx,
+                          );
+                          if (sel != null) {
+                            setState(() {
+                              _pickedIncentive = true;
+                              _selectedIncentiveInternal = sel;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 6),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3, childAspectRatio: 1.7, crossAxisSpacing: 8, mainAxisSpacing: 8,
+                        ),
+                        itemCount: 12,
+                        itemBuilder: (context, i) => _AmountField(
+                          label: monthNames[i],
+                          controller: _gross[i],
+                          onChangedCascade: () => _autoFillMonths(i),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () async => await _hesapla(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: green,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Hesapla',
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                      if ((_errorMessage ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Divider(thickness: 0.2, height: 12),
+                const _InfoNotice(),
+                const SizedBox(height: 100),
+              ],
+            ),
+          );
+
+    if (widget.inline) return body;
+
     return Scaffold(
+      backgroundColor: gray,
       appBar: AppBar(
         title: const Text(
           'Brütten Nete Maaş Hesaplama',
@@ -1012,118 +1336,16 @@ class _SalaryCalculatorScreenState extends State<SalaryCalculatorScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
+          onPressed: () {
+            if (_showingResult) {
+              setState(() => _showingResult = false);
+            } else {
+              Navigator.maybePop(context);
+            }
+          },
         ),
       ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _CupertinoField(
-                    label: 'Yıl Seçiniz',
-                    valueText: yearLabel,
-                    onTap: () async {
-                      final idx = _years.indexOf(_selectedYearInternal);
-                      final sel = await _showCupertinoPicker<int>(
-                        items: _years, initialIndex: idx < 0 ? 0 : idx,
-                        itemBuilder: (y) => Text('$y'),
-                      );
-                      if (sel != null) {
-                        for (final c in _gross) { c.clear(); }
-                        setState(() {
-                          _pickedYear = true;
-                          _selectedYearInternal = sel;
-                          _monthlyRows.clear(); _errorMessage = null;
-                        });
-                        _updateConstants(sel);
-                      }
-                    },
-                  ),
-
-                  _CupertinoField(
-                    label: 'Çalışan Statüsü',
-                    valueText: statusLabel,
-                    onTap: () async {
-                      final idx = _employeeStatusOptions.indexOf(_employeeStatusInternal);
-                      final sel = await _showCupertinoPicker<String>(
-                        items: _employeeStatusOptions, initialIndex: idx < 0 ? 0 : idx,
-                      );
-                      if (sel != null) {
-                        setState(() {
-                          _pickedStatus = true;
-                          _employeeStatusInternal = sel;
-                        });
-                        _updateConstants(_selectedYearInternal);
-                      }
-                    },
-                  ),
-
-                  _CupertinoField(
-                    label: 'Teşvik Seçiniz',
-                    valueText: incentiveLabel,
-                    onTap: () async {
-                      final idx = _incentiveOptions.indexOf(_selectedIncentiveInternal);
-                      final sel = await _showCupertinoPicker<String>(
-                        items: _incentiveOptions, initialIndex: idx < 0 ? 0 : idx,
-                      );
-                      if (sel != null) {
-                        setState(() {
-                          _pickedIncentive = true;
-                          _selectedIncentiveInternal = sel;
-                        });
-                      }
-                    },
-                  ),
-
-                  const SizedBox(height: 6),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3, childAspectRatio: 1.7, crossAxisSpacing: 8, mainAxisSpacing: 8,
-                    ),
-                    itemCount: 12,
-                    itemBuilder: (context, i) => _AmountField(
-                      label: monthNames[i],
-                      controller: _gross[i],
-                      onChangedCascade: () => _autoFillMonths(i),
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async => await _hesapla(),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      child: const Text('Hesapla'),
-                    ),
-                  ),
-                  if ((_errorMessage ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-                  ],
-                ],
-              ),
-            ),
-
-            const Divider(thickness: 0.2, height: 12),
-            const _InfoNotice(),
-          ],
-        ),
-      ),
+      body: body,
     );
   }
 }

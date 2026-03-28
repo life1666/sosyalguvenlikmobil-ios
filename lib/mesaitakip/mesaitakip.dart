@@ -22,11 +22,40 @@ class AppScrollBehavior extends MaterialScrollBehavior {
 }
 
 
-class OvertimeCalendarPage extends StatefulWidget {
+/// Tam ekran sayfa (Tüm Özellikler / route)
+class OvertimeCalendarPage extends StatelessWidget {
   const OvertimeCalendarPage({super.key});
 
   @override
-  State<OvertimeCalendarPage> createState() => _OvertimeCalendarPageState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Mesai Takip',
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+        ),
+        titleSpacing: 16,
+        centerTitle: false,
+        backgroundColor: Theme.of(context).primaryColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: const MesaiTakipContent(),
+    );
+  }
+}
+
+/// Gömülebilir içerik: Hesabım > Maaş ve Mesai Ayarları veya tam ekran sayfa body.
+/// [embeddedInScrollView] true iken iç scroll kapatılır; sadece dış (Hesabım) sayfası kayar.
+/// [calendarOnly] true iken sadece Takvim + Sonuçlar (Aylık/Yıllık Özet + yıl) gösterilir; Çalışma Hayatım info içinde kullanılır.
+class MesaiTakipContent extends StatefulWidget {
+  final bool embeddedInScrollView;
+  final bool calendarOnly;
+
+  const MesaiTakipContent({super.key, this.embeddedInScrollView = false, this.calendarOnly = false});
+
+  @override
+  State<MesaiTakipContent> createState() => _MesaiTakipContentState();
 }
 
 enum SalaryMode { minimumWage, manual }
@@ -35,7 +64,7 @@ enum OtMultiplierChoice { auto, onePointFive, twoPointZero }
 enum TimeUnit { day, hour }
 enum ResultsMode { monthly, yearly }
 
-class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
+class _MesaiTakipContentState extends State<MesaiTakipContent> {
   bool _restoring = false; // load sırasında autosave tetiklenmesin
   static const double _hoursPerDay = 7.5;
   static const _kStore = 'mesai_takip_v1';
@@ -734,44 +763,168 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   }
 
   // ----------------- UI -----------------
+  Widget _buildTopTabBar() {
+    const labels = ['Ayarlar', 'Takvim', 'Sonuçlar'];
+    final themeColor = Theme.of(context).primaryColor;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: Colors.grey.shade50,
+      child: Row(
+        children: List.generate(3, (i) {
+          final selected = _currentTabIndex == i;
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: i < 2 ? 6 : 0),
+              child: Material(
+                color: selected ? themeColor : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                child: InkWell(
+                  onTap: () => setState(() => _currentTabIndex = i),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          i == 0 ? Icons.settings : i == 1 ? Icons.calendar_today : Icons.bar_chart,
+                          size: 18,
+                          color: selected ? Colors.white : Colors.grey.shade700,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          labels[i],
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: selected ? Colors.white : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildResultsModeBar() {
+    final themeColor = Theme.of(context).primaryColor;
+    if (widget.calendarOnly) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => setState(() => _resultsMode = ResultsMode.monthly),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Text(
+                  'Aylık Özet',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: _resultsMode == ResultsMode.monthly ? FontWeight.w600 : FontWeight.normal,
+                    color: _resultsMode == ResultsMode.monthly ? themeColor : Colors.grey.shade700,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            GestureDetector(
+              onTap: () => setState(() => _resultsMode = ResultsMode.yearly),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Text(
+                  'Yıllık Özet',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: _resultsMode == ResultsMode.yearly ? FontWeight.w600 : FontWeight.normal,
+                    color: _resultsMode == ResultsMode.yearly ? themeColor : Colors.grey.shade700,
+                  ),
+                ),
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: _showResultsYearPicker,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('$_resultsYear', style: TextStyle(fontWeight: FontWeight.w600, color: themeColor)),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down, size: 20, color: themeColor),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoSlidingSegmentedControl<ResultsMode>(
+              groupValue: _resultsMode,
+              children: const {
+                ResultsMode.monthly: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  child: Text('Aylık Özet', style: TextStyle(fontSize: 12)),
+                ),
+                ResultsMode.yearly: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  child: Text('Yıllık Özet', style: TextStyle(fontSize: 12)),
+                ),
+              },
+              onValueChanged: (val) => setState(() => _resultsMode = val ?? ResultsMode.monthly),
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: _showResultsYearPicker,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('$_resultsYear', style: TextStyle(fontWeight: FontWeight.w600, color: themeColor)),
+                const SizedBox(width: 4),
+                Icon(Icons.arrow_drop_down, size: 20, color: themeColor),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _titleForTab(_currentTabIndex),
-          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: IndexedStack(
-        index: _currentTabIndex,
+    if (widget.calendarOnly) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSettingsTab(),
-          _buildCalendarTab(),
-          _buildResultsTab(),
+          _buildResultsModeBar(),
+          Expanded(
+            child: IndexedStack(
+              index: _resultsMode == ResultsMode.monthly ? 0 : 1,
+              children: [
+                _buildCalendarTab(),
+                _buildResultsTab(),
+              ],
+            ),
+          ),
         ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentTabIndex,
-        onTap: (i) => setState(() => _currentTabIndex = i),
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
-        elevation: 8,
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Ayarlar'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: 'Takvim'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart), label: 'Sonuçlar'),
-        ],
-      ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: _buildSettingsTab()),
+      ],
     );
   }
 
@@ -796,46 +949,23 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         children: [
           Expanded(
             child: ListView(
+              physics: widget.embeddedInScrollView ? const NeverScrollableScrollPhysics() : null,
               padding: const EdgeInsets.all(12),
               children: [
                 Material(
-                  color: Colors.white,
-                  elevation: 1.5,
-                  borderRadius: BorderRadius.circular(16),
+                  color: widget.embeddedInScrollView ? Colors.grey[50] : Colors.white,
+                  elevation: widget.embeddedInScrollView ? 0 : 1.5,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(widget.embeddedInScrollView ? 12 : 16),
+                    side: widget.embeddedInScrollView
+                        ? BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.3))
+                        : BorderSide.none,
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        DefaultTextStyle.merge(
-                          style: headingStyle,
-                          child: const Text('İşe giriş tarihi'),
-                        ),
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: _showCupertinoDatePicker,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _startDate == null ? 'Seçilmedi' : _fmt(_startDate!),
-                                  style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
-                                ),
-                                const Icon(CupertinoIcons.chevron_right, size: 18, color: Colors.black54),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1),
-                        const SizedBox(height: 12),
                         DefaultTextStyle.merge(
                           style: headingStyle,
                           child: const Text('Ücret Ayarları'),
@@ -876,36 +1006,83 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        const Text('Ücret Seçimi',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54)),
-                        const SizedBox(height: 6),
-                        CupertinoSlidingSegmentedControl<SalaryKind>(
-                          groupValue: _salaryKind,
-                          children: const {
-                            SalaryKind.gross: Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                child: Text('Brüt')),
-                            SalaryKind.net: Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                child: Text('Net')),
-                          },
-                          onValueChanged: (val) {
-                            setState(() {
-                              _salaryKind = val ?? SalaryKind.gross;
-                              if (_salaryKind == SalaryKind.net) {
-                                _bonusKind = SalaryKind.net;
-                              }
-                              if (_salaryMode == SalaryMode.minimumWage &&
-                                  supportsMW) {
-                                _applyMinimumWageForYear(year);
-                              }
-                            });
-                          },
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('Ücret Seçimi',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black54)),
+                                  const SizedBox(height: 6),
+                                  CupertinoSlidingSegmentedControl<SalaryKind>(
+                                    groupValue: _salaryKind,
+                                    children: const {
+                                      SalaryKind.gross: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 6),
+                                          child: Text('Brüt')),
+                                      SalaryKind.net: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 6),
+                                          child: Text('Net')),
+                                    },
+                                    onValueChanged: (val) {
+                                      setState(() {
+                                        _salaryKind = val ?? SalaryKind.gross;
+                                        if (_salaryKind == SalaryKind.net) {
+                                          _bonusKind = SalaryKind.net;
+                                        }
+                                        if (_salaryMode == SalaryMode.minimumWage &&
+                                            supportsMW) {
+                                          _applyMinimumWageForYear(year);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (_salaryKind == SalaryKind.gross)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('İkramiye Seçimi',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.black54)),
+                                    const SizedBox(height: 6),
+                                    CupertinoSlidingSegmentedControl<
+                                        SalaryKind>(
+                                      groupValue: _bonusKind,
+                                      children: const {
+                                        SalaryKind.gross: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 6),
+                                            child: Text('Brüt')),
+                                        SalaryKind.net: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 6),
+                                            child: Text('Net')),
+                                      },
+                                      onValueChanged: (val) {
+                                        setState(() {
+                                          _bonusKind =
+                                              val ?? SalaryKind.net;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -1060,34 +1237,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (_salaryKind == SalaryKind.gross) ...[
-                                    const Text('İkramiye Seçimi',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.black54)),
-                                    const SizedBox(height: 6),
-                                    CupertinoSlidingSegmentedControl<
-                                        SalaryKind>(
-                                      groupValue: _bonusKind,
-                                      children: const {
-                                        SalaryKind.gross: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 6),
-                                            child: Text('Brüt')),
-                                        SalaryKind.net: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 6),
-                                            child: Text('Net')),
-                                      },
-                                      onValueChanged: (val) {
-                                        setState(() {
-                                          _bonusKind =
-                                              val ?? SalaryKind.net;
-                                        });
-                                      },
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
                                   Text(
                                     _salaryKind == SalaryKind.net
                                         ? '12 Aylık Net İkramiye'
@@ -1097,7 +1246,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w600),
                                   ),
-
                                   const SizedBox(height: 8),
                                   Column(
                                     children: List.generate(12, (i) {
@@ -1253,132 +1401,109 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
             ),
           ),
 
-          // ===================== BUTTONS =====================
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(color: Colors.grey.shade300, width: 1),
+          // Temizle / İptal / Kaydet — Hesabım içinde gömülüyken gizlenir (Bilgilerimi Kaydet / Sıfırla kullanılır)
+          if (!widget.embeddedInScrollView)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade300, width: 1),
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.grey.shade100,
+                          foregroundColor: Colors.black87,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _startDate = null;
+                            for (int i = 0; i < 12; i++) {
+                              _grossCtrls[i].clear();
+                              _netCtrls[i].clear();
+                              _bonusCtrls[i].clear();
+                            }
+                            _leaveDaysCtrl.clear();
+                            _annualPaidLeaveDays[_leaveYear] = 0.0;
+                          });
+                        },
+                        child: const Text('Temizle', style: TextStyle(fontSize: 14)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.grey.shade100,
+                          foregroundColor: Colors.black87,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await _loadState();
+                          setState(() {
+                            _leaveDaysCtrl.text =
+                                (_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1);
+                          });
+                        },
+                        child: const Text('İptal', style: TextStyle(fontSize: 14)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                          foregroundColor: Theme.of(context).primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            for (int i = 0; i < 12; i++) {
+                              if (_grossCtrls[i].text.trim().isNotEmpty) {
+                                final v = _parseMoney(_grossCtrls[i].text);
+                                if (v != null) _grossCtrls[i].text = _trFieldFmt.format(v);
+                              }
+                              if (_netCtrls[i].text.trim().isNotEmpty) {
+                                final v = _parseMoney(_netCtrls[i].text);
+                                if (v != null) _netCtrls[i].text = _trFieldFmt.format(v);
+                              }
+                              if (_bonusCtrls[i].text.trim().isNotEmpty) {
+                                final v = _parseMoney(_bonusCtrls[i].text);
+                                if (v != null) _bonusCtrls[i].text = _trFieldFmt.format(v);
+                              }
+                            }
+                            final v = double.tryParse(
+                                _leaveDaysCtrl.text.replaceAll(',', '.')) ?? 0.0;
+                            _annualPaidLeaveDays[_leaveYear] = v.clamp(0, 365);
+                            _leaveDaysCtrl.text =
+                                (_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1);
+                            _saveState();
+                          });
+                        },
+                        child: const Text('Kaydet', style: TextStyle(fontSize: 14)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: SafeArea(
-              top: false,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // TEMİZLE
-                  Expanded(
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.grey.shade100,
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          // İşe giriş tarihi
-                          _startDate = null;
-                          // Ücret alanları
-                          for (int i = 0; i < 12; i++) {
-                            _grossCtrls[i].clear();
-                            _netCtrls[i].clear();
-                            _bonusCtrls[i].clear();
-                          }
-                          // İzin alanı
-                          _leaveDaysCtrl.clear();
-                          _annualPaidLeaveDays[_leaveYear] = 0.0;
-                        });
-                      },
-                      child: const Text(
-                        'Temizle',
-                        style: TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // İPTAL
-                  Expanded(
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.grey.shade100,
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () async {
-                        await _loadState();
-                        setState(() {
-                          _leaveDaysCtrl.text =
-                              (_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1);
-                        });
-                      },
-                      child: const Text(
-                        'İptal',
-                        style: TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // KAYDET
-                  Expanded(
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                        foregroundColor: Theme.of(context).primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          // Format ücret alanları
-                          for (int i = 0; i < 12; i++) {
-                            if (_grossCtrls[i].text.trim().isNotEmpty) {
-                              final v = _parseMoney(_grossCtrls[i].text);
-                              if (v != null) _grossCtrls[i].text = _trFieldFmt.format(v);
-                            }
-                            if (_netCtrls[i].text.trim().isNotEmpty) {
-                              final v = _parseMoney(_netCtrls[i].text);
-                              if (v != null) _netCtrls[i].text = _trFieldFmt.format(v);
-                            }
-                            if (_bonusCtrls[i].text.trim().isNotEmpty) {
-                              final v = _parseMoney(_bonusCtrls[i].text);
-                              if (v != null) _bonusCtrls[i].text = _trFieldFmt.format(v);
-                            }
-                          }
-                          // Kaydet izin günleri
-                          final v = double.tryParse(
-                              _leaveDaysCtrl.text.replaceAll(',', '.')) ?? 0.0;
-                          _annualPaidLeaveDays[_leaveYear] = v.clamp(0, 365);
-                          _leaveDaysCtrl.text =
-                              (_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1);
-                          // Tümünü kaydet
-                          _saveState();
-                        });
-                      },
-                      child: const Text(
-                        'Kaydet',
-                        style: TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1520,7 +1645,10 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   // -------- TAKVİM (sadece Ay Özeti) --------
   Widget _buildCalendarTab() {
     return SafeArea(
+      top: false,
+      bottom: !widget.calendarOnly,
       child: SingleChildScrollView(
+        physics: widget.embeddedInScrollView ? const NeverScrollableScrollPhysics() : null,
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1780,67 +1908,75 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
   // -------- Sonuçlar --------
   Widget _buildResultsTab() {
+    final showBar = !widget.calendarOnly;
     return SafeArea(
+      bottom: !widget.calendarOnly,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.symmetric(
+          horizontal: widget.calendarOnly ? 6 : 12,
+          vertical: 12,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: CupertinoSlidingSegmentedControl<ResultsMode>(
-                    groupValue: _resultsMode,
-                    children: const {
-                      ResultsMode.monthly: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          child: Text('Aylık Özet')),
-                      ResultsMode.yearly: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          child: Text('Yıllık Özet')),
-                    },
-                    onValueChanged: (v) =>
-                        setState(() => _resultsMode = v ?? ResultsMode.monthly),
+            if (showBar) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: CupertinoSlidingSegmentedControl<ResultsMode>(
+                      groupValue: _resultsMode,
+                      children: const {
+                        ResultsMode.monthly: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            child: Text('Aylık Özet')),
+                        ResultsMode.yearly: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            child: Text('Yıllık Özet')),
+                      },
+                      onValueChanged: (v) =>
+                          setState(() => _resultsMode = v ?? ResultsMode.monthly),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Row(
-                  children: [
-                    const Text('Yıl:',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _showResultsYearPicker,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                          color: Colors.white,
-                        ),
-                        child: Row(
-                          children: [
-                            Text('$_resultsYear',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                            const SizedBox(width: 6),
-                            Icon(CupertinoIcons.chevron_down,
-                                size: 16, color: Colors.grey.shade600),
-                          ],
+                  const SizedBox(width: 12),
+                  Row(
+                    children: [
+                      const Text('Yıl:',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _showResultsYearPicker,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white,
+                          ),
+                          child: Row(
+                            children: [
+                              Text('$_resultsYear',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(width: 6),
+                              Icon(CupertinoIcons.chevron_down,
+                                  size: 16, color: Colors.grey.shade600),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
             if (_resultsMode == ResultsMode.monthly)
               Expanded(
                 child: ListView(
+                  physics: widget.embeddedInScrollView ? const NeverScrollableScrollPhysics() : null,
                   children: [
                     _buildMonthlyDetailsCard(
                         DateTime(_resultsYear, _focusedDay.month, 1)),
@@ -1940,10 +2076,16 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(a, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(b,
-              style: const TextStyle(
-                  fontFeatures: [FontFeature.tabularFigures()])),
+          Flexible(
+            child: Text(a, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(b,
+                style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end),
+          ),
         ],
       ),
     );
@@ -2101,9 +2243,10 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       'Toplam Net'
     ];
 
-    const double leftColW = 72; // daha dar
-    const double cellW = 130; // önce 160'tı
+    const double leftColW = 72;
+    const double cellW = 130;
     const double headerH = 44;
+    const double rowH = 40;
 
     String m(num v) => _tryFmt.format(v.toDouble());
     String h(num v) => _numFmt1.format(v.toDouble());
@@ -2173,7 +2316,9 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       return cells
           .map((txt) => Container(
         width: cellW,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        height: rowH,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.centerLeft,
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
           color: Colors.white,
@@ -2221,11 +2366,10 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     ]
         .map((txt) => Container(
       width: cellW,
-      padding:
-      const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+      height: rowH,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        border: Border(
-            bottom: BorderSide(color: Colors.grey.shade300)),
         color: Colors.grey.shade100,
       ),
       child: Text(txt,
@@ -2256,6 +2400,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
           ),
           Expanded(
             child: SingleChildScrollView(
+              physics: widget.embeddedInScrollView ? const NeverScrollableScrollPhysics() : null,
               controller: _hHeaderCtrl,
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -2289,8 +2434,9 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
           12,
               (i) => Container(
             width: leftColW,
-            padding:
-            const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+            height: rowH,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            alignment: Alignment.centerLeft,
             decoration: BoxDecoration(
               border:
               Border(bottom: BorderSide(color: Colors.grey.shade300)),
@@ -2301,10 +2447,10 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         ),
         Container(
           width: leftColW,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          height: rowH,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            border:
-            Border(bottom: BorderSide(color: Colors.grey.shade300)),
             color: Colors.grey.shade100,
           ),
           child: const Text('TOPLAM',
@@ -2315,6 +2461,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
     final body = Expanded(
       child: SingleChildScrollView(
+        physics: widget.embeddedInScrollView ? const NeverScrollableScrollPhysics() : null,
         controller: _vBodyCtrl,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2329,6 +2476,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
             ),
             Expanded(
               child: SingleChildScrollView(
+                physics: widget.embeddedInScrollView ? const NeverScrollableScrollPhysics() : null,
                 controller: _hBodyCtrl,
                 scrollDirection: Axis.horizontal,
                 child: Column(

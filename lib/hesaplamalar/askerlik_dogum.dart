@@ -21,17 +21,6 @@ const double kFieldBorderRadius = 10.0;
 const Color kFieldBorderColor = Colors.black87;
 const Color kFieldFocusColor = Colors.black87;
 
-/// ===== RAPOR KNOB’LARI =====
-const double kReportMaxWidth = 660.0;
-const Color kResultSheetBg = Colors.white;
-const double kResultSheetCorner = 22.0;
-const double kResultHeaderScale = 1.00;
-const FontWeight kResultHeaderWeight = FontWeight.w400;
-
-/// ===== YAZILI ÖZET MADDE KNOB’LARI =====
-const EdgeInsets kSumItemPadding = EdgeInsets.symmetric(vertical: 4, horizontal: 0);
-const double kSumItemFontScale = 1.10;
-
 class AppW {
   static const appBarTitle = FontWeight.w700;
   static const heading = FontWeight.w500;
@@ -516,7 +505,9 @@ class _NumberRow extends StatelessWidget {
 }
 
 class BorclanmaHesaplamaScreen extends StatefulWidget {
-  const BorclanmaHesaplamaScreen({super.key});
+  final bool inline;
+  final VoidCallback? onBack;
+  const BorclanmaHesaplamaScreen({super.key, this.inline = false, this.onBack});
 
   @override
   _BorclanmaHesaplamaScreenState createState() => _BorclanmaHesaplamaScreenState();
@@ -574,6 +565,8 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
   };
 
   Map<String, dynamic>? _hesaplamaSonucu;
+
+  bool _showingResult = false;
 
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _resultKey = GlobalKey();
@@ -726,28 +719,123 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
       }
     }
     
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
-      ),
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.90,
-        child: ResultSheet(
-          title: 'Hesaplama Sonucu',
-          detaylar: detaylar,
-          statusDescription: toTitleCase(durumText),
-        ),
-      ),
-    );
+    if (mounted) setState(() => _showingResult = true);
   }
 
   // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
+    const green = Color(0xFF2ECC71);
+    const gray = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate400 = Color(0xFF94A3B8);
+
+    final body = _showingResult
+        ? _buildResultView()
+        : SingleChildScrollView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                if (widget.inline)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        if (widget.onBack != null) widget.onBack!();
+                      },
+                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                      label: const Text('Geri', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: TextButton.styleFrom(foregroundColor: slate400),
+                    ),
+                  ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: slate100),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.military_tech_rounded, color: green, size: 28),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'SGK Prim Borçlanması',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      _ReadOnlyField(
+                        label: 'Hesaplama Tutarı',
+                        valueText: _basvuruTarihi,
+                      ),
+                      _CupertinoField(
+                        label: 'Borçlanma Türü',
+                        valueText: _secilenBorclanma ?? 'Seçiniz',
+                        onTap: () async {
+                          final init = _secilenBorclanma != null ? _borclanmaSureleri.indexOf(_secilenBorclanma!) : 0;
+                          final sel = await _showCupertinoListPicker(items: _borclanmaSureleri, initialIndex: init < 0 ? 0 : init);
+                          if (sel != null) {
+                            setState(() => _secilenBorclanma = sel);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _NumberRow(
+                        label: 'Borçlanılacak Gün Sayısı',
+                        controller: _gunController,
+                        hint: 'Örn. 360',
+                        maxLen: 4,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            FocusScope.of(context).unfocus();
+                            await _hesapla();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: green,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            'Hesapla',
+                            style: TextStyle(color: Colors.white, fontSize: 16 * kTextScale, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 8),
+                const _InfoNotice(),
+                const SizedBox(height: 100),
+              ],
+            ),
+          );
+
+    if (widget.inline) return body;
+
     return Scaffold(
+      backgroundColor: gray,
       appBar: AppBar(
         title: const Text(
           'SGK Prim Borçlanma Tutarı Hesaplama',
@@ -759,88 +847,170 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
+          onPressed: () {
+            if (_showingResult) {
+              setState(() => _showingResult = false);
+            } else {
+              Navigator.maybePop(context);
+            }
+          },
         ),
       ),
+      body: body,
+    );
+  }
 
-      body: SafeArea(
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 12),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate.fixed([
-                  // Başvuru Tarihi — başlık + kutucuk (okunur, seçim yok)
-                  _ReadOnlyField(
-                    label: 'Hesaplama Tutarı',
-                    valueText: _basvuruTarihi,
-                  ),
+  Widget _buildResultView() {
+    if (_hesaplamaSonucu == null) return const SizedBox.shrink();
 
-                  // Borçlanma türü — Cupertino picker ile (ikonlar kaldırıldı)
-                  _CupertinoField(
-                    label: 'Borçlanma Türü',
-                    valueText: _secilenBorclanma ?? 'Seçiniz',
-                    onTap: () async {
-                      final init = _secilenBorclanma != null ? _borclanmaSureleri.indexOf(_secilenBorclanma!) : 0;
-                      final sel = await _showCupertinoListPicker(items: _borclanmaSureleri, initialIndex: init < 0 ? 0 : init);
-                      if (sel != null) {
-                        setState(() => _secilenBorclanma = sel);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 8),
+    final basarili = (_hesaplamaSonucu?['basarili'] as bool?) ?? true;
+    final mesaj = (_hesaplamaSonucu?['mesaj'] as String?) ?? 'Sonuç';
+    final detaylar = Map<String, String>.from(_hesaplamaSonucu?['detaylar'] as Map? ?? {});
+    final ekBilgi = (_hesaplamaSonucu?['ekBilgi'] as Map?)?.cast<String, String>() ?? <String, String>{};
 
-                  // Gün sayısı
-                  _NumberRow(
-                    label: 'Borçlanılacak Gün Sayısı',
-                    controller: _gunController,
-                    hint: 'Örn. 360',
-                    maxLen: 4,
-                  ),
+    const green = Color(0xFF2ECC71);
+    const slate50 = Color(0xFFF8FAFC);
+    const slate100 = Color(0xFFF1F5F9);
+    const slate200 = Color(0xFFE2E8F0);
+    const slate500 = Color(0xFF64748B);
+    const slate800 = Color(0xFF1E293B);
 
-                  const SizedBox(height: 12),
-
-                  // Hesapla butonu
-                  SizedBox(
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        FocusScope.of(context).unfocus();
-                        await _hesapla();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                        minimumSize: const Size.fromHeight(46),
-                      ),
-                      child: Text('Hesapla', style: TextStyle(fontSize: 17 * kTextScale)),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: basarili ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: basarili ? green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  basarili ? Icons.check_circle_rounded : Icons.error_rounded,
+                  color: basarili ? green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    mesaj,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: basarili ? const Color(0xFF065F46) : const Color(0xFF991B1B),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                ]),
-              ),
-            ),
-
-            // Alt bilgilendirme
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(kPageHPad, 0, kPageHPad, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Divider(),
-                    _InfoNotice(),
-                  ],
                 ),
+              ],
+            ),
+          ),
+          if (detaylar.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: slate100),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Hesaplama Sonuçları',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: slate800),
+                  ),
+                  const SizedBox(height: 16),
+                  for (final e in detaylar.entries)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              e.key,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF94A3B8)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              e.value,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: slate800),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
-        ),
+          if (ekBilgi.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: slate50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: slate200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final e in ekBilgi.entries)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Text('${e.key}: ${e.value}', style: const TextStyle(fontSize: 12, color: slate500)),
+                    ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() => _showingResult = false),
+              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+              label: const Text('Geri Dön', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: green,
+                side: const BorderSide(color: green),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () => setState(() => _showingResult = false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Yeniden Hesapla',
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 100),
+        ],
       ),
     );
   }
@@ -890,133 +1060,6 @@ class _InfoNotice extends StatelessWidget {
           ),
           const SizedBox(height: 6),
         ],
-      ],
-    );
-  }
-}
-
-/// ================= SONUÇ SHEET (REFERANS GÖRÜNÜM) =================
-class ResultSheet extends StatelessWidget {
-  final String title; // başlık sabit
-  final Map<String, String> detaylar;
-  final String statusDescription; // sonda gösterilmeyecek (UI’dan kaldırıldı)
-
-  const ResultSheet({
-    super.key,
-    required this.title,
-    required this.detaylar,
-    required this.statusDescription,
-  });
-
-  String _buildShareText() {
-    final b = StringBuffer('Borçlanma Hesaplama Özeti\n');
-    detaylar.forEach((k, v) => b.writeln('$k: $v'));
-    b.writeln('\nDurum: $statusDescription');
-    return b.toString().trim();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final baseSmall = Theme.of(context).textTheme.bodySmall!;
-    final lineStyle = baseSmall.copyWith(
-      fontSize: (baseSmall.fontSize ?? 12) * kSumItemFontScale,
-      fontWeight: FontWeight.w400,
-      height: 1.5,
-      color: Colors.black87,
-    );
-
-    final entries = detaylar.entries.toList();
-
-    return Stack(
-      children: [
-        SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kReportMaxWidth),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 48,
-                    height: 5,
-                    decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(3)),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Başlık — sabit ve yalın
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16 * kResultHeaderScale,
-                        fontWeight: kResultHeaderWeight,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-
-                  // İçerik: tüm kalemler satır satır
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-                      children: [
-                        ...entries.map(
-                              (e) => Padding(
-                            padding: kSumItemPadding,
-                            child: Text('${e.key}: ${e.value}', style: lineStyle),
-                          ),
-                        ),
-                        // Durum Açıklaması bölümü UI'dan kaldırıldı.
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Alt orta paylaş — Apple paylaş ikonlu
-        Positioned(
-          bottom: 10,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: _buildShareText()));
-                if (context.mounted) {
-                  showCenterNotice(
-                    context,
-                    title: 'Paylaş',
-                    message: 'Özet panoya kopyalandı.',
-                    type: AppNoticeType.success,
-                  );
-                }
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(CupertinoIcons.share, size: 18),
-                  SizedBox(width: 8),
-                  Text('Paylaş', style: TextStyle(fontWeight: FontWeight.w400)),
-                ],
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }

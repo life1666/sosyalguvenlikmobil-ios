@@ -151,7 +151,6 @@ class _AramaEkraniState extends State<AramaEkrani> {
     // Ana menü öğelerini ara
     final menuItems = [
       'Hesaplamalar',
-      'Mesai Takip',
       'İK+',
       'CV Oluştur',
       'Makaleler',
@@ -191,11 +190,6 @@ class _AramaEkraniState extends State<AramaEkrani> {
               context,
               MaterialPageRoute(builder: (_) => const MakalelerView()),
             );
-          };
-        } else if (menu == "Mesai Takip") {
-          onTap = () {
-            Navigator.pop(context);
-            Navigator.of(context).pushNamed('/mesai');
           };
         } else if (menu == "CV Oluştur") {
           onTap = () {

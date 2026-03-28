@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/giris_ekrani.dart';
 import 'tema_ayarlari.dart';
+import '../../mesaitakip/mesaitakip.dart';
 
 class HesabimEkrani extends StatefulWidget {
   const HesabimEkrani({super.key});
@@ -37,14 +38,13 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
   // Expansion durumları
   bool _girisAyarlariAcik = false; // İlk açılışta kapalı
   bool _kisiselBilgilerAcik = false;
-  bool _digerAyarlarAcik = false;
-  
+  int _mesaiResetKey = 0;
+
   // Kişisel Bilgiler Form Controller'ları
   final TextEditingController _dogumTarihiController = TextEditingController();
   final TextEditingController _ilkIseGirisTarihiController = TextEditingController();
   final TextEditingController _toplamPrimGunController = TextEditingController();
   final TextEditingController _mevcutIsyeriBaslangicController = TextEditingController();
-  final TextEditingController _guncelBrutMaasController = TextEditingController();
   final TextEditingController _cinsiyetController = TextEditingController();
   
   // Kişisel Bilgiler State
@@ -76,7 +76,6 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     _ilkIseGirisTarihiController.dispose();
     _toplamPrimGunController.dispose();
     _mevcutIsyeriBaslangicController.dispose();
-    _guncelBrutMaasController.dispose();
     _cinsiyetController.dispose();
     super.dispose();
   }
@@ -104,8 +103,6 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
             _mevcutIsyeriBaslangic = DateTime.fromMillisecondsSinceEpoch(map['mevcutIsyeriBaslangic'] as int);
             _mevcutIsyeriBaslangicController.text = _formatDate(_mevcutIsyeriBaslangic!);
           }
-          final brutVal = (map['guncelBrutMaas'] as num?)?.toDouble();
-          _guncelBrutMaasController.text = brutVal == null || brutVal == 0 ? '' : _formatBrutMaas(brutVal);
           _sigortaKolu = map['sigortaKolu'] as String? ?? '4/a (SSK)';
         });
       }
@@ -173,7 +170,6 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
         'ilkIseGirisTarihi': _ilkIseGirisTarihi?.millisecondsSinceEpoch,
         'toplamPrimGun': newPrim,
         'mevcutIsyeriBaslangic': _mevcutIsyeriBaslangic?.millisecondsSinceEpoch,
-        'guncelBrutMaas': _parseBrutMaas(_guncelBrutMaasController.text),
         'cinsiyet': _cinsiyet,
         'sigortaKolu': _sigortaKolu,
         'kayitTarihi': now.millisecondsSinceEpoch,
@@ -181,14 +177,9 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       };
       await prefs.setString('kisisel_bilgiler', jsonEncode(data));
       
-      final savedBrut = (data['guncelBrutMaas'] as num).toDouble();
-      if (savedBrut > 0 && mounted) {
-        setState(() => _guncelBrutMaasController.text = _formatBrutMaas(savedBrut));
-      }
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kişisel bilgileriniz kaydedildi')),
+          const SnackBar(content: Text('Kişisel bilgileriniz ve maaş/mesai ayarlarınız kaydedildi')),
         );
       }
     } catch (e) {
@@ -448,13 +439,12 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
   // Tamamlanma yüzdesi hesapla
   int _calculateCompletionPercentage() {
     int filled = 0;
-    int total = 5; // Sigorta kolu her zaman dolu (4/a SSK), kontrol edilmiyor
+    int total = 4; // Sigorta kolu her zaman dolu (4/a SSK), güncel brüt Maaş/Mesai ayarlarından alınır
     
     if (_dogumTarihi != null) filled++;
     if (_ilkIseGirisTarihi != null) filled++;
     if (_toplamPrimGunController.text.trim().isNotEmpty) filled++;
     if (_mevcutIsyeriBaslangic != null) filled++;
-    if (_guncelBrutMaasController.text.trim().isNotEmpty) filled++;
     // Sigorta kolu (4/a SSK) her zaman dolu, sayılmıyor
     
     if (total == 0) return 0;
@@ -688,14 +678,14 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     }
   }
   
-  // Kişisel bilgileri sıfırla (manuel)
+  // Kişisel bilgileri ve maaş/mesai ayarlarını sıfırla (manuel)
   Future<void> _resetKisiselBilgiler() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Bilgileri Sıfırla'),
         content: const Text(
-            'Tüm kişisel bilgilerinizi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.'),
+            'Tüm kişisel bilgileriniz ve maaş/mesai ayarlarınız silinecek. Bu işlem geri alınamaz.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -714,17 +704,15 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('kisisel_bilgiler');
+      await prefs.remove('mesai_takip_v1');
       
-      // Tüm controller'ları temizle (setState dışında)
       _dogumTarihiController.clear();
       _ilkIseGirisTarihiController.clear();
       _toplamPrimGunController.clear();
       _mevcutIsyeriBaslangicController.clear();
-      _guncelBrutMaasController.clear();
       
       if (!mounted) return;
       
-      // State'i güncelle
       setState(() {
         _dogumTarihi = null;
         _ilkIseGirisTarihi = null;
@@ -732,14 +720,14 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
         _cinsiyet = 'Erkek';
         _cinsiyetController.text = 'Erkek';
         _sigortaKolu = '4/a (SSK)';
+        _mesaiResetKey++;
       });
       
-      // Form validasyonunu sıfırla
       _kisiselBilgilerFormKey.currentState?.reset();
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Kişisel bilgileriniz sıfırlandı'),
+          content: Text('Kişisel bilgileriniz ve maaş/mesai ayarlarınız sıfırlandı'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -1052,6 +1040,28 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: _deleteAccount,
+                          child: const Text(
+                            'Hesabı Sil',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1214,45 +1224,6 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Güncel Brüt Maaş (brütten nete ile aynı format: 50.000,00)
-                      TextFormField(
-                        controller: _guncelBrutMaasController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
-                        decoration: InputDecoration(
-                          labelText: 'Güncel Brüt Maaş (TL)',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                          hintText: 'Örn: 50.000,00',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(Icons.attach_money, color: Theme.of(context).primaryColor),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: border,
-                          enabledBorder: border,
-                          focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                        onEditingComplete: () {
-                          if (_guncelBrutMaasController.text.trim().isNotEmpty) {
-                            final val = _parseBrutMaas(_guncelBrutMaasController.text);
-                            if (val > 0) {
-                              _guncelBrutMaasController.text = _formatBrutMaas(val);
-                            }
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Güncel brüt maaş giriniz';
-                          }
-                          final parsed = _parseBrutMaas(value);
-                          if (parsed <= 0) {
-                            return 'Geçerli bir tutar giriniz';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
                       // Sigorta Kolu (Sadece 4/a SSK, değiştirilemez)
                       TextFormField(
                         initialValue: '4/a (SSK)',
@@ -1274,8 +1245,23 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Kaydet Butonu
+                      Text(
+                        'Maaş ve Mesai Ayarları',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 2.8,
+                        child: MesaiTakipContent(
+                          key: ValueKey('mesai_$_mesaiResetKey'),
+                          embeddedInScrollView: true,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -1291,16 +1277,11 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                           onPressed: _saveKisiselBilgiler,
                           child: const Text(
                             'Bilgilerimi Kaydet',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      
-                      // Bilgilerimi Sıfırla Butonu
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
@@ -1315,62 +1296,12 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                           onPressed: _resetKisiselBilgiler,
                           child: const Text(
                             'Bilgilerimi Sıfırla',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-
-              // Diğer Ayarlar
-              _buildSettingCard(
-                icon: Icons.settings_outlined,
-                title: 'Diğer Ayarlar',
-                isExpanded: _digerAyarlarAcik,
-                onTap: () {
-                  setState(() {
-                    _digerAyarlarAcik = !_digerAyarlarAcik;
-                  });
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildMenuItem(
-                      icon: Icons.notifications_outlined,
-                      title: 'Bildirim Ayarları',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Bildirim ayarları yakında eklenecek')),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: themeColor.withOpacity(0.2)),
-                    _buildMenuItem(
-                      icon: Icons.accessibility_new,
-                      title: 'Tema Ayarları',
-                      subtitle: 'Yazı boyutu ve tema',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TemaAyarlariEkrani(),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: themeColor.withOpacity(0.2)),
-                    _buildMenuItem(
-                      icon: Icons.delete_outline,
-                      title: 'Hesabı Sil',
-                      textColor: Colors.red,
-                      onTap: _deleteAccount,
-                    ),
-                  ],
                 ),
               ),
             ],

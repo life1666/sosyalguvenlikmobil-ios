@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../mesaitakip/mesaihesaplama.dart';
+import '../mesaitakip/mesaitakip.dart';
+import '../mesaitakip/mesai_takip_gross_helper.dart';
 import '../hesaplamalar/emeklilik_4a_helper.dart';
 
 class CalismaHayatimEkrani extends StatefulWidget {
@@ -81,14 +83,19 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
           _mevcutIsyeriBaslangic = DateTime.fromMillisecondsSinceEpoch(
               map['mevcutIsyeriBaslangic'] as int);
         }
-        if (map['guncelBrutMaas'] != null) {
-          _guncelBrutMaas =
-              double.tryParse(map['guncelBrutMaas'].toString());
-        }
+      }
+      // Güncel brüt: Maaş Mesai Ayarları (mesai takip) verisinden alınır
+      final gross = await getCurrentMonthGrossFromMesaiTakip();
+      if (mounted) {
+        setState(() {
+          _guncelBrutMaas = gross;
+          _isLoading = false;
+        });
+      } else {
+        _isLoading = false;
       }
     } catch (e) {
       debugPrint('Kişisel bilgiler yüklenirken hata: $e');
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -1430,82 +1437,56 @@ class _CalismaHayatimEkraniState extends State<CalismaHayatimEkrani> {
     );
   }
 
-  // Maaş Analizi Detayları Dialog
+  // Maaş, Mesai ve Kesinti Analizi: Maaş ve Kesinti verileri + Aylık/Yıllık Özet, takvim/sonuçlar
   void _showSalaryDetails(Map<String, double> deductions, Color themeColor) {
-    final brut = deductions['brut']!;
-    final net = deductions['net']!;
-    final sgk = deductions['sgk']!;
-    final issizlik = deductions['issizlik']!;
-    final gelirVergisi = deductions['gelirVergisi']!;
-    final damgaVergisi = deductions['damgaVergisi']!;
-    final toplam = deductions['toplam']!;
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
+      isScrollControlled: true,
+      useSafeArea: false,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 1.0,
+        minChildSize: 0.4,
+        maxChildSize: 1.0,
+        expand: true,
+        builder: (context, scrollController) => Column(
+          mainAxisSize: MainAxisSize.max,
           children: [
-            Icon(Icons.account_balance_wallet, color: themeColor, size: 28),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Maaş Analizi Detayları',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.account_balance_wallet, color: themeColor, size: 28),
+                  const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Maaş, Mesai ve Kesinti Analizi',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(6, 16, 6, 0),
+                    child: SizedBox(
+                      height: constraints.maxHeight,
+                      child: const MesaiTakipContent(calendarOnly: true),
+                    ),
+                  );
+                },
               ),
             ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Brüt Maaş', _formatCurrency(brut), isBold: true),
-              const Divider(height: 20),
-              const Text(
-                'Kesintiler:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              _buildDetailRow('SGK Primi (%14)', _formatCurrency(sgk)),
-              _buildDetailRow('İşsizlik Primi (%1)', _formatCurrency(issizlik)),
-              _buildDetailRow(
-                'Gelir Vergisi (${_gelirVergisiDilimLabel(deductions)})',
-                _formatCurrency(gelirVergisi),
-              ),
-              _buildDetailRow('Damga Vergisi (%0.759)', _formatCurrency(damgaVergisi)),
-              const Divider(height: 20),
-              _buildDetailRow('Toplam Kesinti', _formatCurrency(toplam), color: Colors.red),
-              _buildDetailRow('Net Maaş', _formatCurrency(net), isBold: true, color: Colors.green),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: themeColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: themeColor, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Eline geçecek net tutar: ${_formatCurrency(net)} (${((net / brut) * 100).toStringAsFixed(1)}%)',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat'),
-          ),
-        ],
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/ana_ekran.dart';
 import 'screens/auth/giris_ekrani.dart';
+import 'screens/akisi/ilk_akisi_ekrani.dart';
 import 'screens/yanmenu/iletisim_ekrani.dart';
 import 'screens/admin/mesajlar_ekrani.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -82,13 +83,19 @@ class _SgkBilgiPlatformuState extends State<SgkBilgiPlatformu> {
     _loadThemeSettings();
     _themeHelper.addThemeChangeListener(_onThemeChanged);
     _themeHelper.addFontSizeChangeListener(_onFontSizeChanged);
+    _themeHelper.addKoyuModListener(_onKoyuModChanged);
   }
 
   @override
   void dispose() {
     _themeHelper.removeThemeChangeListener(_onThemeChanged);
     _themeHelper.removeFontSizeChangeListener(_onFontSizeChanged);
+    _themeHelper.removeKoyuModListener(_onKoyuModChanged);
     super.dispose();
+  }
+
+  void _onKoyuModChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onThemeChanged() {
@@ -131,12 +138,15 @@ class _SgkBilgiPlatformuState extends State<SgkBilgiPlatformu> {
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaleFactor: textScaleFactor.clamp(0.85, 1.3), // 12-18 punto arası
+            textScaleFactor: textScaleFactor.clamp(12 / 14, 24 / 14),
           ),
           child: child!,
         );
       },
+      themeMode:
+          _themeHelper.koyuMod ? ThemeMode.dark : ThemeMode.light,
       theme: ThemeData(
+        useMaterial3: true,
         primaryColor: _themeColor,
         colorScheme: ColorScheme.fromSeed(seedColor: _themeColor),
         scaffoldBackgroundColor: Colors.white,
@@ -149,6 +159,25 @@ class _SgkBilgiPlatformuState extends State<SgkBilgiPlatformu> {
         textTheme: const TextTheme(
           bodyMedium: TextStyle(color: Colors.black87),
           labelLarge: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        primaryColor: _themeColor,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: _themeColor,
+          brightness: Brightness.dark,
+        ),
+        scaffoldBackgroundColor: const Color(0xFF020617),
+        appBarTheme: AppBarTheme(
+          backgroundColor: _themeColor,
+          titleTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
       ),
 
@@ -171,7 +200,7 @@ class _SgkBilgiPlatformuState extends State<SgkBilgiPlatformu> {
         },
       ),
 
-      home: AnaEkran(),
+      home: const IlkAkisiEkrani(),
       routes: {
         '/giris': (context) => GirisEkrani(),
         '/iletisim': (context) => IletisimEkrani(),
