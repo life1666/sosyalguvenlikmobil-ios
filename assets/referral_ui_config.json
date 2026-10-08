@@ -1,0 +1,22 @@
+{
+  "heroImageUrl": "",
+  "title": "Arkadaşını davet et",
+  "subtitle": "Referans kodunu paylaş; arkadaşların uygulamayı senin linkinle indirebilsin. Kampanya ve ödül duyuruları uygulama içinden takip edilir.",
+  "steps": [
+    {
+      "iconUrl": "",
+      "title": "Kodunu paylaş",
+      "subtitle": "Kodu kopyala veya mesajla gönder"
+    },
+    {
+      "iconUrl": "",
+      "title": "Arkadaşın indirsin",
+      "subtitle": "Android’de mağaza linki referansını otomatik iletir"
+    },
+    {
+      "iconUrl": "",
+      "title": "Birlikte kullanın",
+      "subtitle": "Hesaplamalar ve güncel SGK içerikleri hep yanınızda"
+    }
+  ]
+}

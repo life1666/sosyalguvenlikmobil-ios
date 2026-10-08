@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/.backups/
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +44,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# App Store Server API private keys must be kept in Firebase Secret Manager.
+*.p8
+functions/apple_iap_config*.json

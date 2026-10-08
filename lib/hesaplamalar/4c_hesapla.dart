@@ -1,10 +1,13 @@
+import '../utils/calculator_design.dart';
+import 'emeklilik_motorlari.dart' show emeklilikHesapla4c;
+import 'emeklilik_tahmin_notu.dart';
+import '../services/hesaplama_pdf_service.dart';
+import '../services/premium_pdf_action.dart';
+import 'package:src/utils/app_design.dart';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import '../emeklilik_takip/emeklilik_takip.dart';
 import '../sonhesaplama/sonhesaplama.dart';
 import '../utils/analytics_helper.dart';
 import '../utils/theme_helper.dart';
@@ -20,10 +23,10 @@ const double kDividerThickness = 0.2;
 const double kDividerSpace     = 2.0;
 
 // Form alanı çerçevesi (kalınlık vs.)
-const double kFieldBorderWidth   = 0.2; // ← kutu kalınlığı
-const double kFieldBorderRadius  = 8.0;
-const Color  kFieldBorderColor   = Colors.black87;
-const Color  kFieldFocusColor    = Colors.black87;
+const double kFieldBorderWidth   = 1.0; // ← kutu kalınlığı
+const double kFieldBorderRadius  = 12.0;
+const Color  kFieldBorderColor   = AppDesign.border;
+const Color  kFieldFocusColor    = calculatorAccent;
 
 // İkon genel (tema)
 const Color  kIconColor = Colors.black87;
@@ -446,7 +449,8 @@ class _AppInlineError extends StatelessWidget {
 }
 
 class EmeklilikHesaplamaSayfasi extends StatefulWidget {
-  const EmeklilikHesaplamaSayfasi({super.key});
+  final bool embedded;
+  const EmeklilikHesaplamaSayfasi({super.key, this.embedded = false});
 
   @override
   _EmeklilikHesaplamaSayfasiState createState() =>
@@ -468,6 +472,7 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
   int? primGunSayisi;
 
   Map<String, dynamic>? hesaplamaSonucu;
+  String? _calculationError;
 
   static const List<String> _trAylar = [
     'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
@@ -607,315 +612,44 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
   /// ======================================================
   /// >>> SWAPLANAN HESAPLAMA MOTORU (4/C mantığı)
   /// ======================================================
-  Map<String, dynamic> emeklilikHesapla(
-      DateTime dogumTarihi,
-      String cinsiyet,
-      DateTime sigortaBaslangic,
-      int primGun,
-      ) {
-    final DateTime today = DateTime.now();
-
-    int age = today.year - dogumTarihi.year;
-    if (DateTime(today.year, dogumTarihi.month, dogumTarihi.day).isAfter(today)) {
-      age--;
-    }
-
-    int insuranceYears = today.year - sigortaBaslangic.year;
-    if (DateTime(today.year, sigortaBaslangic.month, sigortaBaslangic.day).isAfter(today)) {
-      insuranceYears--;
-    }
-
-    bool normalEligible = false;
-    bool ageLimitEligible = false;
-    String message = "";
-    Map<String, String> details = {};
-    Map<String, Map<String, dynamic>> tahminiSonuclar = {};
-
-    // Kategoriler (4/C – Emekli Sandığı)
-    final DateTime cat1Upper = DateTime(1999, 9, 9);   // 08.09.1999 dahil
-    final DateTime cat2Upper = DateTime(2008, 5, 1);   // 30.04.2008 dahil
-    final DateTime cat3Lower = DateTime(2008, 5, 1);   // 01.05.2008 ve sonrası
-
-    int reqInsuranceYearsNormal = 0;
-    int reqPrimNormal = 0;
-    int reqAgeNormal = 0;
-
-    int reqInsuranceYearsYas = 0;
-    int reqPrimYas = 0;
-    int reqAgeYas = 0;
-
-    if (sigortaBaslangic.isBefore(cat1Upper)) {
-      // 1. Kategori: 09.09.1999'dan önce
-      if (cinsiyet == "Erkek") {
-        reqInsuranceYearsNormal = 25;
-        reqPrimNormal = 9000;
-
-        reqPrimYas = 5400;
-        reqAgeYas = 60;
-
-        normalEligible = (primGun >= reqPrimNormal && insuranceYears >= reqInsuranceYearsNormal);
-        ageLimitEligible = (age >= 60 && primGun >= 5400);
-
-        details["Normal Emeklilik"] =
-        "Mevcut: $primGun Gün, $insuranceYears Yıl | Gerekli: $reqPrimNormal Gün, $reqInsuranceYearsNormal Yıl";
-        details["Yaş Haddinden Emeklilik"] =
-        "Mevcut: $age Yaş, $primGun Gün | Gerekli: 60 Yaş, 5400 Gün";
-      } else if (cinsiyet == "Kadın") {
-        reqInsuranceYearsNormal = 20;
-        reqPrimNormal = 7200;
-
-        reqPrimYas = 5400;
-        reqAgeYas = 58;
-
-        normalEligible = (primGun >= reqPrimNormal && insuranceYears >= reqInsuranceYearsNormal);
-        ageLimitEligible = (age >= 58 && primGun >= 5400);
-
-        details["Normal Emeklilik"] =
-        "Mevcut: $primGun Gün, $insuranceYears Yıl | Gerekli: $reqPrimNormal Gün, $reqInsuranceYearsNormal Yıl";
-        details["Yaş Haddinden Emeklilik"] =
-        "Mevcut: $age Yaş, $primGun Gün | Gerekli: 58 Yaş, 5400 Gün";
-      }
-    } else if (sigortaBaslangic.isBefore(cat2Upper) &&
-        sigortaBaslangic.isAfter(cat1Upper.subtract(const Duration(days: 1)))) {
-      // 2. Kategori: 09.09.1999 – 30.04.2008
-      if (cinsiyet == "Erkek") {
-        reqInsuranceYearsNormal = 25;
-        reqAgeNormal = 60;
-
-        reqInsuranceYearsYas = 15;
-        reqAgeYas = 61;
-
-        normalEligible = (insuranceYears >= 25 && age >= 60);
-        ageLimitEligible = (insuranceYears >= 15 && age >= 61);
-
-        details["Normal Emeklilik"] =
-        "Mevcut: $age Yaş, $insuranceYears Yıl | Gerekli: 60 Yaş, 25 Yıl";
-        details["Yaş Haddinden Emeklilik"] =
-        "Mevcut: $age Yaş, $insuranceYears Yıl | Gerekli: 61 Yaş, 15 Yıl";
-      } else if (cinsiyet == "Kadın") {
-        reqInsuranceYearsNormal = 25;
-        reqAgeNormal = 58;
-
-        reqInsuranceYearsYas = 15;
-        reqAgeYas = 61;
-
-        normalEligible = (insuranceYears >= 25 && age >= 58);
-        ageLimitEligible = (insuranceYears >= 15 && age >= 61);
-
-        details["Normal Emeklilik"] =
-        "Mevcut: $age Yaş, $insuranceYears Yıl | Gerekli: 58 Yaş, 25 Yıl";
-        details["Yaş Haddinden Emeklilik"] =
-        "Mevcut: $age Yaş, $insuranceYears Yıl | Gerekli: 61 Yaş, 15 Yıl";
-      }
-    } else if (sigortaBaslangic.isAfter(cat3Lower.subtract(const Duration(days: 1)))) {
-      // 3. Kategori: 01.05.2008 ve sonrası
-      const int normalReqPrim = 9000;
-      reqPrimNormal = normalReqPrim;
-
-      // 1) Eksik prim (360 gün = 1 yıl varsayımı)
-      final int eksikPrimGunu = normalReqPrim - primGun;
-      final int eksikTamYil = eksikPrimGunu ~/ 360;
-      final int eksikGunKalan = eksikPrimGunu % 360;
-      final DateTime araTarih = DateTime(today.year + eksikTamYil, today.month, today.day);
-      DateTime primCompletion = araTarih.add(Duration(days: eksikGunKalan));
-
-      // 2) Kademeli yaş
-      int normalReqAge;
-      if (primCompletion.isBefore(DateTime(2036, 1, 1))) {
-        normalReqAge = (cinsiyet == "Erkek") ? 60 : 58;
-      } else if (primCompletion.isBefore(DateTime(2038, 1, 1))) {
-        normalReqAge = (cinsiyet == "Erkek") ? 61 : 59;
-      } else if (primCompletion.isBefore(DateTime(2040, 1, 1))) {
-        normalReqAge = (cinsiyet == "Erkek") ? 62 : 60;
-      } else if (primCompletion.isBefore(DateTime(2042, 1, 1))) {
-        normalReqAge = (cinsiyet == "Erkek") ? 63 : 61;
-      } else if (primCompletion.isBefore(DateTime(2044, 1, 1))) {
-        normalReqAge = (cinsiyet == "Erkek") ? 64 : 62;
-      } else if (primCompletion.isBefore(DateTime(2046, 1, 1))) {
-        normalReqAge = (cinsiyet == "Erkek") ? 65 : 63;
-      } else if (primCompletion.isBefore(DateTime(2048, 1, 1))) {
-        normalReqAge = (cinsiyet == "Erkek") ? 65 : 64;
-      } else {
-        normalReqAge = 65;
-      }
-      reqAgeNormal = normalReqAge;
-
-      normalEligible = (primGun >= normalReqPrim && age >= reqAgeNormal);
-
-      // --- YAŞ HADDİ ---
-      const int ageLimitPrim = 5400;
-      reqPrimYas = ageLimitPrim;
-
-      final int eksikPrimYas = ageLimitPrim - primGun;
-      final int eksikTamYilYas = eksikPrimYas ~/ 360;
-      final int eksikGunKalanYas = eksikPrimYas % 360;
-      final DateTime araTarihYas = DateTime(today.year + eksikTamYilYas, today.month, today.day);
-      DateTime ageLimitPrimCompletion = araTarihYas.add(Duration(days: eksikGunKalanYas));
-
-      int ageLimitReqAge;
-      if (ageLimitPrimCompletion.isBefore(DateTime(2036, 1, 1))) {
-        ageLimitReqAge = (cinsiyet == "Erkek") ? 63 : 61;
-      } else if (ageLimitPrimCompletion.isBefore(DateTime(2038, 1, 1))) {
-        ageLimitReqAge = (cinsiyet == "Erkek") ? 64 : 62;
-      } else if (ageLimitPrimCompletion.isBefore(DateTime(2040, 1, 1))) {
-        ageLimitReqAge = (cinsiyet == "Erkek") ? 65 : 63;
-      } else if (ageLimitPrimCompletion.isBefore(DateTime(2042, 1, 1))) {
-        ageLimitReqAge = (cinsiyet == "Erkek") ? 65 : 64;
-      } else {
-        ageLimitReqAge = 65;
-      }
-      reqAgeYas = ageLimitReqAge;
-
-      ageLimitEligible = (primGun >= ageLimitPrim && age >= ageLimitReqAge);
-
-      details["Normal Emeklilik"] =
-      "Mevcut: $primGun Gün, $age Yaş | Gerekli: $normalReqPrim Gün, $reqAgeNormal Yaş";
-      details["Yaş Haddinden Emeklilik"] =
-      "Mevcut: $primGun Gün, $age Yaş | Gerekli: $ageLimitPrim Gün, $reqAgeYas Yaş";
-    } else {
-      message = "Sistem uygun emeklilik kriterini belirleyemedi.";
-    }
-
-    // --- TAHMİNİ TARİHLER ---
-
-    // Normal (prim gününe dayalı)
-    if (!normalEligible && reqPrimNormal > 0) {
-      int eksikPrim = reqPrimNormal - primGun;
-      double eksikYilDouble = eksikPrim > 0 ? eksikPrim / 360 : 0.0;
-
-      int eksikTamYil = eksikPrim ~/ 360;
-      int eksikGunKalan = eksikPrim % 360;
-      DateTime araTarih = DateTime(today.year + eksikTamYil, today.month, today.day);
-      DateTime primDolma = araTarih.add(Duration(days: eksikGunKalan));
-
-      int olasiYas = primDolma.year - dogumTarihi.year;
-      if (DateTime(primDolma.year, dogumTarihi.month, dogumTarihi.day).isAfter(primDolma)) {
-        olasiYas--;
-      }
-
-      if (reqAgeNormal > 0 && olasiYas < reqAgeNormal) {
-        primDolma = DateTime(dogumTarihi.year + reqAgeNormal, dogumTarihi.month, dogumTarihi.day);
-        olasiYas = reqAgeNormal;
-      }
-
-      tahminiSonuclar["Normal Emeklilik"] = {
-        "tahminiTarih": primDolma,
-        "tahminiYas": olasiYas,
-        "eksikPrim": eksikPrim > 0 ? eksikPrim : 0,
-        "eksikYil": eksikYilDouble > 0 ? eksikYilDouble : 0,
-        "mesaj":
-        "Kontrol tarihi itibarıyla sigorta bildirimleriniz kesintisiz devam ederse, ${_formatDateDot(primDolma)} tarihinde normal emeklilik hakkı kazanabilirsiniz."
-      };
-    } else if (!normalEligible && reqInsuranceYearsNormal > 0) {
-      // Normal (sigortalılık yılına dayalı)
-      int eksikYil = reqInsuranceYearsNormal - insuranceYears;
-      DateTime primDolma = DateTime(today.year + eksikYil, today.month, today.day);
-
-      int olasiYas = primDolma.year - dogumTarihi.year;
-      if (DateTime(primDolma.year, dogumTarihi.month, dogumTarihi.day).isAfter(primDolma)) {
-        olasiYas--;
-      }
-
-      if (reqAgeNormal > 0 && olasiYas < reqAgeNormal) {
-        primDolma = DateTime(dogumTarihi.year + reqAgeNormal, dogumTarihi.month, dogumTarihi.day);
-        olasiYas = reqAgeNormal;
-      }
-
-      tahminiSonuclar["Normal Emeklilik"] = {
-        "tahminiTarih": primDolma,
-        "tahminiYas": olasiYas,
-        "eksikPrim": 0,
-        "eksikYil": eksikYil > 0 ? eksikYil : 0,
-        "mesaj":
-        "Kontrol tarihi itibarıyla sigorta bildirimleriniz kesintisiz devam ederse, ${_formatDateDot(primDolma)} tarihinde normal emeklilik hakkı kazanabilirsiniz."
-      };
-    }
-
-    // Yaş haddi
-    if (!ageLimitEligible && reqPrimYas > 0) {
-      int eksikPrim = reqPrimYas - primGun;
-      double eksikYilDouble = eksikPrim > 0 ? eksikPrim / 360 : 0.0;
-
-      int eksikTamYilYas = eksikPrim ~/ 360;
-      int eksikGunKalanYas = eksikPrim % 360;
-      DateTime araTarihYas = DateTime(today.year + eksikTamYilYas, today.month, today.day);
-      DateTime primDolma = araTarihYas.add(Duration(days: eksikGunKalanYas));
-
-      int olasiYas = primDolma.year - dogumTarihi.year;
-      if (DateTime(primDolma.year, dogumTarihi.month, dogumTarihi.day).isAfter(primDolma)) {
-        olasiYas--;
-      }
-
-      if (reqAgeYas > 0 && olasiYas < reqAgeYas) {
-        primDolma = DateTime(dogumTarihi.year + reqAgeYas, dogumTarihi.month, dogumTarihi.day);
-        olasiYas = reqAgeYas;
-      }
-
-      tahminiSonuclar["Yaş Haddinden Emeklilik"] = {
-        "tahminiTarih": primDolma,
-        "tahminiYas": olasiYas,
-        "eksikPrim": eksikPrim > 0 ? eksikPrim : 0,
-        "eksikYil": eksikYilDouble > 0 ? eksikYilDouble : 0,
-        "mesaj":
-        "Kontrol tarihi itibarıyla sigorta bildirimleriniz kesintisiz devam ederse, ${_formatDateDot(primDolma)} tarihinde yaş haddinden emeklilik hakkı kazanabilirsiniz."
-      };
-    } else if (!ageLimitEligible && reqInsuranceYearsYas > 0) {
-      int eksikYil = reqInsuranceYearsYas - insuranceYears;
-      DateTime primDolma = DateTime(today.year + eksikYil, today.month, today.day);
-
-      int olasiYas = primDolma.year - dogumTarihi.year;
-      if (DateTime(primDolma.year, dogumTarihi.month, dogumTarihi.day).isAfter(primDolma)) {
-        olasiYas--;
-      }
-
-      if (reqAgeYas > 0 && olasiYas < reqAgeYas) {
-        primDolma = DateTime(dogumTarihi.year + reqAgeYas, dogumTarihi.month, dogumTarihi.day);
-        olasiYas = reqAgeYas;
-      }
-
-      tahminiSonuclar["Yaş Haddinden Emeklilik"] = {
-        "tahminiTarih": primDolma,
-        "tahminiYas": olasiYas,
-        "eksikPrim": 0,
-        "eksikYil": eksikYil > 0 ? eksikYil : 0,
-        "mesaj":
-        "Kontrol tarihi itibarıyla sigorta bildirimleriniz kesintisiz devam ederse, ${_formatDateDot(primDolma)} tarihinde yaş haddinden emeklilik hakkı kazanabilirsiniz."
-      };
-    }
-
-    return {
-      'emekliMi': {
-        'normal': normalEligible,
-        'yasHaddi': ageLimitEligible,
-      },
-      'mesaj': {
-        'birlesik': message,
-      },
-      'detaylar': {
-        'birlesik': details,
-      },
-      'tahminiSonuclar': tahminiSonuclar,
-      'ekBilgi': {
-        'Kontrol Tarihi': _formatDateSlash(DateTime.now()),
-      },
-    };
-  }
   /// =================== HESAPLAMA MOTORU SONU ===================
 
-  void _hesaplaEmeklilik() {
+  Future<void> _hesaplaEmeklilik() async {
     FocusScope.of(context).unfocus();
+
+    if (_calculationError != null) {
+      setState(() => _calculationError = null);
+    }
 
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      _showResultBottomSheet();
+      await _showResultBottomSheet();
     } else {
-      showCenterNotice(
-        context,
-        title: 'Eksik Alanlar',
-        message: 'Eksik ya da hatalı alanları kontrol edin.',
-        type: AppNoticeType.info,
-      );
+      _showCalculationError('Eksik ya da hatalı alanları kontrol edin.');
     }
+  }
+
+  void _showCalculationError(String message) {
+    if (!mounted) return;
+    setState(() => _calculationError = message);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
   }
 
   /// Geçmiş kaydı için kısa özet metni üretir
@@ -934,12 +668,7 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
 
   Future<void> _showResultBottomSheet() async {
     if (cinsiyet == null || dogumTarihi == null || sigortaBaslangicTarihi == null || primGunSayisi == null) {
-      showCenterNotice(
-        context,
-        title: 'Uyarı',
-        message: kMsgFillAllFieldsSnack,
-        type: AppNoticeType.error,
-      );
+      _showCalculationError(kMsgFillAllFieldsSnack);
       return;
     }
 
@@ -949,6 +678,10 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
       errorMessage = _cap("doğum tarihi günümüzden sonra olamaz.");
     } else if (sigortaBaslangicTarihi!.isBefore(dogumTarihi!)) {
       errorMessage = _cap("sigorta başlangıç tarihi doğum tarihinden önce olamaz.");
+    } else if (sigortaBaslangicTarihi!.isBefore(DateTime(
+        dogumTarihi!.year + 15, dogumTarihi!.month, dogumTarihi!.day))) {
+      errorMessage =
+          _cap("sigorta başlangıç tarihinde en az 15 yaşında olmalısınız.");
     } else if (sigortaBaslangicTarihi!.isAfter(today)) {
       errorMessage = _cap("sigorta başlangıç tarihi günümüzden sonra olamaz.");
     } else {
@@ -961,17 +694,12 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
       }
     }
     if (errorMessage != null) {
-      showCenterNotice(
-        context,
-        title: 'Hatalı Veri',
-        message: errorMessage,
-        type: AppNoticeType.error,
-      );
+      _showCalculationError(errorMessage);
       return;
     }
 
     setState(() {
-      hesaplamaSonucu = emeklilikHesapla(
+      hesaplamaSonucu = emeklilikHesapla4c(
         dogumTarihi!, cinsiyet!, sigortaBaslangicTarihi!, primGunSayisi!,
       );
     });
@@ -1039,7 +767,7 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
+      backgroundColor: AppDesign.activeSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
       ),
@@ -1129,27 +857,7 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: const Text(
-          '4/c (Memur) Emeklilik Hesaplama',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: kPageHPad, vertical: 16),
-            child: Form(
+    final form = Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1178,13 +886,17 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
                         ? kMsgEnterValidNumber
                         : null,
                   ),
+                  if (_calculationError != null) ...[
+                    const SizedBox(height: 12),
+                    _AppInlineError(_calculationError!),
+                  ],
                   const SizedBox(height: 18),
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
                       onPressed: _hesaplaEmeklilik,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: calculatorAccent,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         textStyle: const TextStyle(fontWeight: FontWeight.w500),
@@ -1192,14 +904,14 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
                       child: Text('Hesapla', style: TextStyle(fontSize: 20 * kTextScale)),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  _buildEkBilgiArea(),
-                ],
+                  ],
               ),
-            ),
-          ),
-        ),
-      ),
+            );
+    if (widget.embedded) return form;
+    return CalculatorPage(
+      title: '4/c (Memur) Emeklilik',
+      icon: Icons.calendar_month_outlined,
+      child: form,
     );
   }
 
@@ -1212,8 +924,11 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
         final errorColor = Theme.of(context).colorScheme.error;
 
         TextStyle styleFor(String option) => TextStyle(
-          color: (hasError && cinsiyet == null) ? errorColor : Colors.black87,
-          fontWeight: (cinsiyet == option) ? FontWeight.w400 : FontWeight.w300,
+          color: (hasError && cinsiyet == null)
+              ? errorColor
+              : AppDesign.activeInk,
+          fontWeight:
+              (cinsiyet == option) ? FontWeight.w600 : FontWeight.w400,
         );
 
         return Padding(
@@ -1223,29 +938,31 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
             children: [
               Text('Cinsiyetiniz', style: context.sFormLabel),
               const SizedBox(height: 6),
-              DecoratedBox(
-                decoration: ShapeDecoration(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(kFieldBorderRadius),
-                    side: BorderSide(
-                      color: hasError ? errorColor : Colors.transparent,
-                      width: hasError ? (kFieldBorderWidth + 0.2) : 0.0,
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: DecoratedBox(
+                  decoration: ShapeDecoration(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kFieldBorderRadius),
+                      side: BorderSide(
+                        color: hasError ? errorColor : Colors.transparent,
+                        width: hasError ? (kFieldBorderWidth + 0.2) : 0.0,
+                      ),
                     ),
                   ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(0),
                   child: CupertinoSlidingSegmentedControl<String>(
                     groupValue: cinsiyet,
-                    backgroundColor: Colors.indigo.withOpacity(0.06),
-                    thumbColor: Colors.white,
+                    padding: const EdgeInsets.all(3),
+                    backgroundColor: AppDesign.isDark
+                        ? const Color(0xFF1C2938)
+                        : const Color(0xFFF1F5F9),
+                    thumbColor: AppDesign.activeSurface,
                     children: {
-                      'Erkek': Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 12),
+                      'Erkek': Center(
                         child: Text('Erkek', style: styleFor('Erkek')),
                       ),
-                      'Kadın': Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 12),
+                      'Kadın': Center(
                         child: Text('Kadın', style: styleFor('Kadın')),
                       ),
                     },
@@ -1254,7 +971,7 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
                       field.didChange(val);
                     },
                   ),
-                ),
+                  ),
               ),
               if (hasError) _AppInlineError(field.errorText!),
             ],
@@ -1352,10 +1069,10 @@ class _EmeklilikHesaplamaSayfasiState extends State<EmeklilikHesaplamaSayfasi> {
                       fontSize: 14 * kTextScale,
                       fontWeight: AppW.body,
                       color: value != null
-                          ? Colors.black
+                          ? AppDesign.activeInk
                           : hasError
                           ? Theme.of(context).colorScheme.error
-                          : Colors.grey[700],
+                          : AppDesign.activeMuted,
                     ),
                   ),
                 ),
@@ -1481,16 +1198,9 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
     final PieInput pieYas     = FinancialReportPage._toPie(yasHaddi, fallbackLabel: 'Yaş Haddinden Emeklilik');
 
     // PAYLAŞILACAK ÖZET METNİ
-    String _buildShareText() {
-      final b = StringBuffer('Emeklilik Özeti\n');
-      detaylar.forEach((k, v) => b.writeln('$k: $v'));
-      tahmini.forEach((k, v) {
-        if (v is Map && v['mesaj'] != null) b.writeln(v['mesaj']);
-      });
-      return b.toString().trim();
-    }
+    
 
-    return Stack(
+    return Theme(data: calculatorTheme(context), child: Stack(
       children: [
         // İçerik
         SafeArea(
@@ -1500,11 +1210,15 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
               constraints: const BoxConstraints(maxWidth: kReportMaxWidth),
               child: Column(
                 children: [
+ Padding(padding: const EdgeInsets.fromLTRB(20, 12, 8, 4), child: Row(children: [
+ Expanded(child: Text('Hesaplama Sonucu', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppDesign.activeInk))),
+ IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(context), icon: Icon(Icons.close_rounded, color: AppDesign.activeMuted)),
+ ])),
                   const SizedBox(height: 10),
                   Container(
                     width: 48, height: 5,
                     decoration: BoxDecoration(
-                      color: Colors.black12, borderRadius: BorderRadius.circular(3),
+                  color: AppDesign.activeBorder, borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1514,8 +1228,8 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: CupertinoSlidingSegmentedControl<String>(
                       groupValue: _tab,
-                      backgroundColor: Colors.indigo.withOpacity(0.06),
-                      thumbColor: Colors.white,
+                  backgroundColor: AppDesign.isDark ? const Color(0xFF1C2938) : const Color(0xFFF0FDF4),
+                  thumbColor: AppDesign.activeSurface,
                       children: {
                         'Hesaplama Sonucu': Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1524,7 +1238,7 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
                             style: TextStyle(
                               fontSize: 14 * kResultHeaderScale,
                               fontWeight: kResultHeaderWeight,
-                              color: Colors.black87,
+                              color: AppDesign.activeInk,
                             ),
                           ),
                         ),
@@ -1535,7 +1249,7 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
                             style: TextStyle(
                               fontSize: 14 * kResultHeaderScale,
                               fontWeight: kResultHeaderWeight,
-                              color: Colors.black87,
+                              color: AppDesign.activeInk,
                             ),
                           ),
                         ),
@@ -1570,8 +1284,8 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
                           input: pieNormal,
                         ),
                         // Grafik sekmesi için istenen divider
-                        const Divider(
-                          color: Colors.black87,
+                        Divider(
+                          color: AppDesign.activeBorder,
                           thickness: 0.2,
                           height: 22,
                         ),
@@ -1595,214 +1309,21 @@ class _FinancialReportSheetState extends State<FinancialReportSheet> {
           right: 16,
           child: SafeArea(
             top: false,
-            child: Row(
-              children: [
-                // Takibe Aktar butonu sadece emeklilik koşulları sağlanmadığında göster
-                if (!(emekliMi['normal'] == true || emekliMi['yasHaddi'] == true))
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                          elevation: 0,
-                        ),
-                        onPressed: () async {
-                        // Her iki emeklilik tipini de kaydet
-                        Map<String, dynamic>? normalTahmini;
-                        Map<String, dynamic>? yasTahmini;
-                        
-                        if (tahmini.containsKey('Normal Emeklilik')) {
-                          final normal = tahmini['Normal Emeklilik'] as Map<String, dynamic>?;
-                          if (normal != null && normal['tahminiTarih'] != null) {
-                            normalTahmini = normal;
-                          }
-                        }
-                        
-                        if (tahmini.containsKey('Yaş Haddinden Emeklilik')) {
-                          final yas = tahmini['Yaş Haddinden Emeklilik'] as Map<String, dynamic>?;
-                          if (yas != null && yas['tahminiTarih'] != null) {
-                            yasTahmini = yas;
-                          }
-                        }
-                        
-                        // En erken tarihi ana emeklilik tarihi olarak seç
-                        DateTime? emeklilikTarihi;
-                        String emeklilikTipi = '';
-                        
-                        if (normalTahmini != null && yasTahmini != null) {
-                          final normalTarih = normalTahmini['tahminiTarih'] as DateTime;
-                          final yasTarih = yasTahmini['tahminiTarih'] as DateTime;
-                          if (normalTarih.isBefore(yasTarih)) {
-                            emeklilikTarihi = normalTarih;
-                            emeklilikTipi = 'Normal Emeklilik';
-                          } else {
-                            emeklilikTarihi = yasTarih;
-                            emeklilikTipi = 'Yaş Haddinden Emeklilik';
-                          }
-                        } else if (normalTahmini != null) {
-                          emeklilikTarihi = normalTahmini['tahminiTarih'] as DateTime;
-                          emeklilikTipi = 'Normal Emeklilik';
-                        } else if (yasTahmini != null) {
-                          emeklilikTarihi = yasTahmini['tahminiTarih'] as DateTime;
-                          emeklilikTipi = 'Yaş Haddinden Emeklilik';
-                        }
-                        
-                        if (emeklilikTarihi != null) {
-                          try {
-                            final prefs = await SharedPreferences.getInstance();
-                            
-                            // Normal Emeklilik bilgilerini çıkar
-                            Map<String, dynamic> normalBilgiler = {};
-                            if (normalTahmini != null) {
-                              normalBilgiler = {
-                                'tahminiTarih': (normalTahmini['tahminiTarih'] as DateTime).millisecondsSinceEpoch,
-                                'tahminiYas': normalTahmini['tahminiYas'] as int? ?? 0,
-                                'eksikPrim': normalTahmini['eksikPrim'] as int? ?? 0,
-                                'eksikYil': (normalTahmini['eksikYil'] as num?)?.toDouble() ?? 0.0,
-                              };
-                              
-                              if (detaylar.containsKey('Normal Emeklilik')) {
-                                final detay = detaylar['Normal Emeklilik'] ?? '';
-                                final parts = detay.split('|');
-                                if (parts.length == 2) {
-                                  final mevcutPart = parts[0].trim();
-                                  final gerekliPart = parts[1].trim();
-                                  final mevcutMatch = RegExp(r'Mevcut:\s*(\d+)\s*Gün,\s*(\d+)\s*Yaş').firstMatch(mevcutPart);
-                                  final gerekliMatch = RegExp(r'Gerekli:\s*(\d+)\s*Gün,\s*(\d+)\s*Yaş').firstMatch(gerekliPart);
-                                  if (mevcutMatch != null) {
-                                    normalBilgiler['mevcutPrim'] = mevcutMatch.group(1) ?? '';
-                                    normalBilgiler['mevcutYas'] = mevcutMatch.group(2) ?? '';
-                                  }
-                                  if (gerekliMatch != null) {
-                                    normalBilgiler['gerekliPrim'] = gerekliMatch.group(1) ?? '';
-                                    normalBilgiler['gerekliYas'] = gerekliMatch.group(2) ?? '';
-                                  }
-                                }
-                              }
-                            }
-                            
-                            // Yaş Haddinden Emeklilik bilgilerini çıkar
-                            Map<String, dynamic> yasBilgiler = {};
-                            if (yasTahmini != null) {
-                              yasBilgiler = {
-                                'tahminiTarih': (yasTahmini['tahminiTarih'] as DateTime).millisecondsSinceEpoch,
-                                'tahminiYas': yasTahmini['tahminiYas'] as int? ?? 0,
-                                'eksikPrim': yasTahmini['eksikPrim'] as int? ?? 0,
-                                'eksikYil': (yasTahmini['eksikYil'] as num?)?.toDouble() ?? 0.0,
-                              };
-                              
-                              if (detaylar.containsKey('Yaş Haddinden Emeklilik')) {
-                                final detay = detaylar['Yaş Haddinden Emeklilik'] ?? '';
-                                final parts = detay.split('|');
-                                if (parts.length == 2) {
-                                  final mevcutPart = parts[0].trim();
-                                  final gerekliPart = parts[1].trim();
-                                  final mevcutMatch = RegExp(r'Mevcut:\s*(\d+)\s*Gün,\s*(\d+)\s*Yaş').firstMatch(mevcutPart);
-                                  final gerekliMatch = RegExp(r'Gerekli:\s*(\d+)\s*Gün,\s*(\d+)\s*Yaş').firstMatch(gerekliPart);
-                                  if (mevcutMatch != null) {
-                                    yasBilgiler['mevcutPrim'] = mevcutMatch.group(1) ?? '';
-                                    yasBilgiler['mevcutYas'] = mevcutMatch.group(2) ?? '';
-                                  }
-                                  if (gerekliMatch != null) {
-                                    yasBilgiler['gerekliPrim'] = gerekliMatch.group(1) ?? '';
-                                    yasBilgiler['gerekliYas'] = gerekliMatch.group(2) ?? '';
-                                  }
-                                }
-                              }
-                            }
-                            
-                            final data = {
-                              'emeklilikTarihi': emeklilikTarihi.millisecondsSinceEpoch,
-                              'emeklilikTipi': emeklilikTipi,
-                              'hesaplamaTuru': widget.hesaplamaTuru,
-                              'normalEmeklilik': normalBilgiler,
-                              'yasHaddindenEmeklilik': yasBilgiler,
-                              'sigortaBaslangicTarihi': widget.sigortaBaslangicTarihi?.millisecondsSinceEpoch,
-                              'kayitTarihi': DateTime.now().millisecondsSinceEpoch,
-                            };
-                            await prefs.setString('emeklilik_takip_data', jsonEncode(data));
-                            
-                            if (mounted) {
-                              Navigator.pop(context); // Bottom sheet'i kapat
-                              // Emeklilik takip ekranına yönlendir
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const EmeklilikTakipApp(),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              showCenterNotice(
-                                context,
-                                title: 'Hata',
-                                message: 'Emeklilik tarihi kaydedilemedi.',
-                                type: AppNoticeType.error,
-                              );
-                            }
-                          }
-                        } else {
-                          if (mounted) {
-                            showCenterNotice(
-                              context,
-                              title: 'Uyarı',
-                              message: 'Emeklilik tarihi bulunamadı.',
-                              type: AppNoticeType.warning,
-                            );
-                          }
-                        }
-                      },
-                        icon: const Icon(Icons.track_changes, size: 18),
-                        label: const Text('Takibe Aktar', style: TextStyle(fontWeight: FontWeight.w400)),
-                      ),
-                    ),
-                  ),
-                if (!(emekliMi['normal'] == true || emekliMi['yasHaddi'] == true))
-                  const SizedBox(width: 8),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                final text = _buildShareText();
-
-                // share_plus kullanmak isterseniz:
-                // import 'package:share_plus/share_plus.dart';
-                // Share.share(text);
-
-                await Clipboard.setData(ClipboardData(text: text));
-                if (mounted) {
-                  showCenterNotice(
-                    context,
-                    title: 'Paylaş',
-                    message: 'Özet panoya kopyalandı. Uygulamalarda yapıştırarak paylaşabilirsiniz.',
-                    type: AppNoticeType.success,
-                  );
-                }
-              },
-              icon: const Icon(Icons.ios_share_rounded, size: 18),
-                      label: const Text('Paylaş', style: TextStyle(fontWeight: FontWeight.w400)),
-              ),
-                  ),
-                ),
-              ],
-            ),
+            child: SizedBox(width: double.infinity, height: 44, child: OutlinedButton.icon(
+                      onPressed: () => PremiumPdfAction.run(context,
+                          () => HesaplamaPdfService.shareSummary(
+                        title: '4C Emeklilik Hesaplama',
+                        details: detaylar,
+                      )),
+                      icon: const Icon(Icons.workspace_premium_outlined,
+                          size: 18),
+                      label: const Text('Premium PDF',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
+                    )),
           ),
         ),
       ],
-    );
+    ));
   }
 }
 
@@ -1823,7 +1344,7 @@ class _ModernDonutSection extends StatelessWidget {
           title,
           style: th.titleMedium!.copyWith(
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+                          color: AppDesign.activeInk,
             letterSpacing: .2,
           ),
         ),
@@ -2187,16 +1708,12 @@ class _SummaryBullets extends StatelessWidget {
   }
 
   Widget _line(BuildContext context, String text, {Color? emphasis}) {
-    final style = Theme.of(context).textTheme.bodySmall!.copyWith(
-      color: Colors.black87,
-      fontWeight: emphasis != null ? FontWeight.w600 : kSumItemWeight,
-      fontSize: (Theme.of(context).textTheme.bodySmall!.fontSize ?? 12) * kSumItemFontScale,
-    );
-    return Padding(
-      padding: kSumItemPadding,
-      child: Text(text, style: style),
-    );
-  }
+ return Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+ decoration: BoxDecoration(color: emphasis != null ? (AppDesign.isDark ? const Color(0xFF12372B) : const Color(0xFFF0FDF4)) : Colors.transparent,
+ borderRadius: BorderRadius.circular(12)),
+ child: Text(text, style: TextStyle(fontSize: 14, height: 1.5, color: emphasis != null ? (AppDesign.isDark ? const Color(0xFF86EFAC) : const Color(0xFF166534)) : AppDesign.activeInk,
+ fontWeight: emphasis != null ? FontWeight.w700 : FontWeight.w400)));
+ }
 
   @override
   Widget build(BuildContext context) {
@@ -2221,7 +1738,7 @@ class _SummaryBullets extends StatelessWidget {
         if (req.gerekliYil > 0)
           _line(context, 'Sigortalılık Yılı Şartı: ${req.mevcutYil}/${req.gerekliYil}'),
         if (!hak && (tahminMesaj != null && tahminMesaj.trim().isNotEmpty))
-          _line(context, tahminMesaj),
+          EmeklilikTahminNotu(mesaj: tahminMesaj),
       ];
 
       return Column(
@@ -2229,7 +1746,7 @@ class _SummaryBullets extends StatelessWidget {
         children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium!.copyWith(
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+            color: AppDesign.activeInk,
           )),
           SizedBox(height: kSumSectionTitleGap),
           ..._intersperse(items, SizedBox(height: kSumBetweenItemsGap)),
@@ -2239,19 +1756,19 @@ class _SummaryBullets extends StatelessWidget {
 
     // 1 fiziksel piksel kalınlığında divider (her cihazda görünür)
     final hairlineIndigoDivider = Divider(
-      color: Colors.black87,
+      color: AppDesign.activeBorder,
       thickness: 0.4 / MediaQuery.of(context).devicePixelRatio,
       height: 16,
     );
 
-    return Column(
+    return SingleChildScrollView(child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         section('Normal Emeklilik', emekliMi['normal'] == true, normal, reqNormal, 'Normal Emeklilik'),
         hairlineIndigoDivider,
         section('Yaş Haddinden Emeklilik', emekliMi['yasHaddi'] == true, yasHaddi, reqYasHaddi, 'Yaş Haddinden Emeklilik'),
       ],
-    );
+    ));
   }
 
   List<Widget> _intersperse(List<Widget> list, Widget separator) {

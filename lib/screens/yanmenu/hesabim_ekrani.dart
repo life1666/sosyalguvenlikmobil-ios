@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io' show Platform;
@@ -10,10 +11,15 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/giris_ekrani.dart';
-import 'tema_ayarlari.dart';
+import '../calisma_araclari.dart';
+import '../ilerleme_ekrani.dart';
+import '../../services/personal_profile_store.dart';
+import '../../services/account_scoped_local_store.dart';
+import '../../services/notification_service.dart';
+import '../../sonhesaplama/sonhesaplama.dart';
+import '../../utils/progress_service.dart';
 
 class HesabimEkrani extends StatefulWidget {
   const HesabimEkrani({super.key});
@@ -29,31 +35,34 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
-  TextEditingController();
+      TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
-  
+
   // Expansion durumları
-  bool _girisAyarlariAcik = false; // İlk açılışta kapalı
+  bool _girisAyarlariAcik = false;
   bool _kisiselBilgilerAcik = false;
-  bool _digerAyarlarAcik = false;
-  
+
   // Kişisel Bilgiler Form Controller'ları
   final TextEditingController _dogumTarihiController = TextEditingController();
-  final TextEditingController _ilkIseGirisTarihiController = TextEditingController();
-  final TextEditingController _toplamPrimGunController = TextEditingController();
-  final TextEditingController _mevcutIsyeriBaslangicController = TextEditingController();
-  final TextEditingController _guncelBrutMaasController = TextEditingController();
+  final TextEditingController _ilkIseGirisTarihiController =
+      TextEditingController();
+  final TextEditingController _toplamPrimGunController =
+      TextEditingController();
+  final TextEditingController _mevcutIsyeriBaslangicController =
+      TextEditingController();
+  final TextEditingController _guncelBrutMaasController =
+      TextEditingController();
   final TextEditingController _cinsiyetController = TextEditingController();
-  
+
   // Kişisel Bilgiler State
   DateTime? _dogumTarihi;
   DateTime? _ilkIseGirisTarihi;
   DateTime? _mevcutIsyeriBaslangic;
   String _cinsiyet = 'Erkek';
   String _sigortaKolu = '4/a (SSK)'; // Varsayılan olarak SSK
-  
+
   final _kisiselBilgilerFormKey = GlobalKey<FormState>();
 
   @override
@@ -84,28 +93,34 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
   // Kişisel bilgileri yükle
   Future<void> _loadKisiselBilgiler() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final data = prefs.getString('kisisel_bilgiler');
+      final data = await PersonalProfileStore().readRaw();
       if (data != null) {
         final map = jsonDecode(data) as Map<String, dynamic>;
         setState(() {
           if (map['dogumTarihi'] != null) {
-            _dogumTarihi = DateTime.fromMillisecondsSinceEpoch(map['dogumTarihi'] as int);
+            _dogumTarihi =
+                DateTime.fromMillisecondsSinceEpoch(map['dogumTarihi'] as int);
             _dogumTarihiController.text = _formatDate(_dogumTarihi!);
           }
           if (map['ilkIseGirisTarihi'] != null) {
-            _ilkIseGirisTarihi = DateTime.fromMillisecondsSinceEpoch(map['ilkIseGirisTarihi'] as int);
-            _ilkIseGirisTarihiController.text = _formatDate(_ilkIseGirisTarihi!);
+            _ilkIseGirisTarihi = DateTime.fromMillisecondsSinceEpoch(
+                map['ilkIseGirisTarihi'] as int);
+            _ilkIseGirisTarihiController.text =
+                _formatDate(_ilkIseGirisTarihi!);
           }
-          _toplamPrimGunController.text = (map['toplamPrimGun'] as int?)?.toString() ?? '';
+          _toplamPrimGunController.text =
+              (map['toplamPrimGun'] as int?)?.toString() ?? '';
           _cinsiyet = map['cinsiyet'] as String? ?? 'Erkek';
           _cinsiyetController.text = _cinsiyet;
           if (map['mevcutIsyeriBaslangic'] != null) {
-            _mevcutIsyeriBaslangic = DateTime.fromMillisecondsSinceEpoch(map['mevcutIsyeriBaslangic'] as int);
-            _mevcutIsyeriBaslangicController.text = _formatDate(_mevcutIsyeriBaslangic!);
+            _mevcutIsyeriBaslangic = DateTime.fromMillisecondsSinceEpoch(
+                map['mevcutIsyeriBaslangic'] as int);
+            _mevcutIsyeriBaslangicController.text =
+                _formatDate(_mevcutIsyeriBaslangic!);
           }
           final brutVal = (map['guncelBrutMaas'] as num?)?.toDouble();
-          _guncelBrutMaasController.text = brutVal == null || brutVal == 0 ? '' : _formatBrutMaas(brutVal);
+          _guncelBrutMaasController.text =
+              brutVal == null || brutVal == 0 ? '' : _formatBrutMaas(brutVal);
           _sigortaKolu = map['sigortaKolu'] as String? ?? '4/a (SSK)';
         });
       }
@@ -124,7 +139,8 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     }
     if (raw.contains('.')) {
       final afterLastDot = raw.substring(raw.lastIndexOf('.') + 1);
-      if (afterLastDot.length == 3 && RegExp(r'^\d{3}$').hasMatch(afterLastDot)) {
+      if (afterLastDot.length == 3 &&
+          RegExp(r'^\d{3}$').hasMatch(afterLastDot)) {
         return double.tryParse(raw.replaceAll('.', '')) ?? 0.0;
       }
       return double.tryParse(raw) ?? 0.0;
@@ -148,21 +164,22 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     }
     return '${buf.toString()},$frac';
   }
-  
+
   // Kişisel bilgileri kaydet
   Future<void> _saveKisiselBilgiler() async {
     if (!_kisiselBilgilerFormKey.currentState!.validate()) return;
-    
+
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final store = PersonalProfileStore();
       final now = DateTime.now();
       final newPrim = int.tryParse(_toplamPrimGunController.text) ?? 0;
       int? referansTarihiMs = now.millisecondsSinceEpoch;
-      final existing = prefs.getString('kisisel_bilgiler');
+      final existing = await store.readRaw();
       if (existing != null && existing.isNotEmpty) {
         try {
           final map = jsonDecode(existing) as Map<String, dynamic>;
-          final oldPrim = int.tryParse((map['toplamPrimGun'] ?? '').toString()) ?? 0;
+          final oldPrim =
+              int.tryParse((map['toplamPrimGun'] ?? '').toString()) ?? 0;
           if (oldPrim == newPrim && map['primGunuReferansTarihi'] != null) {
             referansTarihiMs = map['primGunuReferansTarihi'] as int;
           }
@@ -179,13 +196,14 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
         'kayitTarihi': now.millisecondsSinceEpoch,
         'primGunuReferansTarihi': referansTarihiMs,
       };
-      await prefs.setString('kisisel_bilgiler', jsonEncode(data));
-      
+      await store.saveRaw(jsonEncode(data));
+
       final savedBrut = (data['guncelBrutMaas'] as num).toDouble();
       if (savedBrut > 0 && mounted) {
-        setState(() => _guncelBrutMaasController.text = _formatBrutMaas(savedBrut));
+        setState(
+            () => _guncelBrutMaasController.text = _formatBrutMaas(savedBrut));
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Kişisel bilgileriniz kaydedildi')),
@@ -200,17 +218,17 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       }
     }
   }
-  
+
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
-  
+
   // Cupertino tarih seçici göster
   Future<void> _selectDate(BuildContext context, String type) async {
     DateTime? currentDate;
     DateTime minDate = DateTime(1950, 1, 1);
     DateTime maxDate = DateTime.now();
-    
+
     // Mevcut tarihi belirle
     if (type == 'dogum') {
       currentDate = _dogumTarihi ?? DateTime(1990, 1, 1);
@@ -219,18 +237,18 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     } else if (type == 'mevcutIsyeri') {
       currentDate = _mevcutIsyeriBaslangic ?? DateTime(2020, 1, 1);
     }
-    
+
     if (currentDate == null) currentDate = DateTime.now();
     if (currentDate.isBefore(minDate)) currentDate = minDate;
     if (currentDate.isAfter(maxDate)) currentDate = maxDate;
-    
+
     final DateTime? picked = await _showCupertinoDatePicker(
       context: context,
       initialDate: currentDate,
       minDate: minDate,
       maxDate: maxDate,
     );
-    
+
     if (picked != null) {
       setState(() {
         if (type == 'dogum') {
@@ -246,7 +264,7 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       });
     }
   }
-  
+
   // Cupertino Date Picker
   Future<DateTime?> _showCupertinoDatePicker({
     required BuildContext context,
@@ -257,15 +275,25 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     int day = initialDate.day;
     int month = initialDate.month;
     int year = initialDate.year;
-    
+
     final dayCtrl = FixedExtentScrollController(initialItem: day - 1);
     final monthCtrl = FixedExtentScrollController(initialItem: month - 1);
-    
+
     final List<String> months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+      'Ocak',
+      'Şubat',
+      'Mart',
+      'Nisan',
+      'Mayıs',
+      'Haziran',
+      'Temmuz',
+      'Ağustos',
+      'Eylül',
+      'Ekim',
+      'Kasım',
+      'Aralık'
     ];
-    
+
     // Yıl picker'ı ters sırada (en yeni yukarıda)
     final yearList = List.generate(
       maxDate.year - minDate.year + 1,
@@ -275,7 +303,7 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     final yearCtrl = FixedExtentScrollController(
       initialItem: yearIndex >= 0 ? yearIndex : 0,
     );
-    
+
     return showCupertinoModalPopup<DateTime?>(
       context: context,
       builder: (ctx) {
@@ -289,7 +317,7 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                 if (dayCtrl.hasClients) dayCtrl.jumpToItem(day - 1);
               });
             }
-            
+
             return Container(
               height: 300,
               color: Colors.white,
@@ -322,7 +350,8 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                               color: Theme.of(context).primaryColor,
                             ),
                           ),
-                          onPressed: () => Navigator.of(ctx).pop(DateTime(year, month, day)),
+                          onPressed: () =>
+                              Navigator.of(ctx).pop(DateTime(year, month, day)),
                         ),
                       ],
                     ),
@@ -346,7 +375,8 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                             children: List.generate(
                               maxD,
                               (i) => Center(
-                                child: Text('${(i + 1).toString().padLeft(2, '0')}'),
+                                child: Text(
+                                    '${(i + 1).toString().padLeft(2, '0')}'),
                               ),
                             ),
                           ),
@@ -365,7 +395,9 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                                 }
                               });
                             },
-                            children: months.map((m) => Center(child: Text(m))).toList(),
+                            children: months
+                                .map((m) => Center(child: Text(m)))
+                                .toList(),
                           ),
                         ),
                         Expanded(
@@ -382,9 +414,11 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                                 }
                               });
                             },
-                            children: yearList.map((y) => Center(
-                              child: Text('$y'),
-                            )).toList(),
+                            children: yearList
+                                .map((y) => Center(
+                                      child: Text('$y'),
+                                    ))
+                                .toList(),
                           ),
                         ),
                       ],
@@ -403,7 +437,7 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     final themeColor = Theme.of(context).primaryColor;
     final chosen = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppDesign.activeBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -444,19 +478,19 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       });
     }
   }
-  
+
   // Tamamlanma yüzdesi hesapla
   int _calculateCompletionPercentage() {
     int filled = 0;
     int total = 5; // Sigorta kolu her zaman dolu (4/a SSK), kontrol edilmiyor
-    
+
     if (_dogumTarihi != null) filled++;
     if (_ilkIseGirisTarihi != null) filled++;
     if (_toplamPrimGunController.text.trim().isNotEmpty) filled++;
     if (_mevcutIsyeriBaslangic != null) filled++;
     if (_guncelBrutMaasController.text.trim().isNotEmpty) filled++;
     // Sigorta kolu (4/a SSK) her zaman dolu, sayılmıyor
-    
+
     if (total == 0) return 0;
     return ((filled / total) * 100).round();
   }
@@ -474,12 +508,12 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       sha256.convert(utf8.encode(input)).toString();
 
   // ---------- Re-auth seçenek alt sayfası ----------
-  Future<void> _promptReauth() async {
-    if (!mounted) return;
-    await showModalBottomSheet(
+  Future<bool> _promptReauth() async {
+    if (!mounted) return false;
+    final method = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      builder: (_) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -491,27 +525,19 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _reauthWithPassword();
-                  },
+                  onPressed: () =>
+                      Navigator.of(sheetContext).pop('password'),
                   icon: const Icon(Icons.lock_outline),
                   label: const Text('E-posta ve şifre ile'),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _reauthWithGoogle();
-                  },
+                  onPressed: () => Navigator.of(sheetContext).pop('google'),
                   icon: const Icon(Icons.login),
                   label: const Text('Google ile'),
                 ),
                 if (Platform.isIOS)
                   ElevatedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      await _reauthWithApple();
-                    },
+                    onPressed: () => Navigator.of(sheetContext).pop('apple'),
                     icon: const Icon(Icons.apple),
                     label: const Text('Apple ile'),
                   ),
@@ -521,16 +547,53 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
         );
       },
     );
+    if (!mounted || method == null) return false;
+
+    try {
+      switch (method) {
+        case 'password':
+          return await _reauthWithPassword();
+        case 'google':
+          return await _reauthWithGoogle();
+        case 'apple':
+          return await _reauthWithApple();
+      }
+      return false;
+    } on FirebaseAuthException catch (error) {
+      if (mounted) {
+        final message = error.code == 'user-not-found'
+            ? 'Bu üyelik artık bulunamıyor. Lütfen yeniden giriş yapın.'
+            : (error.message ?? 'Yeniden giriş doğrulanamadı. Tekrar deneyin.');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      }
+      return false;
+    } on PlatformException catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Yeniden giriş bağlantısı kurulamadı. Tekrar deneyin.'),
+        ));
+      }
+      return false;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Yeniden giriş tamamlanamadı. Tekrar deneyin.'),
+        ));
+      }
+      return false;
+    }
   }
 
   // ---------- Sağlayıcı bazlı re-auth ----------
-  Future<void> _reauthWithPassword() async {
-    final email = _auth.currentUser?.email ?? '';
+  Future<bool> _reauthWithPassword() async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) return false;
     final ctrl = TextEditingController();
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Şifreyi girin'),
         content: TextField(
           controller: ctrl,
@@ -539,34 +602,38 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('İptal')),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
+               onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('Onayla')),
         ],
       ),
     );
 
-    if (ok != true) return;
+    if (ok != true || !mounted) return false;
 
     final cred =
-    EmailAuthProvider.credential(email: email, password: ctrl.text);
-    await _auth.currentUser?.reauthenticateWithCredential(cred);
+        EmailAuthProvider.credential(email: user.email!, password: ctrl.text);
+    await user.reauthenticateWithCredential(cred);
+    return true;
   }
 
-  Future<void> _reauthWithGoogle() async {
+  Future<bool> _reauthWithGoogle() async {
     final googleUser = await GoogleSignIn().signIn();
-    if (googleUser == null) return;
+    if (googleUser == null || !mounted) return false;
     final googleAuth = await googleUser.authentication;
     final cred = GoogleAuthProvider.credential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
-    await _auth.currentUser?.reauthenticateWithCredential(cred);
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reauthenticateWithCredential(cred);
+    return true;
   }
 
-  Future<void> _reauthWithApple() async {
+  Future<bool> _reauthWithApple() async {
     final rawNonce = _generateNonce();
     final nonce = _sha256ofString(rawNonce);
 
@@ -583,12 +650,16 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       rawNonce: rawNonce,
     );
 
-    await _auth.currentUser?.reauthenticateWithCredential(cred);
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reauthenticateWithCredential(cred);
+    return true;
   }
 
   // ---------- Bilgi güncelle ----------
-  Future<void> _updateUserInfo() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _updateUserInfo({bool hasRetried = false}) async {
+    final form = _formKey.currentState;
+    if (!mounted || form == null || !form.validate()) return;
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -615,9 +686,10 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
         const SnackBar(content: Text('İstek(ler) başarıyla gönderildi.')),
       );
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'requires-recent-login') {
-        await _promptReauth();        // yeniden doğrula
-        return _updateUserInfo();     // sonra işlemi tekrar dene
+      if (e.code == 'requires-recent-login' && !hasRetried) {
+        final authenticated = await _promptReauth();
+        if (!authenticated || !mounted) return;
+        return _updateUserInfo(hasRetried: true);
       }
 
       if (!mounted) return;
@@ -634,7 +706,7 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       builder: (context) => AlertDialog(
         title: const Text('Hesabı Sil'),
         content: const Text(
-            'Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz. Tüm kişisel bilgileriniz de silinecektir.'),
+            'Hesabınızı silmek istediğinizden emin misiniz? Firebase üyeliğiniz ve bu cihazdaki çalışma bilgileriniz silinir. Topluluk ve iletişim kayıtlarınız için ayrıca silme talebinde bulunabilirsiniz.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -650,14 +722,21 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     if (confirm != true) return;
 
     try {
-      // Kişisel bilgileri de sil
-      await _clearKisiselBilgiler();
-      
-      await _auth.currentUser?.delete();
+      final uid = _auth.currentUser?.uid;
+      if (uid == null) return;
+      await _auth.currentUser!.delete();
+      await PersonalProfileStore().removeForUid(uid);
+      await SonHesaplamalarDeposu.removeForUid(uid);
+      await ProgressService.removeForUid(uid);
+      await AccountScopedLocalStore().removeForUid('mesai_takip_v1', uid);
+      await AccountScopedLocalStore()
+          .removeForUid(NotificationService.preferencesKey, uid);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hesap ve tüm veriler başarıyla silindi.')),
+        const SnackBar(
+            content: Text(
+                'Üyeliğiniz ve bu cihazdaki çalışma bilgileriniz silindi.')),
       );
 
       // const KALDIRILDI: GirisEkrani const constructor değil
@@ -667,27 +746,37 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       );
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login') {
-        await _promptReauth();
-        return _deleteAccount();
+        final authenticated = await _promptReauth();
+        if (!authenticated || !mounted) return;
+        final uid = _auth.currentUser?.uid;
+        if (uid == null) return;
+        try {
+          await _auth.currentUser!.delete();
+          await PersonalProfileStore().removeForUid(uid);
+          await SonHesaplamalarDeposu.removeForUid(uid);
+          await ProgressService.removeForUid(uid);
+          await AccountScopedLocalStore().removeForUid('mesai_takip_v1', uid);
+          await AccountScopedLocalStore()
+              .removeForUid(NotificationService.preferencesKey, uid);
+          if (!mounted) return;
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => GirisEkrani()));
+        } on FirebaseAuthException catch (retryError) {
+          if (mounted)
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(retryError.message ?? 'Hesap silinemedi.')));
+        }
+        return;
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Hesap silinirken bir hata oluştu.')),
+        SnackBar(
+            content: Text(e.message ?? 'Hesap silinirken bir hata oluştu.')),
       );
     }
   }
-  
-  // Kişisel bilgileri temizle (hesap silindiğinde)
-  Future<void> _clearKisiselBilgiler() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('kisisel_bilgiler');
-    } catch (e) {
-      debugPrint('Kişisel bilgiler temizlenirken hata: $e');
-    }
-  }
-  
+
   // Kişisel bilgileri sıfırla (manuel)
   Future<void> _resetKisiselBilgiler() async {
     final confirm = await showDialog<bool>(
@@ -712,18 +801,17 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     if (confirm != true) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('kisisel_bilgiler');
-      
+      await PersonalProfileStore().removeCurrent();
+
       // Tüm controller'ları temizle (setState dışında)
       _dogumTarihiController.clear();
       _ilkIseGirisTarihiController.clear();
       _toplamPrimGunController.clear();
       _mevcutIsyeriBaslangicController.clear();
       _guncelBrutMaasController.clear();
-      
+
       if (!mounted) return;
-      
+
       // State'i güncelle
       setState(() {
         _dogumTarihi = null;
@@ -733,10 +821,10 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
         _cinsiyetController.text = 'Erkek';
         _sigortaKolu = '4/a (SSK)';
       });
-      
+
       // Form validasyonunu sıfırla
       _kisiselBilgilerFormKey.currentState?.reset();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Kişisel bilgileriniz sıfırlandı'),
@@ -753,134 +841,56 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     }
   }
 
-  Widget _buildSettingCard({
-    required String title,
-    required bool isExpanded,
-    required VoidCallback onTap,
-    required Widget child,
-    required IconData icon,
-    String? badge,
-  }) {
-    final themeColor = Theme.of(context).primaryColor;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Row(
+  Widget _buildSettingCard(
+          {required String title,
+          required bool isExpanded,
+          required VoidCallback onTap,
+          required Widget child,
+          required IconData icon,
+          String? badge,
+          List<Widget> trailing = const []}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: AppSurface(
+            padding: EdgeInsets.zero,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(icon, color: themeColor, size: 22),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: themeColor,
-                          ),
-                        ),
-                        if (badge != null) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            badge,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: themeColor.withOpacity(0.7),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    isExpanded ? Icons.keyboard_arrow_down_rounded : Icons.chevron_right_rounded,
-                    color: themeColor.withOpacity(0.7),
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (isExpanded)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            child: child,
-          ),
-      ],
-    );
-  }
+                  AppActionTile(
+                      title: title,
+                      subtitle: badge,
+                      icon: icon,
+                      onTap: onTap,
+                      expanded: isExpanded),
+                  if (isExpanded)
+                    Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                        child: child),
+                  if (trailing.isNotEmpty)
+                    Divider(height: 1, color: AppDesign.activeBorder),
+                  ...trailing,
+                ])),
+      );
 
-  /// Ayarlar ekranındaki gibi tek satır menü öğesi; tıklama efekti yok.
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    VoidCallback? onTap,
-    String? subtitle,
-    Color? textColor,
-  }) {
-    final themeColor = Theme.of(context).primaryColor;
-    final color = textColor ?? themeColor;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Row(
-            children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: color,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: themeColor.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: themeColor.withOpacity(0.7), size: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
+  Widget _buildMenuItem(
+          {required IconData icon,
+          required String title,
+          VoidCallback? onTap,
+          String? subtitle,
+          Color? textColor}) =>
+      AppActionTile(
+        title: title,
+        subtitle: subtitle,
+        icon: icon,
+        onTap: onTap ?? () {},
+        foregroundColor: textColor,
+      );
   @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     final border = OutlineInputBorder(
-      borderSide: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+      borderSide:
+          BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.3)),
       borderRadius: BorderRadius.circular(12),
     );
     final focusedBorder = OutlineInputBorder(
@@ -888,32 +898,33 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
       borderRadius: BorderRadius.circular(12),
     );
 
-    final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
+      backgroundColor: AppDesign.activeBackground,
+      appBar: AppMenuBar(
+        title: Text(
           'Hesabım',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+          style: TextStyle(
+              color: AppDesign.activeInk,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: themeColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: AppDesign.activeInk),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 16, bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-              // Giriş Ayarları
+      body: SafeArea(
+          child: AppContent(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Üyelik Ayarları
               _buildSettingCard(
-                icon: Icons.login_rounded,
-                title: 'Giriş Ayarları',
+                icon: Icons.manage_accounts_outlined,
+                title: 'Üyelik Ayarları',
                 isExpanded: _girisAyarlariAcik,
                 onTap: () {
                   setState(() {
@@ -932,7 +943,8 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                         style: const TextStyle(fontSize: 16),
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
+                          labelStyle:
+                              TextStyle(color: Theme.of(context).primaryColor),
                           hintText: 'ornek@email.com',
                           hintStyle: TextStyle(color: Colors.grey[400]),
                           filled: true,
@@ -940,7 +952,8 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                           border: border,
                           enabledBorder: border,
                           focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -961,12 +974,15 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                         style: const TextStyle(fontSize: 16),
                         decoration: InputDecoration(
                           labelText: 'Şifre',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
+                          labelStyle:
+                              TextStyle(color: Theme.of(context).primaryColor),
                           hintText: 'En az 6 karakter',
                           hintStyle: TextStyle(color: Colors.grey[400]),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
                               color: Theme.of(context).primaryColor,
                             ),
                             onPressed: () {
@@ -980,10 +996,13 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                           border: border,
                           enabledBorder: border,
                           focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
                         ),
                         validator: (value) {
-                          if (value != null && value.isNotEmpty && value.length < 6) {
+                          if (value != null &&
+                              value.isNotEmpty &&
+                              value.length < 6) {
                             return 'Şifre en az 6 karakter olmalı';
                           }
                           return null;
@@ -998,12 +1017,15 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                         style: const TextStyle(fontSize: 16),
                         decoration: InputDecoration(
                           labelText: 'Şifre Tekrar',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
+                          labelStyle:
+                              TextStyle(color: Theme.of(context).primaryColor),
                           hintText: 'Şifreyi tekrar girin',
                           hintStyle: TextStyle(color: Colors.grey[400]),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              _obscureConfirm
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
                               color: Theme.of(context).primaryColor,
                             ),
                             onPressed: () {
@@ -1017,7 +1039,8 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                           border: border,
                           enabledBorder: border,
                           focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
                         ),
                         validator: (value) {
                           if (_passwordController.text.isNotEmpty &&
@@ -1052,330 +1075,48 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Kişisel Bilgiler
-              _buildSettingCard(
-                icon: Icons.person_outline_rounded,
-                title: 'Kişisel Bilgiler',
-                isExpanded: _kisiselBilgilerAcik,
-                badge: '${_calculateCompletionPercentage()}% ${_calculateCompletionPercentage() == 100 ? '✅' : '😔'}',
-                onTap: () {
-                  setState(() {
-                    _kisiselBilgilerAcik = !_kisiselBilgilerAcik;
-                  });
-                },
-                child: Form(
-                  key: _kisiselBilgilerFormKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Doğum Tarihi
-                      TextFormField(
-                        controller: _dogumTarihiController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Doğum Tarihi',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                          hintText: 'GG.AA.YYYY',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(Icons.calendar_today, color: Theme.of(context).primaryColor),
-                          suffixIcon: Icon(Icons.arrow_drop_down, color: Theme.of(context).primaryColor),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: border,
-                          enabledBorder: border,
-                          focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                        onTap: () => _selectDate(context, 'dogum'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Doğum tarihi seçiniz';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Cinsiyet (SSK emeklilik yaşı için gerekli)
-                      TextFormField(
-                        controller: _cinsiyetController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Cinsiyet',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                          hintText: 'Seçiniz',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(Icons.person_outline_rounded, color: Theme.of(context).primaryColor),
-                          suffixIcon: Icon(Icons.arrow_drop_down, color: Theme.of(context).primaryColor),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: border,
-                          enabledBorder: border,
-                          focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                        onTap: () => _selectCinsiyet(context),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Cinsiyet seçiniz';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // İlk İşe Giriş Tarihi
-                      TextFormField(
-                        controller: _ilkIseGirisTarihiController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'İlk İşe Giriş Tarihi',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                          hintText: 'GG.AA.YYYY',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(Icons.work_outline, color: Theme.of(context).primaryColor),
-                          suffixIcon: Icon(Icons.arrow_drop_down, color: Theme.of(context).primaryColor),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: border,
-                          enabledBorder: border,
-                          focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                        onTap: () => _selectDate(context, 'ilkIseGiris'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'İlk işe giriş tarihi seçiniz';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Toplam Prim Gün Sayısı
-                      TextFormField(
-                        controller: _toplamPrimGunController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Toplam Prim Gün Sayısı',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                          hintText: 'Örn: 6500',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(Icons.calendar_view_day, color: Theme.of(context).primaryColor),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: border,
-                          enabledBorder: border,
-                          focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Prim gün sayısı giriniz';
-                          }
-                          if (int.tryParse(value) == null) {
-                            return 'Geçerli bir sayı giriniz';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Mevcut İşyeri Başlangıç Tarihi
-                      TextFormField(
-                        controller: _mevcutIsyeriBaslangicController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Mevcut İşyeri Başlangıç Tarihi',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                          hintText: 'GG.AA.YYYY',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(Icons.business, color: Theme.of(context).primaryColor),
-                          suffixIcon: Icon(Icons.arrow_drop_down, color: Theme.of(context).primaryColor),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: border,
-                          enabledBorder: border,
-                          focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                        onTap: () => _selectDate(context, 'mevcutIsyeri'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Mevcut işyeri başlangıç tarihi seçiniz';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Güncel Brüt Maaş (brütten nete ile aynı format: 50.000,00)
-                      TextFormField(
-                        controller: _guncelBrutMaasController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
-                        decoration: InputDecoration(
-                          labelText: 'Güncel Brüt Maaş (TL)',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                          hintText: 'Örn: 50.000,00',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(Icons.attach_money, color: Theme.of(context).primaryColor),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: border,
-                          enabledBorder: border,
-                          focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                        onEditingComplete: () {
-                          if (_guncelBrutMaasController.text.trim().isNotEmpty) {
-                            final val = _parseBrutMaas(_guncelBrutMaasController.text);
-                            if (val > 0) {
-                              _guncelBrutMaasController.text = _formatBrutMaas(val);
-                            }
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Güncel brüt maaş giriniz';
-                          }
-                          final parsed = _parseBrutMaas(value);
-                          if (parsed <= 0) {
-                            return 'Geçerli bir tutar giriniz';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Sigorta Kolu (Sadece 4/a SSK, değiştirilemez)
-                      TextFormField(
-                        initialValue: '4/a (SSK)',
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Sigorta Kolu',
-                          labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                          hintText: '4/a (SSK)',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: Icon(Icons.shield_outlined, color: Theme.of(context).primaryColor),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: border,
-                          enabledBorder: border,
-                          focusedBorder: focusedBorder,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          helperText: 'Uygulama şu anda sadece 4/a (SSK) çalışanları için hizmet vermektedir.',
-                          helperStyle: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      // Kaydet Butonu
+                      const SizedBox(height: 10),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                          onPressed: _saveKisiselBilgiler,
-                          child: const Text(
-                            'Bilgilerimi Kaydet',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      // Bilgilerimi Sıfırla Butonu
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
                             foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: _resetKisiselBilgiler,
-                          child: const Text(
-                            'Bilgilerimi Sıfırla',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          onPressed: _deleteAccount,
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text(
+                            'Hesabı Sil',
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-
-              // Diğer Ayarlar
-              _buildSettingCard(
-                icon: Icons.settings_outlined,
-                title: 'Diğer Ayarlar',
-                isExpanded: _digerAyarlarAcik,
-                onTap: () {
-                  setState(() {
-                    _digerAyarlarAcik = !_digerAyarlarAcik;
-                  });
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildMenuItem(
-                      icon: Icons.notifications_outlined,
-                      title: 'Bildirim Ayarları',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Bildirim ayarları yakında eklenecek')),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: themeColor.withOpacity(0.2)),
-                    _buildMenuItem(
-                      icon: Icons.accessibility_new,
-                      title: 'Tema Ayarları',
-                      subtitle: 'Yazı boyutu ve tema',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TemaAyarlariEkrani(),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: themeColor.withOpacity(0.2)),
-                    _buildMenuItem(
-                      icon: Icons.delete_outline,
-                      title: 'Hesabı Sil',
-                      textColor: Colors.red,
-                      onTap: _deleteAccount,
-                    ),
-                  ],
-                ),
+                trailing: [
+                  _buildMenuItem(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'Bildirim Tercihleri',
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const BildirimTercihleriEkrani())),
+                  ),
+                  Divider(height: 1, color: AppDesign.activeBorder),
+                  _buildMenuItem(
+                    icon: Icons.emoji_events_outlined,
+                    title: 'İlerlemem ve Kazanımlarım',
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const IlerlemeEkrani())),
+                  ),
+                ],
               ),
             ],
           ),
         ),
-      );
+      )),
+    );
   }
 }

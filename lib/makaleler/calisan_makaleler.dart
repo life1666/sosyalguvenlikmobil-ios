@@ -3,8 +3,7 @@ import 'makale.dart';
 final List<Makale> calisanMakaleler = [
   Makale(
     title: "İşsizlik Ödeneği Uygulaması ve Başvuru Şartları",
-    content:
-    "1. Yasal Dayanak\n"
+    content: "1. Yasal Dayanak\n"
         "İşsizlik ödeneği, 4447 sayılı İşsizlik Sigortası Kanunu kapsamında, sigortalı işsizlerin işsiz kaldıkları dönemde belirli şartlarla ekonomik destek almasını sağlayan bir sosyal güvenlik uygulamasıdır. Ödeneğin yürütülmesi Türkiye İş Kurumu (İŞKUR) tarafından sağlanır.\n"
         "2. İşsizlik Ödeneğine Hak Kazanma Şartları\n"
         "İşsizlik ödeneğinden yararlanmak için işçinin aşağıdaki koşulları sağlaması gerekir:\n"
@@ -36,8 +35,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "Kıdem Tazminatı Uygulaması ve Güncel Düzenlemeler",
-    content:
-    "1. Yasal Dayanak\n"
+    content: "1. Yasal Dayanak\n"
         "Kıdem tazminatı, işçilerin hizmet süresi boyunca edindikleri hakların korunmasını amaçlayan önemli bir iş hukuku kurumudur. Bu uygulama, 4857 sayılı İş Kanunu’nun ilgili hükümleriyle birlikte halen yürürlükte bulunan 1475 sayılı İş Kanunu’nun 14. maddesine dayanılarak yürütülmektedir. Bu maddede kıdem tazminatına hak kazanma ve ödeme koşulları detaylı olarak düzenlenmiştir.\n"
         "2. Hak Kazanma Şartları\n"
         "İşçinin kıdem tazminatına hak kazanabilmesi için bazı temel şartların sağlanması gerekir:\n"
@@ -57,8 +55,8 @@ final List<Makale> calisanMakaleler = [
         "• Vergilendirme: Kıdem tazminatından yalnızca damga vergisi kesilir. Bu vergi, brüt tazminat tutarının binde 7,59’u oranındadır. Gelir vergisinden ise muaf tutulur.\n"
         "4. Dijital Hesaplama Kolaylığı\n"
         "Kıdem tazminatı hesaplamaları, Sosyal Güvenlik Mobil uygulamamız üzerinden kolaylıkla yapılabilmektedir. Bu sayede çalışanlar, tahmini tazminat tutarlarını hızlıca öğrenebilirler.\n"
-        "5. 2025 Yılı Tavan Tutarı\n"
-        "Hazine ve Maliye Bakanlığı tarafından belirlenen kıdem tazminatı tavanı, 2025 yılı için 46.655,43 TL olarak açıklanmıştır. Bu tutar, işçinin maaşı ne kadar yüksek olursa olsun, her bir hizmet yılı için ödenecek azami kıdem tazminatını ifade eder. İşveren isterse bu sınırın üzerinde ödeme yapabilir; ancak fazladan ödenen kısım gelir vergisine tabi olur.\n"
+        "5. 2026 Yılı Tavan Tutarı\n"
+        "Kıdem tazminatı yıllık tavanı 1 Ocak-30 Haziran 2026 dönemi için 64.948,77 TL, 1 Temmuz-31 Aralık 2026 dönemi için 73.729,87 TL olarak belirlenmiştir. Fesih tarihinde geçerli tutar, her bir hizmet yılı için hesaplamaya esas alınabilecek azami ücreti ifade eder.\n"
         "6. Zamanaşımı Süresi\n"
         "Kıdem tazminatına ilişkin dava açma süresi, iş sözleşmesinin sona ermesinden itibaren beş yıldır. Bu sürenin geçirilmesi hâlinde yasal yollara başvurma hakkı ortadan kalkar.\n"
         "7. Sonuç\n"
@@ -67,8 +65,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "Yıllık Ücretli İzin Hakkı",
-    content:
-    "1. Yasal Dayanak ve Temel İlkeler\n"
+    content: "1. Yasal Dayanak ve Temel İlkeler\n"
         "Yıllık ücretli izin, çalışanların dinlenme hakkını korumaya yönelik anayasal ve yasal bir haktır. Türkiye’de bu hak, 4857 sayılı İş Kanunu’nun 53 ila 61. maddeleri ile Yıllık Ücretli İzin Yönetmeliği kapsamında düzenlenir. Bu düzenlemeler, işçinin dinlenmesini sağlayarak verimliliğini artırmayı ve sağlığını korumayı amaçlar.\n"
         "2. İzne Hak Kazanma Şartları\n"
         "Bir işçinin yıllık ücretli izne hak kazanabilmesi için aynı işverene bağlı olarak en az bir yıl çalışmış olması gerekir. Bu süreye deneme süresi de dahildir. İşçinin aynı işverene ait farklı işyerlerinde geçen hizmet süreleri birleştirilir. Ancak bir yıldan az süren mevsimlik işler bu hakkın dışında tutulur.\n"
@@ -94,8 +91,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "İş Güvenliği ve Çalışan Hakları",
-    content:
-    "1. Tanım ve Hukuki Dayanak\n"
+    content: "1. Tanım ve Hukuki Dayanak\n"
         "İş güvenliği, çalışanların sağlığını korumak, iş kazalarını ve meslek hastalıklarını önlemek amacıyla alınan önlemler bütünüdür. Türkiye’de iş güvenliği, 6331 sayılı İş Sağlığı ve Güvenliği Kanunu ile düzenlenmiştir. Bu kanun, tüm çalışanlara eşit biçimde uygulanır ve hem kamu hem özel sektör işyerlerini kapsar. Ayrıca 4857 sayılı İş Kanunu, işverenin çalışanların sağlığını ve güvenliğini sağlama yükümlülüğünü açıkça belirtir.\n"
         "2. İşverenin Yükümlülükleri\n"
         "İşverenin iş güvenliği kapsamında başlıca yükümlülükleri şunlardır:\n"
@@ -136,8 +132,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "Geçici İş Göremezlik Ödeneği",
-    content:
-    "1. Tanım ve Yasal Dayanak\n"
+    content: "1. Tanım ve Yasal Dayanak\n"
         "Geçici iş göremezlik ödeneği, sigortalı bir çalışanın iş kazası, meslek hastalığı, hastalık veya analık gibi nedenlerle çalışamayacak durumda olması halinde, Sosyal Güvenlik Kurumu tarafından geçici süreyle yapılan ödemedir. Bu ödenek, 5510 sayılı Sosyal Sigortalar ve Genel Sağlık Sigortası Kanunu kapsamında sağlanmakta olup, kısa vadeli sigorta kolları arasında yer alır. Uygulama, çalışanın gelir kaybını telafi etmeyi ve tedavi sürecini desteklemeyi amaçlar.\n"
         "2. Yararlanma Koşulları\n"
         "Geçici iş göremezlik ödeneğinden faydalanmak için öncelikle sağlık kuruluşu tarafından düzenlenen istirahat raporunun SGK sistemine girilmiş olması gerekir. Ödeneğin bağlanması için şu şartlar aranır:\n"
@@ -167,8 +162,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "Mobbing ve Çalışan Hakları",
-    content:
-    "1. Tanım ve Hukuki Dayanak\n"
+    content: "1. Tanım ve Hukuki Dayanak\n"
         "Mobbing, işyerinde bir çalışanın sistematik biçimde yıldırılması, dışlanması, küçümsenmesi veya psikolojik baskıya maruz bırakılması şeklinde tanımlanır. Bu durum, çalışanların hem ruhsal hem de fiziksel sağlığını olumsuz etkileyebilir. Türkiye’de mobbing doğrudan tanımlanmasa da çeşitli kanunlar çerçevesinde korunmaktadır. 4857 sayılı İş Kanunu, 6098 sayılı Türk Borçlar Kanunu ve 5237 sayılı Türk Ceza Kanunu’nda yer alan hükümler mobbinge karşı koruma sağlar. Ayrıca 2025 yılında yayımlanan 2025/3 sayılı Cumhurbaşkanlığı Genelgesi, işyerlerinde psikolojik tacizin önlenmesine yönelik çerçeveyi güncellemiştir.\n"
         "2. Mobbing Davranışları\n"
         "Mobbing, tekil bir davranıştan çok, süreklilik gösteren ve sistemli hale gelen eylemlerle tanımlanır. Bu kapsamda:\n"
@@ -210,8 +204,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "İhbar Tazminatı Uygulaması",
-    content:
-    "1. Yasal Dayanak ve Tanım\n"
+    content: "1. Yasal Dayanak ve Tanım\n"
         "İhbar tazminatı, 4857 sayılı İş Kanunu’nun 17. maddesi uyarınca düzenlenen ve işverenin iş sözleşmesini sona erdirirken riayet etmesi gereken yasal bir yükümlülüktür. Belirsiz süreli iş sözleşmelerinin feshinde taraflardan biri, sözleşmeyi sona erdirmeden önce diğer tarafa bildirimde bulunmalı; aksi hâlde ihbar tazminatı ödenmelidir.\n"
         "2. İhbar Süreleri\n"
         "İhbar süresi, işçinin işyerindeki kıdemine göre belirlenir:\n"
@@ -244,8 +237,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "Asgari Ücret ve Sosyal Haklar",
-    content:
-    "1. Tanım ve Hukuki Dayanak\n"
+    content: "1. Tanım ve Hukuki Dayanak\n"
         "Asgari ücret, bir işçiye yasalarca belirlenen en düşük aylık veya günlük çalışma ücreti olup, temel geçim düzeyini karşılamayı hedefler. Türkiye’de asgari ücret, 4857 sayılı İş Kanunu ve 2004 yılında yürürlüğe giren Asgari Ücret Yönetmeliği çerçevesinde düzenlenmektedir. Ücreti belirleme yetkisi Asgari Ücret Tespit Komisyonu’na aittir. Bu komisyon, işçi, işveren ve devlet temsilcilerinden oluşur ve yılda en az bir kez toplanarak yeni tutarı belirler.\n"
         "2. Asgari Ücretin Bileşenleri ve Uygulama Şekli\n"
         "Asgari ücret brüt ve net olarak belirlenir. Brüt tutar; gelir vergisi, damga vergisi ve sigorta prim kesintileri yapılmadan önceki miktarı ifade eder. Net tutar ise bu kesintiler yapıldıktan sonra çalışanın eline geçen gerçek maaştır. 2025 yılı itibarıyla net asgari ücret 22.104,67 TL, brüt asgari ücret ise 26.005,50 TL olarak belirlenmiştir. Günlük brüt asgari ücret 866,85 TL, günlük net asgari ücret ise 736,82 TL’dir.\n"
@@ -278,8 +270,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "Analık Sigortası ve Haklar",
-    content:
-    "1. Tanım ve Yasal Dayanak\n"
+    content: "1. Tanım ve Yasal Dayanak\n"
         "Analık sigortası, kadın çalışanların gebelik ve doğum dönemlerinde maddi ve sosyal güvence sağlayan bir sosyal sigorta türüdür. 5510 sayılı Sosyal Sigortalar ve Genel Sağlık Sigortası Kanunu’na göre; hizmet akdine tabi çalışan kadınlar, kendi nam ve hesabına çalışanlar ve sigortalı erkeğin sigortalı olmayan eşi analık sigortasından yararlanabilir. Analık hali; gebeliğin başladığı tarihten itibaren doğum sonrası ilk 8 hafta (çoğul gebelikte 10 hafta) süreyi kapsar. Bu kapsam, annenin hem kendisinin hem de bebeğinin sağlığını güvence altına almak için düzenlenmiştir.\n"
         "2. Analık Hali ve Geçici İş Göremezlik Ödeneği\n"
         "Hizmet akdine tabi ya da kendi nam ve hesabına çalışan kadınlar, analık hali nedeniyle geçici iş göremezlik ödeneği alma hakkına sahiptir. Bu ödenekten faydalanmak için doğumdan önceki 1 yıl içinde en az 90 gün kısa vadeli sigorta primi ödenmiş olmalıdır.\n"
@@ -310,8 +301,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "Fazla Mesai Ücreti",
-    content:
-    "1. Yasal Dayanak ve Tanım\n"
+    content: "1. Yasal Dayanak ve Tanım\n"
         "Fazla mesai, 4857 sayılı İş Kanunu’nun 41. maddesi uyarınca, haftalık 45 saati aşan çalışmalar olarak tanımlanır. Bu süreyi aşan her çalışma, fazla çalışma (fazla mesai) olarak kabul edilir ve işçiye ek ücret ödenmesini gerektirir. İşçinin fazla mesai yapabilmesi için yazılı onayı alınmalıdır.\n"
         "2. Fazla Mesai ve Fazla Sürelerle Çalışma Ayrımı\n"
         "Eğer iş sözleşmesinde haftalık çalışma süresi 45 saatin altında belirlenmişse (örneğin 40 saat), 45 saate kadar yapılan ek çalışmalar “fazla sürelerle çalışma” olarak adlandırılır. Bu tür çalışmalar için işçiye, normal saatlik ücretinin %25 fazlası ödenir. 45 saati aşan çalışmalar ise “fazla mesai” olarak kabul edilir ve %50 zamlı ücretle ödenir.\n"
@@ -338,8 +328,7 @@ final List<Makale> calisanMakaleler = [
   ),
   Makale(
     title: "Sürekli İş Göremezlik Geliri",
-    content:
-    "1. Tanım ve Yasal Dayanak\n"
+    content: "1. Tanım ve Yasal Dayanak\n"
         "Sürekli iş göremezlik geliri, iş kazası veya meslek hastalığı nedeniyle meslekte kazanma gücünü en az %10 oranında kaybeden sigortalılara bağlanan sürekli ve düzenli ödemedir. 5510 sayılı Sosyal Sigortalar ve Genel Sağlık Sigortası Kanunu’nun 19. ve 20. maddeleri kapsamında düzenlenmiştir. Bu gelir, çalışanın kalıcı gelir kaybını telafi etmek amacıyla sağlanır ve yaşamını sürdürebilmesine destek olur.\n"
         "2. Gelir Bağlanma Koşulları\n"
         "Sürekli iş göremezlik geliri bağlanabilmesi için şu şartların sağlanması gerekir:\n"

@@ -1,11 +1,13 @@
 // UI'dan bağımsız, saf hesap modülü. (Kuruş/int motor + 2026 uyumlu)
 
 enum EmployeeStatus { normal, sgdp } // SGDP = Emekli/SGDP kapsamında çalışan
+
 enum Incentive { none, twoPoints, fourPoints, fivePoints }
 
 class TaxBrackets {
   /// TL cinsinden dilimler (kümülatif matrah)
   final List<double> brackets;
+
   /// oranlar (0.15 gibi)
   final List<double> rates;
   const TaxBrackets(this.brackets, this.rates);
@@ -85,8 +87,10 @@ class YearResult {
       months.fold(0.0, (p, m) => p + m.stampTaxBeforeExempt);
   double get totalStampTaxExemption =>
       months.fold(0.0, (p, m) => p + m.stampTaxExemption);
-  double get totalEmployerCost => months.fold(0.0, (p, m) => p + m.employerCost);
-  double get lastCumulativeTaxBase => months.isEmpty ? 0.0 : months.last.cumulativeTaxBase;
+  double get totalEmployerCost =>
+      months.fold(0.0, (p, m) => p + m.employerCost);
+  double get lastCumulativeTaxBase =>
+      months.isEmpty ? 0.0 : months.last.cumulativeTaxBase;
 }
 
 /// Hesap makinesi (KURUŞ/INT motor)
@@ -138,31 +142,37 @@ class SalaryEngine {
     stampTaxRate = 0.00759;
 
     if (year == 2022) {
-      tax = TaxBrackets([32000, 70000, 250000, 880000], [0.15, 0.20, 0.27, 0.35, 0.40]);
+      tax = TaxBrackets(
+          [32000, 70000, 250000, 880000], [0.15, 0.20, 0.27, 0.35, 0.40]);
     } else if (year == 2023) {
-      tax = TaxBrackets([70000, 150000, 550000, 1900000], [0.15, 0.20, 0.27, 0.35, 0.40]);
+      tax = TaxBrackets(
+          [70000, 150000, 550000, 1900000], [0.15, 0.20, 0.27, 0.35, 0.40]);
     } else if (year == 2024) {
-      tax = TaxBrackets([110000, 230000, 870000, 3000000], [0.15, 0.20, 0.27, 0.35, 0.40]);
+      tax = TaxBrackets(
+          [110000, 230000, 870000, 3000000], [0.15, 0.20, 0.27, 0.35, 0.40]);
     } else if (year == 2025) {
-      tax = TaxBrackets([158000, 330000, 1200000, 4300000], [0.15, 0.20, 0.27, 0.35, 0.40]);
+      tax = TaxBrackets(
+          [158000, 330000, 1200000, 4300000], [0.15, 0.20, 0.27, 0.35, 0.40]);
     } else if (year == 2026) {
       // ✅ 2026
-      tax = TaxBrackets([190000, 400000, 1500000, 5300000], [0.15, 0.20, 0.27, 0.35, 0.40]);
+      tax = TaxBrackets(
+          [190000, 400000, 1500000, 5300000], [0.15, 0.20, 0.27, 0.35, 0.40]);
     } else {
       // fallback
-      tax = TaxBrackets([190000, 400000, 1500000, 5300000], [0.15, 0.20, 0.27, 0.35, 0.40]);
+      tax = TaxBrackets(
+          [190000, 400000, 1500000, 5300000], [0.15, 0.20, 0.27, 0.35, 0.40]);
     }
   }
 
   // Aylık kısa vadeli prim ek oranı ve 2024 SGDP istisnası
   double _monthlyEmployerRate(int monthIndex) {
     final m = monthIndex; // 0..11
-    double shortTerm = (year < 2024 || (year == 2024 && m < 7)) ? 0.02 : 0.0225;
+    double shortTerm = (year < 2024 || (year == 2024 && m < 8)) ? 0.02 : 0.0225;
     double base = sgkEmployerBaseRate + shortTerm;
 
     // 2024 SGDP özel
     if (status == EmployeeStatus.sgdp && year == 2024) {
-      base = (m < 7) ? 0.245 : 0.2475;
+      base = (m < 8) ? 0.245 : 0.2475;
     }
 
     double incentiveCut = 0.0;
@@ -294,7 +304,9 @@ class SalaryEngine {
 
     // ✅ Uygulanan istisna = min(istisna, istisna öncesi vergi)
     final rawExemptionK = _toKurus(_incomeTaxExemptionAmount(monthIndex));
-    final appliedExemptionK = rawExemptionK > taxBeforeExemptionK ? taxBeforeExemptionK : rawExemptionK;
+    final appliedExemptionK = rawExemptionK > taxBeforeExemptionK
+        ? taxBeforeExemptionK
+        : rawExemptionK;
 
     int monthlyTaxK = taxBeforeExemptionK - appliedExemptionK;
     if (monthlyTaxK < 0) monthlyTaxK = 0;
@@ -359,7 +371,8 @@ class SalaryEngine {
 
     final employerCostK = grossK + sgkEmployerK + unempEmployerK;
 
-    final bracketPercent = _incomeTaxBracketPercentFromCumulativeK(cumulativeThisK);
+    final bracketPercent =
+        _incomeTaxBracketPercentFromCumulativeK(cumulativeThisK);
     return MonthResult(
       year: year,
       monthIndex: monthIndex,
@@ -370,7 +383,8 @@ class SalaryEngine {
       sgkEmployer: _round2(_fromKurus(sgkEmployerK)),
       unemploymentEmployer: _round2(_fromKurus(unempEmployerK)),
       incomeTax: _round2(_fromKurus(taxPack['taxK']!)),
-      incomeTaxBeforeExempt: _round2(_fromKurus(taxPack['taxBeforeExemptionK']!)),
+      incomeTaxBeforeExempt:
+          _round2(_fromKurus(taxPack['taxBeforeExemptionK']!)),
       incomeTaxExemption: _round2(_fromKurus(taxPack['exemptionK']!)),
       cumulativeTaxBase: _round2(_fromKurus(cumulativeThisK)),
       incomeTaxBracketPercent: bracketPercent,
@@ -479,6 +493,7 @@ class SalaryEngine {
   }
 
   // Saatlik oran yard.
-  static double hourlyFromMonthlyGross(double grossMonthly) => grossMonthly / 225.0;
+  static double hourlyFromMonthlyGross(double grossMonthly) =>
+      grossMonthly / 225.0;
   static double hourlyFromMonthlyNet(double netMonthly) => netMonthly / 225.0;
 }

@@ -1,3 +1,4 @@
+import '../utils/app_design.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -6,14 +7,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../makaleler/makale.dart';
 import 'hesaplamalar_ekrani.dart';
 import 'yanmenu/hesabim_ekrani.dart';
+import 'yanmenu/calisma_bilgilerim.dart';
 import 'yanmenu/iletisim_ekrani.dart';
 import 'yanmenu/sozlesme_ekrani.dart';
 import 'yanmenu/kvkk_ekrani.dart';
+import 'yanmenu/tema_ayarlari.dart';
 import '../../cv/cv_olustur.dart';
 import '../../sozluk/sozluk.dart';
 import '../../sonhesaplama/sonhesaplama.dart';
@@ -29,6 +31,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../hesaplamalar/4a_hesapla.dart';
 import '../../hesaplamalar/4b_hesapla.dart';
 import '../../hesaplamalar/4c_hesapla.dart';
+import '../../hesaplamalar/emeklilik_hesaplama.dart';
 import '../../hesaplamalar/askerlik_dogum.dart';
 import '../../hesaplamalar/kidem_hesap.dart';
 import '../../hesaplamalar/kidem_alabilir.dart';
@@ -39,6 +42,17 @@ import '../../hesaplamalar/netten_brute.dart';
 import '../../hesaplamalar/asgari_iscilik.dart';
 import '../../hesaplamalar/yillik_izin.dart';
 import 'calisma_hayatim.dart';
+import 'calisma_araclari.dart';
+import 'topluluk_ekrani.dart';
+import 'premium_ekrani.dart';
+import 'premium_feature_gate.dart';
+import 'ilerleme_ekrani.dart';
+import 'admin/topluluk_moderasyon_ekrani.dart';
+import '../utils/progress_service.dart';
+import '../services/community_in_app_notification_service.dart';
+import '../services/premium_access_service.dart';
+import '../services/personal_profile_store.dart';
+import '../services/notification_service.dart';
 
 // ==================== MODELS ====================
 class FeatureItem {
@@ -47,6 +61,7 @@ class FeatureItem {
   final IconData icon;
   final VoidCallback? onTap;
   final Color? color;
+  final bool isFree;
   final bool hasSubItems;
   final List<FeatureItem>? subItems;
   const FeatureItem({
@@ -55,6 +70,7 @@ class FeatureItem {
     required this.icon,
     this.onTap,
     this.color,
+    this.isFree = false,
     this.hasSubItems = false,
     this.subItems,
   });
@@ -79,15 +95,27 @@ class Category {
 
 // Öne Çıkanlar: Firebase'den en çok kullanılanları göstermek için feature id -> bilgi
 const Map<String, Map<String, dynamic>> _kOneCikanlarFeatureInfo = {
-  'emeklilik_4a': {'title': 'Emeklilik Hesaplama', 'icon': Icons.calculate_outlined},
+  'emeklilik_4a': {
+    'title': 'Emeklilik Hesaplama',
+    'icon': Icons.calculate_outlined
+  },
   'cv_olustur': {'title': 'CV Oluştur', 'icon': Icons.description_outlined},
-  'kidem_ihbar': {'title': 'Kıdem Tazminatı Hesaplama', 'icon': Icons.receipt_long_outlined},
+  'kidem_ihbar': {
+    'title': 'Kıdem Tazminatı Hesaplama',
+    'icon': Icons.receipt_long_outlined
+  },
   'issizlik': {'title': 'İşsizlik Maaşı Hesaplama', 'icon': Icons.work_outline},
-  'borclanma': {'title': 'Borçlanma Hesaplama', 'icon': Icons.account_balance_outlined},
+  'borclanma': {
+    'title': 'Borçlanma Hesaplama',
+    'icon': Icons.account_balance_outlined
+  },
   'rapor': {'title': 'Rapor Parası', 'icon': Icons.local_hospital_outlined},
   'brutten_nete': {'title': 'Brütten Nete', 'icon': Icons.swap_horiz_outlined},
   'netten_brute': {'title': 'Netten Brüte', 'icon': Icons.swap_horiz_outlined},
-  'kidem_alabilir': {'title': 'Kıdem Alabilir mi?', 'icon': Icons.check_circle_outline},
+  'kidem_alabilir': {
+    'title': 'Kıdem Alabilir mi?',
+    'icon': Icons.check_circle_outline
+  },
   'emeklilik_4b': {'title': '4/b Emeklilik', 'icon': Icons.calculate_outlined},
   'emeklilik_4c': {'title': '4/c Emeklilik', 'icon': Icons.calculate_outlined},
   'yillik_izin': {'title': 'Yıllık İzin', 'icon': Icons.beach_access_outlined},
@@ -96,10 +124,26 @@ const Map<String, Map<String, dynamic>> _kOneCikanlarFeatureInfo = {
 
 List<Map<String, dynamic>> _defaultOneCikanlarItems() {
   return [
-    {'title': 'Emeklilik Hesaplama', 'screen': 'emeklilik_4a', 'icon': Icons.calculate_outlined},
-    {'title': 'İşsizlik Maaşı Hesaplama', 'screen': 'issizlik', 'icon': Icons.work_outline},
-    {'title': 'Borçlanma Hesaplama', 'screen': 'borclanma', 'icon': Icons.account_balance_outlined},
-    {'title': 'Kıdem Tazminatı Hesaplama', 'screen': 'kidem_ihbar', 'icon': Icons.receipt_long_outlined},
+    {
+      'title': 'Emeklilik Hesaplama',
+      'screen': 'emeklilik_4a',
+      'icon': Icons.calculate_outlined
+    },
+    {
+      'title': 'İşsizlik Maaşı Hesaplama',
+      'screen': 'issizlik',
+      'icon': Icons.work_outline
+    },
+    {
+      'title': 'Borçlanma Hesaplama',
+      'screen': 'borclanma',
+      'icon': Icons.account_balance_outlined
+    },
+    {
+      'title': 'Kıdem Tazminatı Hesaplama',
+      'screen': 'kidem_ihbar',
+      'icon': Icons.receipt_long_outlined
+    },
   ];
 }
 
@@ -116,11 +160,12 @@ class _AnaEkranState extends State<AnaEkran> {
   bool _showDisclaimer = false;
   int _mesajSayisi = 0;
   StreamSubscription<QuerySnapshot>? _mesajStreamSubscription;
+  StreamSubscription<User?>? _authSubscription;
   List<Map<String, dynamic>> _sonKullanilanlar = [];
-  bool _isPremium = false;
   List<Map<String, dynamic>>? _oneCikanlarItems;
 
   final _firestore = FirebaseFirestore.instance;
+  final _communityNotifications = CommunityInAppNotificationService();
   static const String _featureUsageCollection = 'feature_usage';
   final String adminUID = 'yicHOHSjaPXH6sLwyc48ulCnai32';
   final String mevzuatUzmaniUID = 'jBEoEbfgjJUHklmfmrJqsrIBETF2';
@@ -134,10 +179,14 @@ class _AnaEkranState extends State<AnaEkran> {
   void initState() {
     super.initState();
     _kullanici = FirebaseAuth.instance.currentUser;
-    FirebaseAuth.instance.authStateChanges().listen((user) {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       if (!mounted) return;
-      setState(() => _kullanici = user);
+      setState(() {
+        _kullanici = user;
+        _refreshKey++;
+      });
       _mesajSayisiniGuncelle();
+      NotificationService.instance.syncFromStoredPreferences();
     });
     _loadAppVersion();
     _mesajSayisiniGuncelle();
@@ -145,6 +194,19 @@ class _AnaEkranState extends State<AnaEkran> {
     _checkAndRequestReview();
     _checkAndShowDisclaimer();
     _loadOneCikanlar();
+    _communityNotifications.start((question) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('“${question.title}” sorunuza yeni yanıt geldi.'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Görüntüle',
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => ToplulukSoruDetayEkrani(questionId: question.id),
+          )),
+        ),
+      ));
+    });
     AnalyticsHelper.logScreenOpen('ana_ekran_opened');
   }
 
@@ -174,7 +236,8 @@ class _AnaEkranState extends State<AnaEkran> {
       }
     } catch (e) {
       if (kDebugMode) debugPrint('Öne çıkanlar yükleme hatası: $e');
-      if (mounted) setState(() => _oneCikanlarItems = _defaultOneCikanlarItems());
+      if (mounted)
+        setState(() => _oneCikanlarItems = _defaultOneCikanlarItems());
     }
   }
 
@@ -191,41 +254,58 @@ class _AnaEkranState extends State<AnaEkran> {
 
   void _onQuickAccessTap(BuildContext context, String screen) {
     _incrementFeatureUsage(screen);
-    AnalyticsHelper.logCustomEvent('quick_access_tapped', parameters: {'feature': screen});
+    AnalyticsHelper.logCustomEvent('quick_access_tapped',
+        parameters: {'feature': screen});
     if (screen == 'emeklilik_4a') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => AllFeaturesScreen(
-            categories: categories,
-            initialExpandTitle: 'Emeklilik Hesaplama',
-          ),
+          builder: (_) => const EmeklilikHesaplamaBirlesik(),
         ),
       );
     } else if (screen == 'kidem_ihbar') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const CompensationCalculatorScreen()));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const CompensationCalculatorScreen()));
     } else if (screen == 'issizlik') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()));
     } else if (screen == 'rapor') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const RaporParasiScreen()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const RaporParasiScreen()));
     } else if (screen == 'brutten_nete') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => SalaryCalculatorScreen()));
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => SalaryCalculatorScreen()));
     } else if (screen == 'cv_olustur') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const CvApp()));
     } else if (screen == 'netten_brute') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const NettenBruteScreen()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const NettenBruteScreen()));
     } else if (screen == 'kidem_alabilir') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const KidemTazminatiScreen()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const KidemTazminatiScreen()));
     } else if (screen == 'emeklilik_4b') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4bSayfasi()));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  const EmeklilikHesaplamaBirlesik(initialIndex: 1)));
     } else if (screen == 'emeklilik_4c') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => EmeklilikHesaplamaSayfasi()));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  const EmeklilikHesaplamaBirlesik(initialIndex: 2)));
     } else if (screen == 'yillik_izin') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const YillikUcretliIzinSayfasi()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const YillikUcretliIzinSayfasi()));
     } else if (screen == 'asgari_ucret') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()));
     } else if (screen == 'borclanma') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const BorclanmaHesaplamaScreen()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const BorclanmaHesaplamaScreen()));
     }
   }
 
@@ -259,13 +339,13 @@ class _AnaEkranState extends State<AnaEkran> {
 
       if (launchCount + 1 >= 3 && !hasRequestedReview) {
         final hesaplamalar = await SonHesaplamalarDeposu.listele();
-        
+
         if (hesaplamalar.isNotEmpty) {
           final InAppReview inAppReview = InAppReview.instance;
-          
+
           if (await inAppReview.isAvailable()) {
             await Future.delayed(const Duration(seconds: 2));
-            
+
             if (mounted) {
               await inAppReview.requestReview();
               await prefs.setBool('has_requested_review', true);
@@ -284,7 +364,8 @@ class _AnaEkranState extends State<AnaEkran> {
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
       setState(() {
-        _sonKullanilanlar = list.map((e) => Map<String, dynamic>.from(e)).toList();
+        _sonKullanilanlar =
+            list.map((e) => Map<String, dynamic>.from(e)).toList();
       });
     } catch (e) {
       setState(() {
@@ -295,7 +376,9 @@ class _AnaEkranState extends State<AnaEkran> {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _mesajStreamSubscription?.cancel();
+    _communityNotifications.dispose();
     super.dispose();
   }
 
@@ -306,7 +389,7 @@ class _AnaEkranState extends State<AnaEkran> {
 
   void _mesajSayisiniGuncelle() {
     _mesajStreamSubscription?.cancel();
-    
+
     if (_kullanici == null) {
       setState(() => _mesajSayisi = 0);
       return;
@@ -347,8 +430,10 @@ class _AnaEkranState extends State<AnaEkran> {
               final response = data['response'] as String?;
               final responses = data['responses'] as List<dynamic>?;
               final read = data['read'] as bool? ?? false;
-              
-              if (!read && ((response != null && response.isNotEmpty) || (responses != null && responses.isNotEmpty))) {
+
+              if (!read &&
+                  ((response != null && response.isNotEmpty) ||
+                      (responses != null && responses.isNotEmpty))) {
                 okunmamisCevap++;
               }
             }
@@ -377,13 +462,13 @@ class _AnaEkranState extends State<AnaEkran> {
 
     try {
       final batch = _firestore.batch();
-      
+
       if (_isAdmin(_kullanici)) {
         final snapshot = await _firestore
             .collection('messages')
             .where('read', isEqualTo: false)
             .get();
-        
+
         for (var doc in snapshot.docs) {
           batch.update(doc.reference, {'read': true});
         }
@@ -392,12 +477,12 @@ class _AnaEkranState extends State<AnaEkran> {
             .collection('messages')
             .where('userId', isEqualTo: _kullanici!.uid)
             .get();
-        
+
         for (var doc in snapshot.docs) {
           batch.update(doc.reference, {'read': true});
         }
       }
-      
+
       await batch.commit();
       await Future.delayed(Duration(milliseconds: 2000));
       if (mounted) {
@@ -410,22 +495,22 @@ class _AnaEkranState extends State<AnaEkran> {
 
   void _showMesajBildirimDialog() {
     AnalyticsHelper.logCustomEvent('notification_bell_tapped');
-    
+
     if (_mesajSayisi == 0) {
       _showModernDialog(
         icon: Icons.notifications_outlined,
         iconColor: const Color(0xFFB0BEC5),
         title: 'Yeni bildirim yok',
         message: 'Henüz yeni mesaj veya cevap bulunmuyor.',
-          actions: [
+        actions: [
           _DialogAction(
             label: 'Tamam',
-              onPressed: () {
-                AnalyticsHelper.logCustomEvent('notification_dialog_closed');
-                Navigator.pop(context);
-              },
-            ),
-          ],
+            onPressed: () {
+              AnalyticsHelper.logCustomEvent('notification_dialog_closed');
+              Navigator.pop(context);
+            },
+          ),
+        ],
       );
       return;
     }
@@ -439,32 +524,32 @@ class _AnaEkranState extends State<AnaEkran> {
       iconColor: Theme.of(context).primaryColor,
       title: 'Yeni Mesaj',
       message: mesaj,
-        actions: [
+      actions: [
         _DialogAction(
           label: 'Kapat',
           isOutlined: true,
-            onPressed: () {
-              AnalyticsHelper.logCustomEvent('notification_dialog_closed');
-              Navigator.pop(context);
-            },
-          ),
+          onPressed: () {
+            AnalyticsHelper.logCustomEvent('notification_dialog_closed');
+            Navigator.pop(context);
+          },
+        ),
         _DialogAction(
           label: 'Mesajları Gör',
-            onPressed: () {
-              AnalyticsHelper.logCustomEvent('notification_dialog_view_messages');
-              Navigator.pop(context);
-              _mesajlariOkunduIsaretle();
-              if (_isAdmin(_kullanici)) {
-                Navigator.pushNamed(context, '/mesajlar');
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => IletisimEkrani()),
-                );
-              }
-            },
-          ),
-        ],
+          onPressed: () {
+            AnalyticsHelper.logCustomEvent('notification_dialog_view_messages');
+            Navigator.pop(context);
+            _mesajlariOkunduIsaretle();
+            if (_isAdmin(_kullanici)) {
+              Navigator.pushNamed(context, '/mesajlar');
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => IletisimEkrani()),
+              );
+            }
+          },
+        ),
+      ],
     );
   }
 
@@ -502,14 +587,6 @@ class _AnaEkranState extends State<AnaEkran> {
     }
   }
 
-  Future<void> _shareApp() async {
-    final shareText = 'Çalışma hayatındaki herkesin cebinde olması gereken uygulamanın Android sürümünü: $playStoreLink, iOS sürümünü $appStoreLink linkinden indirebilirsiniz.';
-    await Share.share(
-      shareText,
-      subject: 'Sosyal Güvenlik Mobil',
-    );
-  }
-
   Future<void> _rateApp() async {
     final url = Platform.isIOS ? appStoreLink : playStoreLink;
     await _launchURL(url);
@@ -526,54 +603,31 @@ class _AnaEkranState extends State<AnaEkran> {
         items: [
           FeatureItem(
             title: 'Emeklilik Hesaplama',
-            subtitle: '4/a, 4/b, 4/c emeklilik hesaplama seçenekleri',
+            subtitle: 'Sigorta statünüzü seçin ve emeklilik hesabınızı yapın',
             icon: Icons.calculate_outlined,
-            hasSubItems: true,
-            subItems: [
-              FeatureItem(
-                title: '4/a (SSK) Emeklilik Hesaplama',
-                icon: Icons.calculate_outlined,
-                onTap: () {
-                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_4a'});
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4aSayfasi()),
-                  );
-                },
-              ),
-              FeatureItem(
-                title: '4/b (Bağ-kur) Emeklilik Hesaplama',
-                icon: Icons.calculate_outlined,
-                onTap: () {
-                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_4b'});
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const EmeklilikHesaplama4bSayfasi()),
-                  );
-                },
-              ),
-              FeatureItem(
-                title: '4/c (Memur) Emeklilik Hesaplama',
-                icon: Icons.calculate_outlined,
-                onTap: () {
-                  AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'emeklilik_4c'});
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => EmeklilikHesaplamaSayfasi()),
-                  );
-                },
-              ),
-            ],
+            isFree: true,
+            onTap: () {
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'emeklilik_hesaplama'});
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const EmeklilikHesaplamaBirlesik()),
+              );
+            },
           ),
           FeatureItem(
             title: 'Kıdem - İhbar Tazminatı Hesaplama',
             subtitle: 'Kıdem ve ihbar tazminatı hesaplama',
             icon: Icons.calculate_outlined,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_ihbar'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'kidem_ihbar'});
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CompensationCalculatorScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const CompensationCalculatorScreen()),
               );
             },
           ),
@@ -581,8 +635,10 @@ class _AnaEkranState extends State<AnaEkran> {
             title: 'SGK\'dan Kıdem Tazminatı Alabilir Yazısı Sorgulama',
             subtitle: 'Kıdem tazminatı sorgulama',
             icon: Icons.search_outlined,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'kidem_alabilir'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'kidem_alabilir'});
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -598,8 +654,10 @@ class _AnaEkranState extends State<AnaEkran> {
             title: 'İşsizlik Maaşı Hesaplama',
             subtitle: 'İşsizlik maaşı hesaplama',
             icon: Icons.work_outline,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'issizlik'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const IsizlikMaasiScreen()),
@@ -611,19 +669,24 @@ class _AnaEkranState extends State<AnaEkran> {
             subtitle: 'İŞKUR başvuru sayfasına yönlendirir',
             icon: Icons.description_outlined,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'issizlik_basvuru'});
-              launchUrl(Uri.parse('https://www.iskur.gov.tr/'), mode: LaunchMode.externalApplication);
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'issizlik_basvuru'});
+              launchUrl(Uri.parse('https://www.iskur.gov.tr/'),
+                  mode: LaunchMode.externalApplication);
             },
           ),
           FeatureItem(
             title: 'SGK Prim Borçlanma Tutarı Hesaplama',
             subtitle: 'Askerlik, doğum ve yurt dışı borçlanma',
             icon: Icons.account_balance_outlined,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'borclanma'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'borclanma'});
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const BorclanmaHesaplamaScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const BorclanmaHesaplamaScreen()),
               );
             },
           ),
@@ -631,8 +694,10 @@ class _AnaEkranState extends State<AnaEkran> {
             title: 'Rapor Parası Hesaplama',
             subtitle: 'Rapor parası hesaplama',
             icon: Icons.local_hospital_outlined,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'rapor'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'rapor'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const RaporParasiScreen()),
@@ -643,8 +708,10 @@ class _AnaEkranState extends State<AnaEkran> {
             title: 'Asgari İşçilik Hesaplama',
             subtitle: 'Asgari işçilik matrahı ve prim hesaplama',
             icon: Icons.handyman_outlined,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'asgari_iscilik'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'asgari_iscilik'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const HesaplamaSayfasi()),
@@ -664,8 +731,10 @@ class _AnaEkranState extends State<AnaEkran> {
             title: 'Brütten Nete Maaş Hesaplama',
             subtitle: 'Brüt maaştan net maaş hesaplama',
             icon: Icons.swap_horiz_outlined,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'brutten_nete'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'brutten_nete'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => SalaryCalculatorScreen()),
@@ -676,8 +745,10 @@ class _AnaEkranState extends State<AnaEkran> {
             title: 'Netten Brüte Maaş Hesaplama',
             subtitle: 'Net maaştan brüt maaş hesaplama',
             icon: Icons.swap_vert_outlined,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'netten_brute'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'netten_brute'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const NettenBruteScreen()),
@@ -689,7 +760,8 @@ class _AnaEkranState extends State<AnaEkran> {
             subtitle: 'Güncel asgari ücret bilgileri',
             icon: Icons.account_balance_wallet_outlined,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'asgari_ucret'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'asgari_ucret'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const AsgariUcretSayfasi()),
@@ -709,11 +781,14 @@ class _AnaEkranState extends State<AnaEkran> {
             title: 'Yıllık İzin Süresi Hesaplama',
             subtitle: 'Yıllık ücretli izin süresi hesaplama',
             icon: Icons.beach_access_outlined,
+            isFree: true,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'yillik_izin'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'yillik_izin'});
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const YillikUcretliIzinSayfasi()),
+                MaterialPageRoute(
+                    builder: (_) => const YillikUcretliIzinSayfasi()),
               );
             },
           ),
@@ -731,7 +806,8 @@ class _AnaEkranState extends State<AnaEkran> {
             subtitle: 'Uzman yazıları ve rehberler',
             icon: Icons.library_books_outlined,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'makaleler'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'makaleler'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MakalelerView()),
@@ -743,7 +819,8 @@ class _AnaEkranState extends State<AnaEkran> {
             subtitle: 'Kanun ve yönetmelikler',
             icon: Icons.gavel_outlined,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'mevzuat'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'mevzuat'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MevzuatSayfasi()),
@@ -755,7 +832,8 @@ class _AnaEkranState extends State<AnaEkran> {
             subtitle: 'Terimler ve açıklamalar',
             icon: Icons.menu_book_outlined,
             onTap: () {
-              AnalyticsHelper.logCustomEvent('feature_tapped', parameters: {'feature': 'sozluk'});
+              AnalyticsHelper.logCustomEvent('feature_tapped',
+                  parameters: {'feature': 'sozluk'});
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SozlukHomePage()),
@@ -770,10 +848,11 @@ class _AnaEkranState extends State<AnaEkran> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      extendBody: true,
+      backgroundColor: AppDesign.activeBackground,
       body: Stack(
         children: [
-          _buildBody(),
+          Builder(builder: _buildBody),
 
           // Modern Sorumluluk Reddi Popup
           if (_showDisclaimer) _buildDisclaimerOverlay(),
@@ -785,14 +864,24 @@ class _AnaEkranState extends State<AnaEkran> {
           setState(() => _selectedIndex = index);
 
           if (index == 0) {
-            _showModernMenu(context);
-          } else if (index == 1) {
             AnalyticsHelper.logCustomEvent('all_features_tapped');
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => AllFeaturesScreen(categories: categories)),
+              MaterialPageRoute(
+                  builder: (_) => AllFeaturesScreen(categories: categories)),
+            );
+          } else if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HaklarimEkrani()),
             );
           } else if (index == 2) {
+            AnalyticsHelper.logCustomEvent('community_opened');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ToplulukEkrani()),
+            );
+          } else if (index == 3) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SonHesaplamalarEkrani()),
@@ -807,12 +896,12 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
     return CustomScrollView(
       slivers: [
         // AppBar: indigo (primaryColor)
         SliverAppBar(
-          backgroundColor: Theme.of(context).primaryColor,
+          backgroundColor: AppDesign.activeBackground,
           elevation: 0,
           floating: true,
           snap: true,
@@ -820,20 +909,42 @@ class _AnaEkranState extends State<AnaEkran> {
           expandedHeight: 56,
           toolbarHeight: 56,
           flexibleSpace: Container(
-            color: Theme.of(context).primaryColor,
+            color: AppDesign.activeBackground,
           ),
-          leading: const SizedBox.shrink(),
-          leadingWidth: 0,
-          title: const Text(
-            'İş & SGK Asistan',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
+          leadingWidth: 58,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 10),
+            child: Center(
+              child: IconButton(
+                tooltip: 'Ayarlar',
+                onPressed: () => _showModernMenu(context),
+                style: IconButton.styleFrom(
+                  foregroundColor: AppDesign.activeInk,
+                  backgroundColor: AppDesign.activeSurface,
+                  side: BorderSide(color: AppDesign.activeBorder),
+                  minimumSize: const Size(42, 42),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.tune_rounded, size: 22),
+              ),
             ),
           ),
-          titleSpacing: 16,
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'İş & Sosyal Güvenlik Mobil',
+              maxLines: 1,
+              style: TextStyle(
+                color: AppDesign.activeInk,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+          titleSpacing: 8,
           centerTitle: false,
           actions: [
             if (_kullanici != null)
@@ -841,9 +952,9 @@ class _AnaEkranState extends State<AnaEkran> {
                 clipBehavior: Clip.none,
                 children: [
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.notifications_none_rounded,
-                      color: Colors.white,
+                      color: AppDesign.activeInk,
                       size: 26,
                     ),
                     onPressed: _showMesajBildirimDialog,
@@ -883,22 +994,24 @@ class _AnaEkranState extends State<AnaEkran> {
                 ],
               ),
             IconButton(
-              icon: _kullanici != null && _kullanici!.email != null && _kullanici!.email!.isNotEmpty
+              icon: _kullanici != null &&
+                      _kullanici!.email != null &&
+                      _kullanici!.email!.isNotEmpty
                   ? CircleAvatar(
                       backgroundColor: Colors.white,
                       radius: 16,
                       child: Text(
                         _kullanici!.email!.trim()[0].toUpperCase(),
                         style: TextStyle(
-                          color: Theme.of(context).primaryColor,
+                          color: AppDesign.ink,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.account_circle_rounded,
-                      color: Colors.white,
+                      color: AppDesign.activeInk,
                       size: 32,
                     ),
               onPressed: () {
@@ -919,88 +1032,95 @@ class _AnaEkranState extends State<AnaEkran> {
           ],
         ),
 
-        // Öne Çıkanlar (Firebase'den en çok kullanılan 3-4 özellik veya varsayılan) — şimdilik kapalı, Çalışma Hayatım yukarı taşınsın
-        // SliverToBoxAdapter(
-        //   child: _ModernQuickAccess(
-        //     items: _oneCikanlarItems ?? _defaultOneCikanlarItems(),
-        //     onTap: _onQuickAccessTap,
-        //   ),
-        // ),
-
-        // Çalışma Hayatım kutusu: indigo kutu arkada, beyaz kutu önde
         SliverToBoxAdapter(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
+          child: AppContent(
+              child: Padding(
+            padding: EdgeInsets.fromLTRB(
+                20, 12, 20, 28 + MediaQuery.of(context).padding.bottom),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
+                  _PersonalGreeting(
+                    key: ValueKey('greeting_$_refreshKey'),
+                    user: _kullanici,
+                    onProgress: () {
+                      if (_kullanici == null) {
+                        Navigator.of(context).pushNamed('/giris').then((_) {
+                          if (mounted) setState(() => _refreshKey++);
+                        });
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const IlerlemeEkrani()),
+                        ).then((_) {
+                          if (mounted) setState(() => _refreshKey++);
+                        });
+                      }
+                    },
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                  const SizedBox(height: 22),
+                  Row(children: [
+                    Expanded(
+                      child: Text('Çalışma hayatım',
+                          style: TextStyle(
+                              color: AppDesign.activeInk,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700)),
                     ),
-                    child: Column(
+                    _ProfileEntryAction(
+                      key: ValueKey('profile_entry_$_refreshKey'),
+                      onPressed: () async {
+                        final saved = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const CalismaBilgilerim()));
+                        if (!mounted) return;
+                        setState(() => _refreshKey++);
+                        if (saved != true) return;
+                        bool hasAccess = false;
+                        try {
+                          hasAccess = (await PremiumAccessService().load())
+                              .canUsePersonalFeatures;
+                        } catch (_) {}
+                        if (!mounted) return;
+                        if (!hasAccess) {
+                          await Navigator.of(context).push<bool>(
+                              MaterialPageRoute(
+                                  builder: (_) => const PremiumEkrani()));
+                          if (mounted) setState(() => _refreshKey++);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Çalışma bilgileriniz kaydedildi.')));
+                        }
+                      },
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  PremiumFeatureGate(
+                    key: ValueKey('premium_home_$_refreshKey'),
+                    title: 'Çalışma hayatım',
+                    embedded: true,
+                    previewBuilder: (context, status, openPremium) => Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 4,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).primaryColor,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Çalışma Hayatım',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1E293B),
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                            ],
-                          ),
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 14),
+                          child: _SampleDataNotice(),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                          child: CalismaHayatimContent(key: ValueKey(_refreshKey)),
+                        CalismaHayatimContent(
+                          key: ValueKey('demo_$_refreshKey'),
+                          demoMode: true,
+                          onPremiumTap: openPremium,
                         ),
                       ],
                     ),
+                    child: CalismaHayatimContent(key: ValueKey(_refreshKey)),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ]),
+          )),
         ),
       ],
     );
@@ -1017,16 +1137,16 @@ class _AnaEkranState extends State<AnaEkran> {
             constraints: BoxConstraints(maxWidth: 400),
             margin: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppDesign.activeSurface,
               borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
+              boxShadow: [
+                BoxShadow(
                   color: Colors.black.withOpacity(0.2),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
+                ),
+              ],
             ),
-          ],
-        ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1047,7 +1167,7 @@ class _AnaEkranState extends State<AnaEkran> {
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppDesign.activeSurface,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -1062,7 +1182,7 @@ class _AnaEkranState extends State<AnaEkran> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1E293B),
+                          color: AppDesign.activeInk,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -1079,7 +1199,7 @@ class _AnaEkranState extends State<AnaEkran> {
                         'Bu uygulama, herhangi bir kamu kurumu, devlet dairesi veya resmi kuruluş tarafından geliştirilmemiştir. SGK, e-Devlet ya da Çalışma ve Sosyal Güvenlik Bakanlığı ile herhangi bir bağlantısı bulunmamaktadır.\n\nUygulama yalnızca bilgi sağlamak amacıyla hazırlanmıştır. Sunulan hesaplamalar resmi belge niteliği taşımaz. Bu nedenle herhangi bir sorumluluk kabul edilmez.',
                         style: TextStyle(
                           fontSize: 15,
-                          color: const Color(0xFF64748B),
+                          color: AppDesign.activeMuted,
                           height: 1.6,
                           fontWeight: FontWeight.w400,
                         ),
@@ -1103,7 +1223,7 @@ class _AnaEkranState extends State<AnaEkran> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
-          elevation: 0,
+                            elevation: 0,
                           ),
                           child: const Text(
                             'Okudum, Anladım',
@@ -1145,7 +1265,7 @@ class _AnaEkranState extends State<AnaEkran> {
         child: Container(
           padding: EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppDesign.activeSurface,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
@@ -1173,7 +1293,7 @@ class _AnaEkranState extends State<AnaEkran> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1E293B),
+                  color: AppDesign.activeInk,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1182,7 +1302,7 @@ class _AnaEkranState extends State<AnaEkran> {
                 message,
                 style: TextStyle(
                   fontSize: 15,
-                  color: const Color(0xFF64748B),
+                  color: AppDesign.activeMuted,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -1195,42 +1315,42 @@ class _AnaEkranState extends State<AnaEkran> {
                     Expanded(
                       child: actions[i].isOutlined
                           ? OutlinedButton(
-                        onPressed: actions[i].onPressed,
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: const Color(0xFFE2E8F0),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text(
-                          actions[i].label,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                      )
+                              onPressed: actions[i].onPressed,
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: AppDesign.activeBorder,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              child: Text(
+                                actions[i].label,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppDesign.activeMuted,
+                                ),
+                              ),
+                            )
                           : ElevatedButton(
-                        onPressed: actions[i].onPressed,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          actions[i].label,
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-            ),
-          ),
-        ],
+                              onPressed: actions[i].onPressed,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).primaryColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                actions[i].label,
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -1248,13 +1368,14 @@ class _AnaEkranState extends State<AnaEkran> {
         builder: (_) => _AyarlarEkrani(
           kullanici: _kullanici,
           isAdmin: _isAdmin(_kullanici),
-          isPremium: _isPremium,
           appVersion: _appVersion,
           adminUIDs: [adminUID, mevzuatUzmaniUID],
           onMenuItemTap: (action) => action(),
           onLaunchURL: _launchURL,
           onRateApp: _rateApp,
-          onShareApp: _shareApp,
+          onShowDisclaimer: () {
+            if (mounted) setState(() => _showDisclaimer = true);
+          },
           onRefresh: () {
             if (mounted) setState(() => _refreshKey++);
           },
@@ -1262,6 +1383,325 @@ class _AnaEkranState extends State<AnaEkran> {
       ),
     );
   }
+}
+
+class _SampleDataNotice extends StatelessWidget {
+  const _SampleDataNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).primaryColor;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: AppDesign.isDark ? .15 : .07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: primary.withValues(alpha: .24)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(Icons.visibility_outlined, color: primary, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ÖRNEK GÖRÜNÜM',
+                  style: TextStyle(
+                      color: primary,
+                      fontSize: 10.5,
+                      letterSpacing: .7,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text('Aşağıdaki bilgiler size ait değildir.',
+                  style: TextStyle(
+                      color: AppDesign.activeInk,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              Text(
+                  'Kendi emeklilik, maaş ve hak takibiniz için Bilgilerimi gir’e dokunun.',
+                  style: TextStyle(
+                      color: AppDesign.activeMuted,
+                      fontSize: 12,
+                      height: 1.35)),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _ProfileEntryAction extends StatefulWidget {
+  const _ProfileEntryAction({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  State<_ProfileEntryAction> createState() => _ProfileEntryActionState();
+}
+
+class _ProfileEntryActionState extends State<_ProfileEntryAction> {
+  late final Future<bool> _hasProfile = PremiumAccessService().hasProfile();
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<bool>(
+        future: _hasProfile,
+        builder: (context, snapshot) {
+          if (snapshot.data != true) {
+            return _AttentionProfileButton(onPressed: widget.onPressed);
+          }
+          return TextButton.icon(
+            onPressed: widget.onPressed,
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).primaryColor,
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.edit_outlined, size: 16),
+            label: const Text('Düzenle',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+          );
+        },
+      );
+}
+
+class _AttentionProfileButton extends StatefulWidget {
+  const _AttentionProfileButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  State<_AttentionProfileButton> createState() =>
+      _AttentionProfileButtonState();
+}
+
+class _AttentionProfileButtonState extends State<_AttentionProfileButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      _pulse.stop();
+      _pulse.value = 0;
+    } else if (!_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).primaryColor;
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, child) {
+        final emphasis = Curves.easeInOut.transform(_pulse.value);
+        return Transform.scale(
+          scale: 1 + .025 * emphasis,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withValues(alpha: .10 + .14 * emphasis),
+                  blurRadius: 7 + 8 * emphasis,
+                  spreadRadius: 1 + 2 * emphasis,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: FilledButton.icon(
+        onPressed: widget.onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(0, 38),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(11)),
+        ),
+        icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+        label: const Text('Bilgilerimi gir',
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
+}
+
+class _PersonalGreeting extends StatelessWidget {
+  final User? user;
+  final VoidCallback onProgress;
+
+  const _PersonalGreeting({
+    super.key,
+    required this.user,
+    required this.onProgress,
+  });
+
+  Future<_GreetingData> _load() async {
+    if (user == null) {
+      return const _GreetingData(
+        firstName: null,
+        status: 'Kendi çalışma hayatını takip etmek için giriş yap',
+        icon: Icons.person_outline_rounded,
+        color: Color(0xFF64748B),
+        progress: 0,
+      );
+    }
+    final progress = await ProgressService.load();
+    final raw = await PersonalProfileStore().readRaw();
+    Map<String, dynamic> profile = {};
+    try {
+      if (raw != null) {
+        profile = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      }
+    } catch (_) {}
+
+    final profileName = '${profile['adSoyad'] ?? ''}'.trim();
+    final accountName = user?.displayName?.trim() ?? '';
+    final emailName = user?.email?.split('@').first.trim() ?? '';
+    final fullName = profileName.isNotEmpty
+        ? profileName
+        : accountName.isNotEmpty
+            ? accountName
+            : emailName;
+    final firstName =
+        fullName.isEmpty ? null : fullName.split(RegExp(r'\s+')).first;
+
+    final fields = <bool>[
+      profile['dogumTarihi'] != null,
+      '${profile['cinsiyet'] ?? ''}'.trim().isNotEmpty,
+      '${profile['sigortaKolu'] ?? ''}'.trim().isNotEmpty,
+      profile['ilkIseGirisTarihi'] != null,
+      profile['toplamPrimGun'] != null,
+      profile['mevcutIsyeriBaslangic'] != null,
+      ((profile['guncelBrutMaas'] as num?)?.toDouble() ?? 0) > 0,
+    ];
+    final missing = fields.where((filled) => !filled).length;
+    final savedAt = profile['kayitTarihi'] is int
+        ? DateTime.fromMillisecondsSinceEpoch(profile['kayitTarihi'] as int)
+        : null;
+    final stale =
+        savedAt != null && DateTime.now().difference(savedAt).inDays > 90;
+
+    if (missing > 0) {
+      return _GreetingData(
+        firstName: firstName,
+        status: 'Takibi tamamlamak için $missing bilgi eksik',
+        icon: Icons.info_outline_rounded,
+        color: const Color(0xFFF59E0B),
+        progress: progress.score,
+      );
+    }
+    if (stale) {
+      return _GreetingData(
+        firstName: firstName,
+        status: 'Bilgilerinizi kontrol etme zamanı',
+        icon: Icons.update_rounded,
+        color: const Color(0xFFF59E0B),
+        progress: progress.score,
+      );
+    }
+    return _GreetingData(
+      firstName: firstName,
+      status: 'Bilgileriniz güncel',
+      icon: Icons.check_circle_outline_rounded,
+      color: const Color(0xFF16A34A),
+      progress: progress.score,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<_GreetingData>(
+        future: _load(),
+        builder: (context, snapshot) {
+          final data = snapshot.data;
+          if (data == null) return const SizedBox(height: 70);
+          final greeting = data.firstName == null
+              ? 'Merhaba 👋'
+              : 'Merhaba, ${data.firstName} 👋';
+          return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(greeting,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: AppDesign.activeInk,
+                        fontSize: 22,
+                        letterSpacing: -.35,
+                        fontWeight: FontWeight.w800)),
+                if (user != null) ...[
+                const SizedBox(height: 7),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onProgress,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 2, vertical: 4),
+                      child: Row(children: [
+                        Icon(data.icon, size: 16, color: data.color),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(data.status,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: AppDesign.activeMuted,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500)),
+                        ),
+                        const SizedBox(width: 7),
+                        if (user != null)
+                          Text('%${data.progress}',
+                              style: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800)),
+                        Icon(Icons.chevron_right_rounded,
+                            size: 17, color: Theme.of(context).primaryColor),
+                      ]),
+                    ),
+                  ),
+                ),
+                ],
+              ]);
+        },
+      );
+}
+
+class _GreetingData {
+  final String? firstName;
+  final String status;
+  final IconData icon;
+  final Color color;
+  final int progress;
+
+  const _GreetingData({
+    required this.firstName,
+    required this.status,
+    required this.icon,
+    required this.color,
+    required this.progress,
+  });
 }
 
 // Modern Quick Access Widget — Firebase'den en çok kullanılan 3-4 özellik veya varsayılan
@@ -1322,9 +1762,10 @@ class _ModernQuickAccess extends StatelessWidget {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppDesign.activeSurface,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                      border:
+                          Border.all(color: AppDesign.activeBorder, width: 1),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.04),
@@ -1333,17 +1774,18 @@ class _ModernQuickAccess extends StatelessWidget {
                         ),
                       ],
                     ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                        child: Text(
-                          item['title'] as String,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1E293B),
-                          ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 4),
+                      child: Text(
+                        item['title'] as String,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppDesign.activeInk,
                         ),
                       ),
+                    ),
                   ),
                 );
               },
@@ -1359,119 +1801,42 @@ class _ModernQuickAccess extends StatelessWidget {
 class _ModernBottomBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
-
-  const _ModernBottomBar({
-    required this.currentIndex,
-    required this.onTap,
-  });
-
+  const _ModernBottomBar({required this.currentIndex, required this.onTap});
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(
-          color: Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: const Color(0xFFE2E8F0),
-            width: 1,
-          ),
-        ),
-      ),
-      child: SafeArea(
-              child: Row(
-                children: [
-            _NavItem(
-              label: "Ayarlar",
-              icon: Icons.menu_rounded,
-              selected: currentIndex == 0,
-              onTap: () => onTap(0),
-            ),
-            _NavItem(
-              label: "Tüm Özellikler",
-              icon: Icons.apps_rounded,
-              selected: currentIndex == 1,
-              onTap: () => onTap(1),
-            ),
-            _NavItem(
-              label: "Son Hesaplamalar",
-              icon: Icons.history_rounded,
-              selected: currentIndex == 2,
-              onTap: () => onTap(2),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).primaryColor;
-
-    return Expanded(
-      child: InkWell(
+  Widget build(BuildContext context) => AppBottomMenu(
+        selectedIndex: currentIndex,
         onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 24, color: color),
-              SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+        labels: const ['Hesapla', 'Haklarım', 'Topluluk', 'Geçmiş'],
+        icons: const [
+          Icons.grid_view_rounded,
+          Icons.verified_user_rounded,
+          Icons.groups_2_outlined,
+          Icons.history_rounded
+        ],
+      );
 }
 
 // Tam ekran Ayarlar sayfası — auth state dinlenir, çıkış yapınca aynı ekranda güncellenir
 class _AyarlarEkrani extends StatelessWidget {
   final User? kullanici;
   final bool isAdmin;
-  final bool isPremium;
   final String appVersion;
   final List<String> adminUIDs;
   final Function(VoidCallback) onMenuItemTap;
   final Function(String) onLaunchURL;
   final VoidCallback onRateApp;
-  final VoidCallback onShareApp;
+  final VoidCallback onShowDisclaimer;
   final VoidCallback onRefresh;
 
   const _AyarlarEkrani({
     required this.kullanici,
     required this.isAdmin,
-    required this.isPremium,
     required this.appVersion,
     required this.adminUIDs,
     required this.onMenuItemTap,
     required this.onLaunchURL,
     required this.onRateApp,
-    required this.onShareApp,
+    required this.onShowDisclaimer,
     required this.onRefresh,
   });
 
@@ -1479,237 +1844,186 @@ class _AyarlarEkrani extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: StreamBuilder<User?>(
+      backgroundColor: AppDesign.activeBackground,
+      appBar: AppDesign.appBar('Ayarlar'),
+      body: SafeArea(
+          child: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         initialData: kullanici,
         builder: (context, snapshot) {
           final currentUser = snapshot.data;
-          final isAdminNow = currentUser != null && adminUIDs.contains(currentUser.uid);
-          final isPremiumNow = currentUser != null ? isPremium : false;
-
-          return Stack(
-            children: [
-              SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 56),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                        child: _PremiumKutu(isPremium: isPremiumNow),
-                      ),
-                      if (currentUser == null)
-                        _MenuItem(
-                          icon: Icons.login_rounded,
-                          title: 'Giriş Yap / Kayıt Ol',
-                          onTap: () => onMenuItemTap(() {
-                            Navigator.of(context).pushNamed('/giris');
-                          }),
-                        )
-                      else
-                        _MenuItem(
-                          icon: Icons.person_outline_rounded,
-                          title: 'Hesabım',
-                          onTap: () => onMenuItemTap(() {
-                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => HesabimEkrani())).then((_) => onRefresh());
-                          }),
-                        ),
-                      _MenuItem(
-                        icon: Icons.mail_outline_rounded,
-                        title: 'İletişim',
-                        onTap: () => onMenuItemTap(() {
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => IletisimEkrani()));
-                        }),
-                      ),
-                      _MenuItem(
-                        icon: Icons.star_outline_rounded,
-                        title: 'Uygulamayı Puanla',
-                        onTap: () => onMenuItemTap(onRateApp),
-                      ),
-                      _MenuItem(
-                        icon: Icons.share_outlined,
-                        title: 'Uygulamayı Paylaş',
-                        onTap: () => onMenuItemTap(onShareApp),
-                      ),
-                      _MenuItem(
-                        icon: Icons.description_outlined,
-                        title: 'Sözleşmeler',
-                        onTap: () => onMenuItemTap(() {
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => SozlesmeEkrani()));
-                        }),
-                      ),
-                      _MenuItem(
-                        icon: Icons.privacy_tip_outlined,
-                        title: 'KVKK',
-                        onTap: () => onMenuItemTap(() {
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => KvkkEkrani()));
-                        }),
-                      ),
-                      if (isAdminNow)
-                        _MenuItem(
-                          icon: Icons.message_outlined,
-                          title: 'Gelen Mesajlar',
-                          onTap: () => onMenuItemTap(() {
-                            Navigator.of(context).pushNamed('/mesajlar');
-                          }),
-                        ),
-                      if (currentUser != null)
-                        _MenuItem(
-                          icon: Icons.logout_rounded,
-                          title: 'Çıkış Yap',
-                          textColor: const Color(0xFFEF4444),
-                          onTap: () => onMenuItemTap(() async {
-                            await FirebaseAuth.instance.signOut();
-                          }),
-                        ),
-                      // Sosyal medya
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Divider(color: themeColor.withOpacity(0.25)),
-                SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+          final isAdminNow =
+              currentUser != null && adminUIDs.contains(currentUser.uid);
+          return AppContent(
+              child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
-                    _SocialButton(
-                      icon: FaIcon(FontAwesomeIcons.instagram, size: 20),
-                      onTap: () => onLaunchURL('https://www.instagram.com/sosyalguvenlikmobil/?igsh=MW5sYjR1MWJlcWNidw%3D%3D&utm_source=qr#'),
-                    ),
-                    SizedBox(width: 12),
-                    _SocialButton(
-                      icon: FaIcon(FontAwesomeIcons.facebook, size: 20),
-                      onTap: () => onLaunchURL('https://www.facebook.com/people/Sosyal-G%C3%BCvenlik-Mobil/61575847292304/'),
-                    ),
-                    SizedBox(width: 12),
-                    _SocialButton(
-                      icon: FaIcon(FontAwesomeIcons.linkedin, size: 20),
-                      onTap: () => onLaunchURL('https://www.linkedin.com/in/sosyal-g%C3%BCvenlik-mobil-931b89361/?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app'),
-                    ),
-                    SizedBox(width: 12),
-                    _SocialButton(
-                      icon: FaIcon(FontAwesomeIcons.youtube, size: 20),
-                      onTap: () => onLaunchURL('https://www.youtube.com/@sosyalguvenlikmobil'),
-                    ),
-                    SizedBox(width: 12),
-                    _SocialButton(
-                      icon: FaIcon(FontAwesomeIcons.xTwitter, size: 20),
-                      onTap: () => onLaunchURL('https://x.com/sgmobil_?s=21'),
-                    ),
-                    SizedBox(width: 12),
-                    _SocialButton(
-                      icon: FaIcon(FontAwesomeIcons.tiktok, size: 20),
-                      onTap: () => onLaunchURL('https://www.tiktok.com/@sosyalguvenlikmobil?_r=1&_t=ZS-92OAfxvb3Vh'),
-                    ),
-                  ],
+                _MenuItem(
+                  icon: Icons.workspace_premium_rounded,
+                  title: 'Premium',
+                  onTap: () => onMenuItemTap(() {
+                    Navigator.of(context)
+                        .push<bool>(MaterialPageRoute<bool>(
+                      builder: (_) => const PremiumEkrani(),
+                    ))
+                        .then((activated) {
+                      onRefresh();
+                      if (activated == true && context.mounted) {
+                        Navigator.of(context).maybePop();
+                      }
+                    });
+                  }),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'v$appVersion',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: themeColor.withOpacity(0.7),
+                if (currentUser == null)
+                  _MenuItem(
+                    icon: Icons.login_rounded,
+                    title: 'Giriş Yap / Kayıt Ol',
+                    onTap: () => onMenuItemTap(() {
+                      Navigator.of(context).pushNamed('/giris');
+                    }),
+                  )
+                else ...[
+                  _MenuItem(
+                    icon: Icons.person_outline_rounded,
+                    title: 'Hesabım',
+                    onTap: () => onMenuItemTap(() {
+                      Navigator.of(context)
+                          .push(MaterialPageRoute(
+                              builder: (_) => HesabimEkrani()))
+                          .then((_) => onRefresh());
+                    }),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 24),
                 ],
-              ),
-            ),
-          ),
-              Positioned(
-                top: MediaQuery.of(context).padding.top,
-                right: 12,
-                child: Material(
-                  color: Colors.transparent,
-                  child: IconButton(
-                    icon: Icon(Icons.close_rounded, color: themeColor, size: 28),
-                    onPressed: () => Navigator.pop(context),
-                    style: IconButton.styleFrom(
-                      backgroundColor: themeColor.withOpacity(0.1),
-                    ),
+                _MenuItem(
+                  icon: Icons.mail_outline_rounded,
+                  title: 'İletişim',
+                  onTap: () => onMenuItemTap(() {
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => IletisimEkrani()));
+                  }),
+                ),
+                _MenuItem(
+                  icon: Icons.star_outline_rounded,
+                  title: 'Uygulamayı Puanla',
+                  onTap: () => onMenuItemTap(onRateApp),
+                ),
+                _MenuItem(
+                  icon: Icons.description_outlined,
+                  title: 'Sözleşmeler',
+                  onTap: () => onMenuItemTap(() {
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => SozlesmeEkrani()));
+                  }),
+                ),
+                _MenuItem(
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'KVKK',
+                  onTap: () => onMenuItemTap(() {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => KvkkEkrani()));
+                  }),
+                ),
+                _MenuItem(
+                  icon: Icons.info_outline_rounded,
+                  title: 'Sorumluluk Reddi',
+                  onTap: () => onMenuItemTap(() {
+                    Navigator.of(context).pop();
+                    onShowDisclaimer();
+                  }),
+                ),
+                if (isAdminNow)
+                  _MenuItem(
+                    icon: Icons.message_outlined,
+                    title: 'Gelen Mesajlar',
+                    onTap: () => onMenuItemTap(() {
+                      Navigator.of(context).pushNamed('/mesajlar');
+                    }),
+                  ),
+                if (isAdminNow)
+                  _MenuItem(
+                    icon: Icons.admin_panel_settings_outlined,
+                    title: 'Topluluk Yönetimi',
+                    onTap: () => onMenuItemTap(() {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const ToplulukModerasyonEkrani(),
+                      ));
+                    }),
+                  ),
+                _MenuItem(
+                  icon: Icons.palette_outlined,
+                  title: 'Tema Ayarları',
+                  onTap: () => onMenuItemTap(() {
+                    Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const TemaAyarlariEkrani()));
+                  }),
+                ),
+                if (currentUser != null)
+                  _MenuItem(
+                    icon: Icons.logout_rounded,
+                    title: 'Çıkış Yap',
+                    textColor: const Color(0xFFEF4444),
+                    onTap: () => onMenuItemTap(() async {
+                      await FirebaseAuth.instance.signOut();
+                    }),
+                  ),
+                // Sosyal medya
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
+                    children: [
+                      Divider(color: themeColor.withOpacity(0.25)),
+                      SizedBox(height: 16),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _SocialButton(
+                            icon: FaIcon(FontAwesomeIcons.instagram, size: 20),
+                            onTap: () => onLaunchURL(
+                                'https://www.instagram.com/sosyalguvenlikmobil/?igsh=MW5sYjR1MWJlcWNidw%3D%3D&utm_source=qr#'),
+                          ),
+                          _SocialButton(
+                            icon: FaIcon(FontAwesomeIcons.facebook, size: 20),
+                            onTap: () => onLaunchURL(
+                                'https://www.facebook.com/people/Sosyal-G%C3%BCvenlik-Mobil/61575847292304/'),
+                          ),
+                          _SocialButton(
+                            icon: FaIcon(FontAwesomeIcons.linkedin, size: 20),
+                            onTap: () => onLaunchURL(
+                                'https://www.linkedin.com/in/sosyal-g%C3%BCvenlik-mobil-931b89361/?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app'),
+                          ),
+                          _SocialButton(
+                            icon: FaIcon(FontAwesomeIcons.youtube, size: 20),
+                            onTap: () => onLaunchURL(
+                                'https://www.youtube.com/@sosyalguvenlikmobil'),
+                          ),
+                          _SocialButton(
+                            icon: FaIcon(FontAwesomeIcons.xTwitter, size: 20),
+                            onTap: () =>
+                                onLaunchURL('https://x.com/sgmobil_?s=21'),
+                          ),
+                          _SocialButton(
+                            icon: FaIcon(FontAwesomeIcons.tiktok, size: 20),
+                            onTap: () => onLaunchURL(
+                                'https://www.tiktok.com/@sosyalguvenlikmobil?_r=1&_t=ZS-92OAfxvb3Vh'),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'v$appVersion',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: themeColor.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          );
+              ]));
         },
-      ),
-    );
-  }
-}
-
-class _PremiumKutu extends StatelessWidget {
-  final bool isPremium;
-
-  const _PremiumKutu({required this.isPremium});
-
-  @override
-  Widget build(BuildContext context) {
-    final themeColor = Theme.of(context).primaryColor;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: isPremium
-            ? const Color(0xFFE8F5E9)
-            : themeColor.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isPremium ? const Color(0xFF81C784) : themeColor.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: isPremium
-                  ? const Color(0xFF4CAF50).withValues(alpha: 0.15)
-                  : themeColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isPremium ? Icons.workspace_premium_rounded : Icons.workspace_premium_outlined,
-              color: isPremium ? const Color(0xFF2E7D32) : themeColor,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isPremium ? 'Premium Üye' : 'Premium Değilsiniz',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isPremium ? const Color(0xFF1B5E20) : themeColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isPremium
-                      ? 'Tüm premium özelliklerden yararlanıyorsunuz.'
-                      : 'Tüm özelliklere erişmek için Premium\'a geçin.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isPremium ? const Color(0xFF388E3C) : themeColor.withOpacity(0.8),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      )),
     );
   }
 }
@@ -1719,43 +2033,22 @@ class _MenuItem extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
   final Color? textColor;
-
-  const _MenuItem({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.textColor,
-  });
-
+  const _MenuItem(
+      {required this.icon,
+      required this.title,
+      required this.onTap,
+      this.textColor});
   @override
-  Widget build(BuildContext context) {
-    final themeColor = Theme.of(context).primaryColor;
-    final color = textColor ?? themeColor;
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 22),
-            SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: color,
-                ),
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: themeColor.withOpacity(0.7), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: AppSurface(
+            padding: EdgeInsets.zero,
+            child: AppActionTile(
+                title: title,
+                icon: icon,
+                onTap: onTap,
+                foregroundColor: textColor)),
+      );
 }
 
 class _SocialButton extends StatelessWidget {
@@ -1801,320 +2094,140 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
-  int? _openIndex;
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: Text(
-          widget.category.title,
-          style: TextStyle(
-            color: const Color(0xFF1E293B),
-            fontWeight: FontWeight.w600,
-        ),
-        ),
-        centerTitle: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: const Color(0xFF1E293B)),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(20),
-        itemCount: widget.category.items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, i) {
-          final item = widget.category.items[i];
-          final isOpen = _openIndex == i;
-          final itemColor = item.color ?? widget.category.color;
-          
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: item.hasSubItems
-                      ? () => setState(() => _openIndex = isOpen ? null : i)
-                      : item.onTap,
-                    child: Padding(
-                    padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                            color: itemColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          child: Icon(item.icon, color: itemColor, size: 24),
-                            ),
-                        SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.title,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  color: const Color(0xFF1E293B),
-                                  ),
-                                ),
-                                if (item.subtitle != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      item.subtitle!,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                      color: const Color(0xFF64748B),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            item.hasSubItems
-                              ? (isOpen ? Icons.expand_less_rounded : Icons.expand_more_rounded)
-                              : Icons.chevron_right_rounded,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (item.hasSubItems && isOpen && item.subItems != null)
-                  ...item.subItems!.map(
-                    (subItem) => Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                        onTap: subItem.onTap,
-                        child: Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8F9FA),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                  color: itemColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                child: Icon(subItem.icon, size: 18, color: itemColor),
-                                  ),
-                              SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    subItem.title,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    color: const Color(0xFF475569),
-                                    ),
-                                  ),
-                                ),
-                              Icon(Icons.chevron_right_rounded, size: 18, color: const Color(0xFF94A3B8)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: AppDesign.activeBackground,
+        appBar: AppDesign.appBar(widget.category.title),
+        body: SafeArea(
+            child: AppContent(
+                child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    children: [
+              AppIntro(
+                  eyebrow: 'ÖZELLİKLER',
+                  title: widget.category.title,
+                  description: widget.category.description,
+                  icon: widget.category.icon),
+              const SizedBox(height: 20),
+              for (final item in widget.category.items)
+                _FeatureMenuCard(item: item),
+            ]))),
+      );
 }
 
 class AllFeaturesScreen extends StatelessWidget {
   final List<Category> categories;
   final String? initialExpandTitle;
-
-  const AllFeaturesScreen({
-    super.key,
-    required this.categories,
-    this.initialExpandTitle,
-  });
-
+  const AllFeaturesScreen(
+      {super.key, required this.categories, this.initialExpandTitle});
   @override
-  Widget build(BuildContext context) {
-    final themeColor = Theme.of(context).primaryColor;
-    final List<Widget> allTiles = [];
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: AppDesign.activeBackground,
+        appBar: AppDesign.appBar('Hesapla'),
+        body: SafeArea(
+            child: AppContent(
+                child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    children: [
+              for (final category in categories)
+                for (final item in category.items)
+                  _FeatureMenuCard(
+                      item: item,
+                      initiallyExpanded: item.title == initialExpandTitle),
+              _FeatureMenuCard(
+                  item: FeatureItem(
+                      title: 'CV Oluştur',
+                      subtitle: 'Profesyonel CV şablonları',
+                      icon: Icons.description_outlined,
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const CvApp())))),
+            ]))),
+      );
+}
 
-    // Tüm kategorilerdeki özellikleri başlıksız, tek listede topla (Ayarlar menüsü ile aynı sade stil)
-    for (final cat in categories) {
-      for (final it in cat.items) {
-        if (it.hasSubItems && it.subItems != null) {
-          allTiles.add(_buildExpandableItem(
-            context,
-            it,
-            themeColor,
-            initiallyExpanded: it.title == initialExpandTitle,
-          ));
-        } else {
-          allTiles.add(_buildFeatureTile(
-            context: context,
-            icon: it.icon,
-            title: it.title,
-            subtitle: it.subtitle,
-            onTap: it.onTap ?? () {},
-          ));
-        }
-      }
-    }
-
-    // Diğer Özellikler (sadece CV Oluştur)
-    allTiles.add(_buildFeatureTile(
-      context: context,
-      icon: Icons.description_outlined,
-      title: 'CV Oluştur',
-      subtitle: 'Profesyonel CV şablonları',
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const CvApp()));
-      },
-    ));
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Tüm Özellikler',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: themeColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: allTiles.length,
-        itemBuilder: (context, i) => allTiles[i],
-      ),
-    );
-  }
-
-  /// Ayarlar menüsündeki _MenuItem ile aynı sade stil: ikon + başlık + chevron, kart yok.
-  Widget _buildFeatureTile({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
+class _FeatureMenuCard extends StatelessWidget {
+  final FeatureItem item;
+  final bool initiallyExpanded;
+  const _FeatureMenuCard({required this.item, this.initiallyExpanded = false});
+  @override
+  Widget build(BuildContext context) => Theme(
+      data: Theme.of(context).copyWith(primaryColor: _menuAccent(item.title)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(0xFF1E293B), size: 22),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  if (subtitle != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        subtitle,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: const Color(0xFF94A3B8), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExpandableItem(
-    BuildContext context,
-    FeatureItem it,
-    Color color, {
-    bool initiallyExpanded = false,
-  }) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        initiallyExpanded: initiallyExpanded,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        childrenPadding: const EdgeInsets.only(left: 24, right: 24, bottom: 8),
-        iconColor: color,
-        collapsedIconColor: color,
-        leading: Icon(it.icon, size: 22, color: color),
-        title: Text(
-          it.title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
-        ),
-        subtitle: it.subtitle != null
-            ? Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(it.subtitle!, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
-              )
-            : null,
-        children: (it.subItems ?? [])
-            .map(
-              (subItem) => _buildFeatureTile(
-                context: context,
-                icon: subItem.icon,
-                title: subItem.title,
-                onTap: subItem.onTap ?? () {},
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Container(
+            decoration: BoxDecoration(
+                color: AppDesign.activeSurface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppDesign.activeBorder)),
+            child: item.hasSubItems && item.subItems != null
+                ? Theme(
+                    data: Theme.of(context)
+                        .copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      key: PageStorageKey(item.title),
+                      initiallyExpanded: initiallyExpanded,
+                      tilePadding: const EdgeInsets.all(16),
+                      childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      iconColor: AppDesign.activeInk,
+                      collapsedIconColor: AppDesign.activeMuted,
+                      leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .primaryColor
+                                  .withValues(alpha: .08),
+                              borderRadius: BorderRadius.circular(14)),
+                          child: Icon(item.icon,
+                              color: Theme.of(context).primaryColor, size: 23)),
+                      title: Text(item.title,
+                          style: TextStyle(
+                              color: AppDesign.activeInk,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600)),
+                      subtitle: item.subtitle == null
+                          ? null
+                          : Text(item.subtitle!,
+                              style: TextStyle(
+                                  color: AppDesign.activeMuted,
+                                  fontSize: 12,
+                                  height: 1.4)),
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppDesign.activeBackground,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (var i = 0;
+                                  i < item.subItems!.length;
+                                  i++) ...[
+                                if (i > 0) const SizedBox(height: 8),
+                                AppSubmenuTile(
+                                  title: item.subItems![i].title,
+                                  subtitle: item.subItems![i].subtitle,
+                                  icon: item.subItems![i].icon,
+                                  onTap: item.subItems![i].onTap ?? () {},
+                                  badge: item.subItems![i].isFree
+                                      ? 'Ücretsiz'
+                                      : null,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ))
+                : AppActionTile(
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    icon: item.icon,
+                    onTap: item.onTap ?? () {},
+                    badge: item.isFree ? 'Ücretsiz' : null),
+          )));
 }
 
 // Dialog Action Helper Class
@@ -2130,3 +2243,14 @@ class _DialogAction {
   });
 }
 
+Color _menuAccent(String title) {
+  final text = title.toLowerCase();
+  if (text.contains('kıdem')) return const Color(0xFF169B55);
+  if (text.contains('rapor') || text.contains('netten'))
+    return const Color(0xFFE11D48);
+  if (text.contains('izin')) return const Color(0xFF0284C7);
+  if (text.contains('borç') || text.contains('brütten'))
+    return const Color(0xFF4F46E5);
+  if (text.contains('işçilik')) return const Color(0xFF475569);
+  return const Color(0xFF2563EB);
+}

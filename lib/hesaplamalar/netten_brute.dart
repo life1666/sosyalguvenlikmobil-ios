@@ -1,13 +1,11 @@
+import '../utils/calculator_design.dart';
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:excel/excel.dart' hide Border;
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import '../services/hesaplama_pdf_service.dart';
+import '../services/premium_pdf_action.dart';
 import '../sonhesaplama/sonhesaplama.dart';
 import '../utils/analytics_helper.dart';
 import '../utils/theme_helper.dart';
@@ -23,10 +21,10 @@ const double kDividerThickness = 0.2;
 const double kDividerSpace = 2.0;
 
 // Form alanı çerçevesi
-const double kFieldBorderWidth = 0.2;
-const double kFieldBorderRadius = 10.0;
-const Color kFieldBorderColor = Colors.black87;
-const Color kFieldFocusColor = Colors.black87;
+const double kFieldBorderWidth = 1.0;
+const double kFieldBorderRadius = 12.0;
+const Color kFieldBorderColor = AppDesign.border;
+const Color kFieldFocusColor = calculatorAccent;
 
 class AppW {
   static const appBarTitle = FontWeight.w700;
@@ -879,25 +877,7 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
     final String statusLabel = _employeeStatus;
     final String incentiveLabel = _selectedIncentive;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Netten Brüte Maaş Hesaplama',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        controller: _verticalScrollController,
-        padding: const EdgeInsets.all(8),
-        child: Column(
+    return CalculatorPage(title: 'Netten Brüte Maaş', icon: Icons.swap_horiz_rounded, controller: _verticalScrollController, child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
@@ -963,9 +943,9 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 1.7,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: MediaQuery.sizeOf(context).width >= 600 ? 3 : (MediaQuery.textScalerOf(context).scale(14) > 20 ? 1 : 2),
+                      mainAxisExtent: 62 + MediaQuery.textScalerOf(context).scale(20),
                       crossAxisSpacing: 8,
                       mainAxisSpacing: 8,
                     ),
@@ -984,7 +964,7 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: calculatorAccent,
                         foregroundColor: Colors.white,
                         textStyle: const TextStyle(fontWeight: FontWeight.w600),
                       ),
@@ -999,9 +979,7 @@ class _NettenBruteScreenState extends State<NettenBruteScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
+        ));
   }
 }
 
@@ -1082,33 +1060,9 @@ class _AmountField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 8,
-            top: 6,
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 22, left: 8, right: 8, bottom: 6),
-            child: TextFormField(
+return TextFormField(
               controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Net Ücret',
-                isCollapsed: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                border: InputBorder.none,
-                suffix: Text('TL', style: TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600)),
-              ),
+              decoration: InputDecoration(labelText: label, suffixText: 'TL'),
               maxLines: 1,
               textAlign: TextAlign.right,
               keyboardType: TextInputType.number,
@@ -1126,11 +1080,7 @@ class _AmountField extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
+            );
   }
 }
 
@@ -1147,9 +1097,6 @@ class ResultsScreen extends StatelessWidget {
   });
 
   Future<void> _shareAsPdf(BuildContext context) async {
-    final pdf = pw.Document();
-    final fontData = await rootBundle.load('assets/fonts/OpenSans-Regular.ttf');
-    final ttf = pw.Font.ttf(fontData.buffer.asByteData());
     final List<String> pdfHeaders = [
       'Ay',
       'Net Ücret',
@@ -1171,7 +1118,7 @@ class ResultsScreen extends StatelessWidget {
     for (var row in monthlyRows) {
       final rowData = row.cells.map((cell) {
         if (cell.child is Text) {
-          return (cell.child as Text).data?.replaceAll(' TL', '') ?? '';
+          return (cell.child as Text).data ?? '';
         }
         return '';
       }).toList();
@@ -1179,124 +1126,30 @@ class ResultsScreen extends StatelessWidget {
         pdfTableRows.add(rowData);
       }
     }
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.fromLTRB(20, 12, 20, 20),
-        build: (pw.Context context) => [
-          pw.Text(
-            'Hesaplama Sonuçları - $selectedYear',
-            style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, font: ttf),
-          ),
-          pw.SizedBox(height: 8),
-          pw.Table.fromTextArray(
-            headers: pdfHeaders,
-            data: pdfTableRows,
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: ttf, fontSize: 8),
-            cellStyle: pw.TextStyle(font: ttf, fontSize: 8),
-            headerDecoration: pw.BoxDecoration(color: PdfColors.indigo100),
-            cellAlignment: pw.Alignment.center,
-            border: pw.TableBorder.all(),
-            headerPadding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-            columnWidths: {
-              0: pw.FixedColumnWidth(54),
-              1: pw.FixedColumnWidth(70),
-              2: pw.FixedColumnWidth(70),
-              3: pw.FixedColumnWidth(60),
-              4: pw.FixedColumnWidth(60),
-              5: pw.FixedColumnWidth(70),
-              6: pw.FixedColumnWidth(70),
-              7: pw.FixedColumnWidth(65),
-              8: pw.FixedColumnWidth(75),
-              9: pw.FixedColumnWidth(65),
-              10: pw.FixedColumnWidth(75),
-              11: pw.FixedColumnWidth(60),
-              12: pw.FixedColumnWidth(65),
-              13: pw.FixedColumnWidth(65),
-              14: pw.FixedColumnWidth(75),
-            },
-          ),
-        ],
-      ),
+    await HesaplamaPdfService.shareTable(
+      title: 'Netten Brüte Maaş Hesaplama',
+      headers: pdfHeaders,
+      rows: pdfTableRows,
+      summary: {
+        'Hesaplama yılı': '$selectedYear',
+        'Hesaplanan ay': '${pdfTableRows.length}',
+        if (pdfTableRows.isNotEmpty) 'İlk ay net': pdfTableRows.first[1],
+        if (pdfTableRows.isNotEmpty) 'İlk ay brüt': pdfTableRows.first[2],
+      },
     );
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/salary_calculation_${DateTime.now().millisecondsSinceEpoch}.pdf");
-    await file.writeAsBytes(await pdf.save());
-    await Share.shareXFiles([XFile(file.path)], text: 'Hesaplama Sonuçları');
   }
 
-  Future<void> _shareAsExcel(BuildContext context) async {
-    final excel = Excel.createExcel();
-    final sheet = excel['Sheet1'];
-    sheet.appendRow([
-      'Ay',
-      'Net Ücret',
-      'Brüt Ücret',
-      'SGK İşçi Payı',
-      'İşsizlik İşçi Payı',
-      'SGK İşveren Payı',
-      'İşsizlik İşveren Payı',
-      'Gelir Vergisi',
-      'Kümülatif G.V. Matrahı',
-      'İstisna Öncesi G.V.',
-      'Asgari Ücret G.V. İstisnası',
-      'Damga Vergisi',
-      'İstisna Öncesi D.V.',
-      'Damga Vergisi İstisnası',
-      'Toplam Maliyet'
-    ]);
-    for (var row in monthlyRows) {
-      sheet.appendRow(row.cells.map((cell) => (cell.child as Text).data?.replaceAll(' TL', '') ?? '').toList());
-    }
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/salary_calculation_${DateTime.now().millisecondsSinceEpoch}.xlsx");
-    await file.writeAsBytes(excel.encode()!);
-    await Share.shareXFiles([XFile(file.path)], text: 'Hesaplama Sonuçları');
-  }
+
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Hesaplama Sonuçları',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'pdf') await _shareAsPdf(context);
-              if (value == 'excel') await _shareAsExcel(context);
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'pdf',
-                child: ListTile(
-                  leading: Icon(Icons.picture_as_pdf),
-                  title: Text('Paylaş PDF olarak'),
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'excel',
-                child: ListTile(
-                  leading: Icon(Icons.table_chart),
-                  title: Text('Paylaş Excel olarak'),
-                ),
-              ),
-            ],
-            icon: const Icon(Icons.share, color: Colors.white),
+    return CalculatorPage(title: 'Hesaplama Sonucu', icon: Icons.receipt_long_outlined, actions: [
+          OutlinedButton.icon(
+            onPressed: () => PremiumPdfAction.run(context, () => _shareAsPdf(context)),
+            icon: const Icon(Icons.workspace_premium_outlined),
+            label: const Text('Premium PDF'),
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
+        ], child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [CalculatorResultHighlight(label: 'İlk ay brüt maaş', value: monthlyRows.isEmpty ? '—' : ((monthlyRows.first.cells[2].child as Text).data ?? '—')), const SizedBox(height: 20), SingleChildScrollView(
         padding: const EdgeInsets.all(8.0),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -1304,7 +1157,7 @@ class ResultsScreen extends StatelessWidget {
             columnSpacing: 16,
             dataRowHeight: 50,
             headingRowHeight: 56,
-            headingRowColor: MaterialStateProperty.all(Colors.indigo),
+            headingRowColor: MaterialStateProperty.all(calculatorAccent),
             headingTextStyle: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -1330,7 +1183,6 @@ class ResultsScreen extends StatelessWidget {
             rows: monthlyRows,
           ),
         ),
-      ),
-    );
+      )]));
   }
 }

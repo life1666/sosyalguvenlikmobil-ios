@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -79,17 +80,13 @@ class _MakalelerViewState extends State<MakalelerView> {
     final tt = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
+      appBar: AppMenuBar(
+        title: Text(
           'Makaleler',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+          style: TextStyle(color: AppDesign.activeInk, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: AppDesign.activeInk),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -101,7 +98,7 @@ class _MakalelerViewState extends State<MakalelerView> {
             child: CupertinoSlidingSegmentedControl<String>(
               groupValue: _selectedKategori,
               backgroundColor: Theme.of(context).primaryColor.withOpacity(0.06),
-              thumbColor: Colors.white,
+              thumbColor: AppDesign.activeSurface,
               children: {
                 for (final k in _kategoriler)
                   k.baslik: Padding(
@@ -109,7 +106,7 @@ class _MakalelerViewState extends State<MakalelerView> {
                     child: Text(
                       '${k.baslik} (${k.liste.length})',
                       style: TextStyle(
-                        color: _selectedKategori == k.baslik ? Theme.of(context).primaryColor : Colors.black87,
+                        color: _selectedKategori == k.baslik ? Theme.of(context).primaryColor : AppDesign.activeInk,
                         fontWeight: _selectedKategori == k.baslik ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
@@ -158,58 +155,17 @@ class _MakaleListe extends StatelessWidget {
       return const Center(child: Text('Bu kategoride henüz içerik yok.'));
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return AppContent(child: ListView.separated(
+      padding: const EdgeInsets.all(20),
       itemCount: kategori.liste.length,
-      separatorBuilder: (_, __) => const Divider(),
-      itemBuilder: (context, i) {
-        final m = kategori.liste[i];
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => MakaleDetailScreen(makale: m)),
-              );
-            },
-            splashColor: Theme.of(context).primaryColor.withOpacity(0.2),
-            highlightColor: Theme.of(context).primaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      m.title,
-                      style: tt.bodyMedium,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.black38,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  static String _preview(String raw) {
-    final first = raw.split('\n').firstWhere((e) => e.trim().isNotEmpty, orElse: () => '');
-    return first.length > 80 ? '${first.substring(0, 80)}…' : first;
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, i) => AppSurface(padding: EdgeInsets.zero,
+        child: AppActionTile(title: kategori.liste[i].title, icon: Icons.article_outlined,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MakaleDetailScreen(makale: kategori.liste[i])))),
+      ),
+    ));
   }
 }
-
-/// =======================
-///  DETAY EKRANI
-/// =======================
 class MakaleDetailScreen extends StatefulWidget {
   final Makale makale;
 
@@ -223,17 +179,13 @@ class _MakaleDetailScreenState extends State<MakaleDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppMenuBar(
         title: Text(
           widget.makale.title,
-          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+          style: TextStyle(color: AppDesign.activeInk, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: AppDesign.activeInk),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),

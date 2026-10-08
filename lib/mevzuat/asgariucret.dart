@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import '../utils/analytics_helper.dart';
 
@@ -253,25 +254,21 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        titleSpacing: 16,
+      backgroundColor: AppDesign.activeBackground,
+      appBar: AppMenuBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: AppDesign.activeInk),
           onPressed: () => Navigator.maybePop(context),
         ),
-        title: const Text(
+        title: Text(
           'Asgari Ücret',
           style: TextStyle(
-            color: Colors.white,
+            color: AppDesign.activeInk,
             fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
           ),
         ),
-        centerTitle: false,
       ),
       body: Column(
         children: [
@@ -291,7 +288,7 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
               children: [
                 Icon(
                   Icons.info_outline_rounded,
-                  color: Colors.indigo[700],
+                  color: Theme.of(context).primaryColor,
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -301,7 +298,7 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
                         'Güncel asgari ücret bilgileri için resmi kaynakları kontrol ediniz.',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[800],
+                      color: AppDesign.activeInk,
                       height: 1.4,
                     ),
                   ),
@@ -320,7 +317,7 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
+                    color: AppDesign.activeInk,
                   ),
                 ),
               ],
@@ -342,7 +339,7 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
                   decoration: BoxDecoration(
                     color: isGuncel
                         ? Colors.indigo.withValues(alpha: 0.05)
-                        : Colors.white,
+                        : AppDesign.activeSurface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isGuncel
@@ -375,7 +372,7 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
                                   fontWeight: FontWeight.w600,
                                   color: isGuncel
                                       ? Colors.indigo[700]
-                                      : Colors.grey[800],
+                                      : AppDesign.activeInk,
                                 ),
                               ),
                             ),
@@ -511,7 +508,7 @@ class _AsgariUcretSayfasiState extends State<AsgariUcretSayfasi> {
             label,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey[600],
+              color: AppDesign.activeMuted,
               fontWeight: FontWeight.w500,
             ),
           ),

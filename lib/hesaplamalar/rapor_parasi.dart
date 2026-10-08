@@ -1,3 +1,5 @@
+import '../utils/calculator_design.dart';
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -16,10 +18,10 @@ const double kDividerThickness = 0.2;
 const double kDividerSpace = 2.0;
 
 // Form alanı çerçevesi
-const double kFieldBorderWidth = 0.2;
-const double kFieldBorderRadius = 10.0;
-const Color kFieldBorderColor = Colors.black87;
-const Color kFieldFocusColor = Colors.black87;
+const double kFieldBorderWidth = 1.0;
+const double kFieldBorderRadius = 12.0;
+const Color kFieldBorderColor = AppDesign.border;
+const Color kFieldFocusColor = calculatorAccent;
 
 /// ===== RAPOR KNOB’LARI =====
 const double kReportMaxWidth = 660.0;
@@ -29,7 +31,8 @@ const double kResultHeaderScale = 1.00;
 const FontWeight kResultHeaderWeight = FontWeight.w400;
 
 /// ===== YAZILI ÖZET MADDE KNOB’LARI =====
-const EdgeInsets kSumItemPadding = EdgeInsets.symmetric(vertical: 4, horizontal: 0);
+const EdgeInsets kSumItemPadding =
+    EdgeInsets.symmetric(vertical: 4, horizontal: 0);
 const double kSumItemFontScale = 1.10;
 
 class AppW {
@@ -124,15 +127,18 @@ ThemeData uygulamaTemasi = (() {
       isDense: true,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+        borderSide:
+            BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+        borderSide:
+            BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+        borderSide:
+            BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
@@ -140,7 +146,8 @@ ThemeData uygulamaTemasi = (() {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+        borderSide:
+            BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
       ),
       hintStyle: TextStyle(fontSize: 13 * kTextScale, color: Colors.grey),
       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -158,12 +165,12 @@ const Duration kCenterNoticeAnimDur = Duration(milliseconds: 220);
 const Duration kCenterNoticeAutoHide = Duration(seconds: 2);
 
 Future<void> showCenterNotice(
-    BuildContext context, {
-      String? title,
-      required String message,
-      AppNoticeType type = AppNoticeType.error,
-      bool autoHide = true,
-    }) async {
+  BuildContext context, {
+  String? title,
+  required String message,
+  AppNoticeType type = AppNoticeType.error,
+  bool autoHide = true,
+}) async {
   Color bg, border, textMain;
 
   switch (type) {
@@ -209,17 +216,18 @@ Future<void> showCenterNotice(
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w400,
-                  color: textMain,
-                ),
+                      fontWeight: FontWeight.w400,
+                      color: textMain,
+                    ),
               ),
-            if (title != null && title.trim().isNotEmpty) const SizedBox(height: 4),
+            if (title != null && title.trim().isNotEmpty)
+              const SizedBox(height: 4),
             Text(
               message,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: textMain,
-                fontWeight: AppW.body,
-              ),
+                    color: textMain,
+                    fontWeight: AppW.body,
+                  ),
             ),
           ],
         ),
@@ -310,7 +318,8 @@ class CustomCurrencyFormatter extends TextInputFormatter {
   }
 
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
     String digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digitsOnly.isEmpty) {
       return newValue.copyWith(text: '');
@@ -350,7 +359,8 @@ String toTitleCase(String text) {
     } else if (lower == 'icin' || lower == 'için') {
       titleCasedWords.add('İçin');
     } else {
-      titleCasedWords.add(originalWord[0].toUpperCase() + originalWord.substring(1).toLowerCase());
+      titleCasedWords.add(originalWord[0].toUpperCase() +
+          originalWord.substring(1).toLowerCase());
     }
   }
   return titleCasedWords.join(' ');
@@ -390,7 +400,8 @@ class _CupertinoField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isPlaceholder = valueText.trim().isEmpty || valueText == 'Seçiniz';
+    final bool isPlaceholder =
+        valueText.trim().isEmpty || valueText == 'Seçiniz';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Column(
@@ -403,21 +414,24 @@ class _CupertinoField extends StatelessWidget {
             child: InputDecorator(
               decoration: InputDecoration(
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderRadius: const BorderRadius.all(
+                      Radius.circular(kFieldBorderRadius)),
                   borderSide: BorderSide(
                     color: showErrorBorder ? Colors.red : kFieldBorderColor,
                     width: kFieldBorderWidth,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderRadius: const BorderRadius.all(
+                      Radius.circular(kFieldBorderRadius)),
                   borderSide: BorderSide(
                     color: showErrorBorder ? Colors.red : kFieldFocusColor,
                     width: kFieldBorderWidth + 0.2,
                   ),
                 ),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               child: Row(
                 children: [
@@ -465,7 +479,12 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
 
   Map<String, dynamic>? _hesaplamaSonucu;
 
-  final List<String> reasonOptions = const ['İş Kazası', 'Meslek Hastalığı', 'Hastalık', 'Doğum'];
+  final List<String> reasonOptions = const [
+    'İş Kazası',
+    'Meslek Hastalığı',
+    'Hastalık',
+    'Doğum'
+  ];
   final List<String> insuranceOptions = const ['Evet', 'Hayır'];
   final List<String> gebelikTuruOptions = const ['Tekil', 'Çoğul'];
 
@@ -487,7 +506,6 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
   void initState() {
     super.initState();
     AnalyticsHelper.logScreenOpen('rapor_parasi_opened');
-    // 1. ay brüt ve gün değerlerini diğerlerine aynen yansıt
     grossSalary1.addListener(_syncFromFirstMonthSalary);
     workDays1.addListener(_syncFromFirstMonthDays);
   }
@@ -530,7 +548,8 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
     String okText = 'Tamam',
     String cancelText = 'İptal',
   }) async {
-    int selectedIndex = initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
+    int selectedIndex =
+        initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
     return showCupertinoModalPopup<String>(
       context: context,
       builder: (context) {
@@ -547,13 +566,15 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('İptal', style: TextStyle(color: Colors.black87)),
+                      child: const Text('İptal',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      onPressed: () =>
-                          Navigator.pop(context, items.isNotEmpty ? items[selectedIndex] : null),
-                      child: const Text('Tamam', style: TextStyle(color: Colors.black87)),
+                      onPressed: () => Navigator.pop(context,
+                          items.isNotEmpty ? items[selectedIndex] : null),
+                      child: const Text('Tamam',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
@@ -562,7 +583,8 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
               Expanded(
                 child: CupertinoPicker(
                   itemExtent: 30,
-                  scrollController: FixedExtentScrollController(initialItem: selectedIndex),
+                  scrollController:
+                      FixedExtentScrollController(initialItem: selectedIndex),
                   onSelectedItemChanged: (i) => selectedIndex = i,
                   children: [for (final s in items) Center(child: Text(s))],
                 ),
@@ -592,7 +614,6 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
     bool _errBirth90 = false;
     bool _errGebelik = false;
 
-    // Son 3 Ay alan hataları başlangıç
     bool _errSal1 = false, _errSal2 = false, _errSal3 = false;
     bool _errDay1 = false, _errDay2 = false, _errDay3 = false;
 
@@ -619,12 +640,13 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
     if (selectedReason == 'Hastalık' && has90DaysInsurance == 'Hayır') {
       _hesaplamaSonucu = {
         'basarili': false,
-        'mesaj': toTitleCase('Bu Şartlar Altında Rapor Parası Almaya Hak Kazanamıyorsunuz.'),
+        'mesaj': toTitleCase(
+            'Bu Şartlar Altında Rapor Parası Almaya Hak Kazanamıyorsunuz.'),
         'detaylar': {'Rapor Nedeni': toTitleCase(selectedReason ?? '')},
         'ekBilgi': {
           'Sorgu Tarihi': formatDateDDMMYYYY(DateTime.now()),
           'Not':
-          'Rapor Süreniz 2 Günden Az Olduğu İçin ve/veya Rapor Tarihinden Önceki 1 Yıl İçinde 90 Gün Kısa Vadeli Sigorta Kolu Bildiriminiz Olmadığı İçin Rapor Parası Almaya Hak Kazanamıyorsunuz.'
+              'Rapor Süreniz 3 Günden Az Olduğu İçin ve/veya Rapor Tarihinden Önceki 1 Yıl İçinde 90 Gün Kısa Vadeli Sigorta Kolu Bildiriminiz Olmadığı İçin Rapor Parası Almaya Hak Kazanamıyorsunuz.'
         },
       };
     }
@@ -642,12 +664,13 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       } else if (has90DaysInsuranceForBirth == 'Hayır') {
         _hesaplamaSonucu = {
           'basarili': false,
-          'mesaj': toTitleCase('Bu Şartlar Altında Rapor Parası Almaya Hak Kazanamıyorsunuz.'),
+          'mesaj': toTitleCase(
+              'Bu Şartlar Altında Rapor Parası Almaya Hak Kazanamıyorsunuz.'),
           'detaylar': {'Rapor Nedeni': toTitleCase(selectedReason ?? '')},
           'ekBilgi': {
             'Sorgu Tarihi': formatDateDDMMYYYY(DateTime.now()),
             'Not':
-            'Doğum Tarihinden Önce 90 Gün Kısa Vadeli Sigorta Kolu Bildiriminiz Olmadığı İçin Rapor Parası Almaya Hak Kazanamadınız.'
+                'Doğum Tarihinden Önce 90 Gün Kısa Vadeli Sigorta Kolu Bildiriminiz Olmadığı İçin Rapor Parası Almaya Hak Kazanamadınız.'
           },
         };
       }
@@ -669,20 +692,20 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       if ((yDays + aDays) <= 0) {
         _hesaplamaSonucu = {
           'basarili': false,
-          'mesaj': toTitleCase('Lütfen yatarak veya ayaktan rapor gün sayısını giriniz!'),
+          'mesaj': toTitleCase(
+              'Lütfen yatarak veya ayaktan rapor gün sayısını giriniz!'),
           'detaylar': {},
           'ekBilgi': {'Sorgu Tarihi': formatDateDDMMYYYY(DateTime.now())},
         };
       }
     }
 
-    // Son 3 ay alanlarının kontrolü VE bayrakları
-    double e1 = parseGrossSalary(grossSalary1.text);
-    double e2 = parseGrossSalary(grossSalary2.text);
-    double e3 = parseGrossSalary(grossSalary3.text);
-    int d1 = int.tryParse(workDays1.text) ?? 0;
-    int d2 = int.tryParse(workDays2.text) ?? 0;
-    int d3 = int.tryParse(workDays3.text) ?? 0;
+    final e1 = parseGrossSalary(grossSalary1.text);
+    final e2 = parseGrossSalary(grossSalary2.text);
+    final e3 = parseGrossSalary(grossSalary3.text);
+    final d1 = int.tryParse(workDays1.text) ?? 0;
+    final d2 = int.tryParse(workDays2.text) ?? 0;
+    final d3 = int.tryParse(workDays3.text) ?? 0;
 
     _errSal1 = e1 <= 0;
     _errSal2 = e2 <= 0;
@@ -692,12 +715,13 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
     _errDay3 = d3 <= 0;
 
     final totalEarnings = e1 + e2 + e3;
-    final totalWorkDays = (d1 + d2 + d3).toDouble();
+    final totalWorkDays = d1 + d2 + d3;
 
     if (selectedReason != null && (totalWorkDays <= 0 || totalEarnings <= 0)) {
       _hesaplamaSonucu = {
         'basarili': false,
-        'mesaj': toTitleCase('Son 3 ay kazanç ve çalışılan gün sayıları geçerli olmalıdır!'),
+        'mesaj': toTitleCase(
+            'Son 3 ay kazanç ve çalışılan gün sayıları geçerli olmalıdır!'),
         'detaylar': {},
         'ekBilgi': {'Sorgu Tarihi': formatDateDDMMYYYY(DateTime.now())},
       };
@@ -717,10 +741,13 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       errDay3 = _errDay3;
     });
 
-    final hasSelectionError = (errReason || errHas90 || errBirth90 || errGebelik);
-    final hasS3Error = (errSal1 || errSal2 || errSal3 || errDay1 || errDay2 || errDay3);
+    final hasSelectionError = errReason || errHas90 || errBirth90 || errGebelik;
+    final hasEarningError =
+        errSal1 || errSal2 || errSal3 || errDay1 || errDay2 || errDay3;
 
-    return !hasSelectionError && !hasS3Error && (_hesaplamaSonucu == null || _hesaplamaSonucu!['basarili'] != false);
+    return !hasSelectionError &&
+        !hasEarningError &&
+        (_hesaplamaSonucu == null || _hesaplamaSonucu!['basarili'] != false);
   }
 
   Future<void> _hesapla() async {
@@ -728,7 +755,8 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
     setState(() {
       errReason = selectedReason == null;
       errHas90 = selectedReason == 'Hastalık' && has90DaysInsurance == null;
-      errBirth90 = selectedReason == 'Doğum' && has90DaysInsuranceForBirth == null;
+      errBirth90 =
+          selectedReason == 'Doğum' && has90DaysInsuranceForBirth == null;
       errGebelik = selectedReason == 'Doğum' && gebelikTuru == null;
 
       errSal1 = parseGrossSalary(grossSalary1.text) <= 0;
@@ -754,7 +782,9 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
     int aDays = 0;
 
     if (selectedReason == 'Doğum') {
-      days = (gebelikTuru == 'Çoğul') ? 126 : 112;
+      // 7578 sayılı Kanun (01.05.2026): tekil gebelikte 24 hafta,
+      // çoğul gebelikte doğum öncesine eklenen 2 haftayla 26 hafta.
+      days = (gebelikTuru == 'Çoğul') ? 182 : 168;
     } else {
       yatarakDaysController.text = yatarakDaysController.text.trim();
       ayaktanDaysController.text = ayaktanDaysController.text.trim();
@@ -768,15 +798,19 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       if (totalRaporGunu < 3) {
         _hesaplamaSonucu = {
           'basarili': false,
-          'mesaj': toTitleCase('Bu Şartlar Altında Rapor Parası Almaya Hak Kazanamıyorsunuz.'),
+          'mesaj': toTitleCase(
+              'Bu Şartlar Altında Rapor Parası Almaya Hak Kazanamıyorsunuz.'),
           'detaylar': {'Rapor Nedeni': toTitleCase(selectedReason ?? '')},
           'ekBilgi': {
             'Sorgu Tarihi': formatDateDDMMYYYY(DateTime.now()),
             'Not':
-            'Rapor Süreniz 2 Günden Az Olduğu İçin ve/veya Rapor Tarihinden Önceki 1 Yıl İçinde 90 Gün Kısa Vadeli Sigorta Kolu Bildiriminiz Olmadığı İçin Rapor Parası Almaya Hak Kazanamıyorsunuz.'
+                'Hastalık halinde ilk iki gün için ödeme yapılmadığından rapor süresi en az 3 gün olmalıdır.'
           },
         };
-        showCenterNotice(context, title: 'Sonuç', message: _hesaplamaSonucu!['mesaj'], type: AppNoticeType.info);
+        showCenterNotice(context,
+            title: 'Sonuç',
+            message: _hesaplamaSonucu!['mesaj'],
+            type: AppNoticeType.info);
         return;
       }
     }
@@ -799,19 +833,25 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       double totalDays = yDays + aDays.toDouble();
       double effectiveYDays = yDays - ((yDays / totalDays) * 2);
       double effectiveADays = aDays - ((aDays / totalDays) * 2);
-      totalPayment = (effectiveYDays * dailyEarnings * 0.5) + (effectiveADays * dailyEarnings * 2 / 3);
+      totalPayment = (effectiveYDays * dailyEarnings * 0.5) +
+          (effectiveADays * dailyEarnings * 2 / 3);
     } else {
-      totalPayment = (yDays * dailyEarnings * 0.5) + (aDays * dailyEarnings * 2 / 3);
+      totalPayment =
+          (yDays * dailyEarnings * 0.5) + (aDays * dailyEarnings * 2 / 3);
     }
 
     Map<String, String> resultDetails = {};
     if (selectedReason == 'Doğum') {
       resultDetails['Raporlu Gün Sayısı'] = '${days.toStringAsFixed(0)} gün';
-      resultDetails['Rapor Nedeni'] = (gebelikTuru == 'Çoğul') ? 'Çoklu Doğum' : 'Doğum';
+      resultDetails['Analık İzni Süresi'] =
+          (gebelikTuru == 'Çoğul') ? '26 Hafta' : '24 Hafta';
+      resultDetails['Rapor Nedeni'] =
+          (gebelikTuru == 'Çoğul') ? 'Çoklu Doğum' : 'Doğum';
     } else {
       resultDetails['Yatarak Raporlu Gün Sayısı'] = '$yDays gün';
       resultDetails['Ayaktan Raporlu Gün Sayısı'] = '$aDays gün';
-      resultDetails['Toplam Raporlu Gün Sayısı'] = '${(yDays + aDays).toString()} gün';
+      resultDetails['Toplam Raporlu Gün Sayısı'] =
+          '${(yDays + aDays).toString()} gün';
       resultDetails['Rapor Nedeni'] = toTitleCase(selectedReason ?? '');
     }
     resultDetails['Günlük Ödeme'] = formatSayi(dailyEarnings);
@@ -819,7 +859,8 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
 
     _hesaplamaSonucu = {
       'basarili': true,
-      'mesaj': toTitleCase('Hesaplama başarıyla tamamlandı!'), // sheet'te GÖSTERİLMEYECEK
+      'mesaj': toTitleCase(
+          'Hesaplama başarıyla tamamlandı!'), // sheet'te GÖSTERİLMEYECEK
       'detaylar': resultDetails,
       'ekBilgi': {
         'Sorgu Tarihi': formatDateDDMMYYYY(DateTime.now()),
@@ -837,7 +878,7 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
         'gunlukKazanc': dailyEarnings,
         'toplamOdeme': totalPayment,
       };
-      
+
       final sonHesaplama = SonHesaplama(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         hesaplamaTuru: 'Rapor Parası Hesaplama',
@@ -846,9 +887,9 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
         sonuclar: resultDetails,
         ozet: 'Rapor parası hesaplaması tamamlandı',
       );
-      
+
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
-      
+
       // Firebase Analytics: Hesaplama tamamlandı
       AnalyticsHelper.logCalculation('rapor_parasi', parameters: {
         'hesaplama_turu': 'Rapor Parası',
@@ -860,9 +901,10 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
+      backgroundColor: AppDesign.activeSurface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
       ),
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.90,
@@ -876,8 +918,10 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
 
   // ---------- Cupertino seçim alanları ----------
   Future<void> _pickReason() async {
-    final init = selectedReason != null ? reasonOptions.indexOf(selectedReason!) : 0;
-    final sel = await _showCupertinoListPicker(items: reasonOptions, initialIndex: init < 0 ? 0 : init);
+    final init =
+        selectedReason != null ? reasonOptions.indexOf(selectedReason!) : 0;
+    final sel = await _showCupertinoListPicker(
+        items: reasonOptions, initialIndex: init < 0 ? 0 : init);
     if (sel != null) {
       setState(() {
         selectedReason = sel;
@@ -893,8 +937,11 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
   }
 
   Future<void> _pickHas90ForIllness() async {
-    final init = has90DaysInsurance != null ? insuranceOptions.indexOf(has90DaysInsurance!) : 0;
-    final sel = await _showCupertinoListPicker(items: insuranceOptions, initialIndex: init < 0 ? 0 : init);
+    final init = has90DaysInsurance != null
+        ? insuranceOptions.indexOf(has90DaysInsurance!)
+        : 0;
+    final sel = await _showCupertinoListPicker(
+        items: insuranceOptions, initialIndex: init < 0 ? 0 : init);
     if (sel != null) {
       setState(() {
         has90DaysInsurance = sel;
@@ -905,9 +952,11 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
   }
 
   Future<void> _pickHas90ForBirth() async {
-    final init =
-    has90DaysInsuranceForBirth != null ? insuranceOptions.indexOf(has90DaysInsuranceForBirth!) : 0;
-    final sel = await _showCupertinoListPicker(items: insuranceOptions, initialIndex: init < 0 ? 0 : init);
+    final init = has90DaysInsuranceForBirth != null
+        ? insuranceOptions.indexOf(has90DaysInsuranceForBirth!)
+        : 0;
+    final sel = await _showCupertinoListPicker(
+        items: insuranceOptions, initialIndex: init < 0 ? 0 : init);
     if (sel != null) {
       setState(() {
         has90DaysInsuranceForBirth = sel;
@@ -918,8 +967,10 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
   }
 
   Future<void> _pickGebelikTuru() async {
-    final init = gebelikTuru != null ? gebelikTuruOptions.indexOf(gebelikTuru!) : 0;
-    final sel = await _showCupertinoListPicker(items: gebelikTuruOptions, initialIndex: init < 0 ? 0 : init);
+    final init =
+        gebelikTuru != null ? gebelikTuruOptions.indexOf(gebelikTuru!) : 0;
+    final sel = await _showCupertinoListPicker(
+        items: gebelikTuruOptions, initialIndex: init < 0 ? 0 : init);
     if (sel != null) {
       setState(() {
         gebelikTuru = sel;
@@ -961,7 +1012,8 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
   Widget _buildHas90IllnessField() {
     if (selectedReason != 'Hastalık') return const SizedBox.shrink();
     return _CupertinoField(
-      label: 'Rapor 2+ Gün mü ve Son 1 Yılda 90 Gün Kısa Vadeli Sigorta Bildiriminiz Var mı?',
+      label:
+          'Rapor 2+ Gün mü ve Son 1 Yılda 90 Gün Kısa Vadeli Sigorta Bildiriminiz Var mı?',
       valueText: has90DaysInsurance ?? 'Seçiniz',
       onTap: _pickHas90ForIllness,
       showErrorBorder: errHas90,
@@ -983,7 +1035,10 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
               hintText: 'Yatarak Raporlu Gün Sayısı',
             ),
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(2)
+            ],
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -992,7 +1047,10 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
               hintText: 'Ayaktan Raporlu Gün Sayısı',
             ),
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(2)
+            ],
           ),
         ],
       ),
@@ -1002,20 +1060,26 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
   Widget _buildBrutUcretCard() {
     // HATA ÇERÇEVESİ UYGULANAN TEK SATIR BİLEŞENİ
     Widget _row(
-        String label,
-        TextEditingController salary,
-        TextEditingController days, {
-          required bool errSalary,
-          required bool errDays,
-        }) {
+      String label,
+      TextEditingController salary,
+      TextEditingController days, {
+      required bool errSalary,
+      required bool errDays,
+    }) {
       OutlineInputBorder _border(bool isError) => OutlineInputBorder(
-        borderRadius: const BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: isError ? Colors.red : kFieldBorderColor, width: kFieldBorderWidth),
-      );
+            borderRadius:
+                const BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+            borderSide: BorderSide(
+                color: isError ? Colors.red : kFieldBorderColor,
+                width: kFieldBorderWidth),
+          );
       OutlineInputBorder _focusBorder(bool isError) => OutlineInputBorder(
-        borderRadius: const BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: isError ? Colors.red : kFieldFocusColor, width: kFieldBorderWidth + 0.2),
-      );
+            borderRadius:
+                const BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+            borderSide: BorderSide(
+                color: isError ? Colors.red : kFieldFocusColor,
+                width: kFieldBorderWidth + 0.2),
+          );
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1030,7 +1094,8 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
                   controller: salary,
                   decoration: InputDecoration(
                     hintText: 'Brüt Ücret',
-                    suffix: const Text('TL', style: TextStyle(color: Colors.indigo, fontSize: 14)),
+                    suffix: const Text('TL',
+                        style: TextStyle(color: Colors.indigo, fontSize: 14)),
                     enabledBorder: _border(errSalary),
                     focusedBorder: _focusBorder(errSalary),
                   ),
@@ -1053,7 +1118,10 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
                     focusedBorder: _focusBorder(errDays),
                   ),
                   keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2)
+                  ],
                 ),
               ),
             ],
@@ -1067,13 +1135,17 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Son 3 Ay İçindeki Brüt Ücretleriniz ve Prim Gün Sayılarınız', style: context.sFormLabel),
+          Text('Son 3 Ay İçindeki Brüt Ücretleriniz ve Prim Gün Sayılarınız',
+              style: context.sFormLabel),
           const SizedBox(height: 6),
-          _row('1. Ay', grossSalary1, workDays1, errSalary: errSal1, errDays: errDay1),
+          _row('1. Ay', grossSalary1, workDays1,
+              errSalary: errSal1, errDays: errDay1),
           const SizedBox(height: 8),
-          _row('2. Ay', grossSalary2, workDays2, errSalary: errSal2, errDays: errDay2),
+          _row('2. Ay', grossSalary2, workDays2,
+              errSalary: errSal2, errDays: errDay2),
           const SizedBox(height: 8),
-          _row('3. Ay', grossSalary3, workDays3, errSalary: errSal3, errDays: errDay3),
+          _row('3. Ay', grossSalary3, workDays3,
+              errSalary: errSal3, errDays: errDay3),
         ],
       ),
     );
@@ -1085,26 +1157,13 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
       height: 46,
       child: ElevatedButton(
         onPressed: () async {
-          // Anlık kırmızı çerçeveleme
-          setState(() {
-            errReason = selectedReason == null;
-            errHas90 = selectedReason == 'Hastalık' && has90DaysInsurance == null;
-            errBirth90 = selectedReason == 'Doğum' && has90DaysInsuranceForBirth == null;
-            errGebelik = selectedReason == 'Doğum' && gebelikTuru == null;
-
-            errSal1 = parseGrossSalary(grossSalary1.text) <= 0;
-            errSal2 = parseGrossSalary(grossSalary2.text) <= 0;
-            errSal3 = parseGrossSalary(grossSalary3.text) <= 0;
-            errDay1 = (int.tryParse(workDays1.text) ?? 0) <= 0;
-            errDay2 = (int.tryParse(workDays2.text) ?? 0) <= 0;
-            errDay3 = (int.tryParse(workDays3.text) ?? 0) <= 0;
-          });
           await _hesapla();
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
+          backgroundColor: calculatorAccent,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontWeight: FontWeight.w600),
           minimumSize: const Size.fromHeight(46),
         ),
@@ -1115,62 +1174,22 @@ class _RaporParasiScreenState extends State<RaporParasiScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Rapor Parası Hesaplama',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
-
-      body: SafeArea(
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 12),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate.fixed([
-                  _buildRaporNedeniField(),
-                  if (selectedReason == 'Doğum') _buildBirthInsuranceField(),
-                  if (selectedReason == 'Doğum') _buildGebelikTuruField(),
-                  if (selectedReason == 'Hastalık') _buildHas90IllnessField(),
-                  if (selectedReason != 'Doğum') _buildRaporSuresiCard(),
-                  _buildBrutUcretCard(),
-                  const SizedBox(height: 12),
-                  _buildHesaplaButton(),
-                  const SizedBox(height: 6),
-                ]),
-              ),
-            ),
-
-            // Alt bilgi bölümü (bilgilendirme İKONLARI KALACAK)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(kPageHPad, 0, kPageHPad, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Divider(),
-                    _InfoNotice(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return CalculatorPage(
+        title: 'Rapor Parası',
+        icon: Icons.medical_services_outlined,
+        controller: _scrollController,
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _buildRaporNedeniField(),
+          if (selectedReason == 'Doğum') _buildBirthInsuranceField(),
+          if (selectedReason == 'Doğum') _buildGebelikTuruField(),
+          if (selectedReason == 'Hastalık') _buildHas90IllnessField(),
+          if (selectedReason != 'Doğum') _buildRaporSuresiCard(),
+          _buildBrutUcretCard(),
+          const SizedBox(height: 12),
+          _buildHesaplaButton(),
+          const SizedBox(height: 6),
+        ]));
   }
 }
 
@@ -1191,9 +1210,9 @@ class _InfoNotice extends StatelessWidget {
           child: Text(
             'Bilgilendirme',
             style: Theme.of(context).textTheme.titleMedium!.copyWith(
-              fontWeight: FontWeight.w300,
-              color: Colors.black87,
-            ),
+                  fontWeight: FontWeight.w300,
+                  color: Colors.black87,
+                ),
           ),
         ),
         const SizedBox(height: 6),
@@ -1201,7 +1220,8 @@ class _InfoNotice extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.black26, size: 20),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.black26, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1227,122 +1247,14 @@ class _InfoNotice extends StatelessWidget {
 class RaporParasiReportSheet extends StatelessWidget {
   final String mesaj; // Gösterilmeyecek (istek gereği)
   final Map<String, String> detaylar;
-  const RaporParasiReportSheet({super.key, required this.mesaj, required this.detaylar});
-
-  String _buildShareText() {
-    final b = StringBuffer('Rapor Parası Hesaplama Özeti\n');
-    if (mesaj.isNotEmpty) b.writeln('Mesaj: $mesaj');
-    detaylar.forEach((k, v) => b.writeln('$k: $v'));
-    return b.toString().trim();
-  }
+  const RaporParasiReportSheet(
+      {super.key, required this.mesaj, required this.detaylar});
 
   @override
   Widget build(BuildContext context) {
-    final baseSmall = Theme.of(context).textTheme.bodySmall!;
-    final lineStyle = baseSmall.copyWith(
-      fontSize: (baseSmall.fontSize ?? 12) * kSumItemFontScale,
-      fontWeight: FontWeight.w400,
-      height: 1.5,
-      color: Colors.black87,
-    );
-
-    final entries = detaylar.entries.toList();
-    entries.sort((a, b) {
-      if (a.key == 'Rapor Nedeni') return -1;
-      if (b.key == 'Rapor Nedeni') return 1;
-      return 0;
-    });
-
-    return Stack(
-      children: [
-        SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kReportMaxWidth),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 48,
-                    height: 5,
-                    decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(3)),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Başlık (ince)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Hesaplama Sonucu',
-                      style: TextStyle(
-                        fontSize: 16 * kResultHeaderScale,
-                        fontWeight: kResultHeaderWeight,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-
-                  // İçerik: SADECE detay satırları (başarı mesajı gösterilmez)
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-                      children: [
-                        ...entries.map(
-                              (e) => Padding(
-                            padding: kSumItemPadding,
-                            child: Text('${e.key}: ${e.value}', style: lineStyle),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Alt orta paylaş — Apple paylaş ikonlu
-        Positioned(
-          bottom: 10,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: _buildShareText()));
-                if (context.mounted) {
-                  showCenterNotice(
-                    context,
-                    title: 'Paylaş',
-                    message: 'Özet panoya kopyalandı.',
-                    type: AppNoticeType.success,
-                  );
-                }
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(CupertinoIcons.share, size: 18),
-                  SizedBox(width: 8),
-                  Text('Paylaş', style: TextStyle(fontWeight: FontWeight.w400)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+    return CalculatorResultSheet(
+        title: 'Rapor Parası',
+        details: detaylar,
+        highlightKey: 'Toplam Net Ödeme');
   }
 }

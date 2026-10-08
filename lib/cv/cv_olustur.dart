@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:convert';
@@ -642,70 +643,6 @@ class _CvBuilderPageState extends State<CvBuilderPage> {
       ..summary = _summaryCtrl.text.trim();
   }
 
-  // --- Fotoğraf (URL) ekleme ---
-  void _editPhoto() async {
-    // Fotoğraf ekleme özelliği yakında eklenecek
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Fotoğraf ekleme özelliği yakında eklenecek'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-    
-    // Eski kod - yorum satırına alındı (gelecekte kullanılabilir)
-    /*
-    final urlCtrl = TextEditingController(text: _cv.photoUrl ?? '');
-    final res = await showModalBottomSheet<String?>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          left: 16, right: 16, top: 12,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _SheetGrabber(),
-            Text('Fotoğraf URL'si', style: Theme.of(ctx).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            TextField(
-              controller: urlCtrl,
-              decoration: const InputDecoration(
-                hintText: 'https://... (görsel bağlantısı)',
-                labelText: 'URL',
-              ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(ctx).pop(urlCtrl.text.trim().isEmpty ? null : urlCtrl.text.trim()),
-                    child: const Text('Kaydet'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-    if (mounted) {
-      setState(() => _cv.photoUrl = res);
-      _saveCvData(); // Fotoğraf değişince kaydet
-    }
-    */
-  }
-
   // --- Ekle/Düzenle helper’ları ---
   Future<T?> _openSheet<T>(Widget child) {
     return showModalBottomSheet<T>(
@@ -886,24 +823,20 @@ class _CvBuilderPageState extends State<CvBuilderPage> {
     final divider = const Divider(height: 16);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppMenuBar(
         title: const Text(
           'CV Oluştur',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+          style: TextStyle(color: AppDesign.ink, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppDesign.ink),
           onPressed: () => Navigator.maybePop(context),
         ),
         actions: [
           TextButton.icon(
             onPressed: _preview,
-            icon: const Icon(Icons.visibility_outlined, color: Colors.white),
-            label: const Text('Önizle', style: TextStyle(color: Colors.white)),
+            icon: const Icon(Icons.visibility_outlined, color: AppDesign.ink),
+            label: const Text('Önizle', style: TextStyle(color: AppDesign.ink)),
           ),
         ],
       ),
@@ -913,46 +846,7 @@ class _CvBuilderPageState extends State<CvBuilderPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 24),
             children: [
-              // ===== 1) FOTOĞRAF =====
-              Text('Fotoğraf', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 34,
-                    backgroundColor: Colors.black12,
-                    backgroundImage: (_cv.photoUrl != null && _cv.photoUrl!.isNotEmpty)
-                        ? NetworkImage(_cv.photoUrl!)
-                        : null,
-                    child: (_cv.photoUrl == null || _cv.photoUrl!.isEmpty)
-                        ? const Icon(Icons.person, size: 32, color: Colors.black45)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Wrap(
-                      spacing: 8, runSpacing: 8,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: _editPhoto,
-                          icon: const Icon(Icons.photo_camera_outlined),
-                          label: const Text('Fotoğraf Ekle / Değiştir'),
-                        ),
-                        if (_cv.photoUrl != null && _cv.photoUrl!.isNotEmpty)
-                          OutlinedButton.icon(
-                            onPressed: () => setState(()=> _cv.photoUrl = null),
-                            icon: const Icon(Icons.delete_outline),
-                            label: const Text('Kaldır'),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              divider,
-
-              // ===== 2) Kişisel Bilgiler =====
+              // ===== Kişisel Bilgiler =====
               Text('Kişisel Bilgiler', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               TextFormField(

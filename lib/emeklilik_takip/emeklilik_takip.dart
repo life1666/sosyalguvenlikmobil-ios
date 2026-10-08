@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -299,22 +300,18 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
   Widget build(BuildContext context) {
     if (!hasData) {
       return Scaffold(
-        appBar: AppBar(
+        appBar: AppMenuBar(
           title: const Text(
             'Emeklilik Takip',
             style: TextStyle(
-              color: Colors.white,
+              color: AppDesign.ink,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
             ),
           ),
-          titleSpacing: 16,
-          centerTitle: false,
-          backgroundColor: Theme.of(context).primaryColor,
-          elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_rounded, color: AppDesign.ink),
             onPressed: () => Navigator.maybePop(context),
           ),
         ),
@@ -370,27 +367,23 @@ class _EmeklilikTakipPageState extends State<EmeklilikTakipPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppMenuBar(
         title: const Text(
           'Emeklilik Takip',
           style: TextStyle(
-            color: Colors.white,
+            color: AppDesign.ink,
             fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
           ),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppDesign.ink),
           onPressed: () => Navigator.maybePop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.white),
+            icon: const Icon(Icons.edit_outlined, color: AppDesign.ink),
             onPressed: _showAddRetirementDialog,
             tooltip: 'Düzenle',
           ),

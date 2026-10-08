@@ -1,3 +1,5 @@
+import '../utils/calculator_design.dart';
+import '../utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -9,42 +11,43 @@ import '../utils/theme_helper.dart';
 
 const double kPageHPad = 16.0;
 const double kTextScale = 1.00;
-const Color  kTextColor = Colors.black;
+const Color kTextColor = Colors.black;
 
 // Divider (global)
 const double kDividerThickness = 0.2;
-const double kDividerSpace     = 2.0;
+const double kDividerSpace = 2.0;
 
 // Form alanı çerçevesi
-const double kFieldBorderWidth   = 0.2;
-const double kFieldBorderRadius  = 10.0;
-const Color  kFieldBorderColor   = Colors.black87;
-const Color  kFieldFocusColor    = Colors.black87;
+const double kFieldBorderWidth = 0.2;
+const double kFieldBorderRadius = 10.0;
+const Color kFieldBorderColor = Colors.black87;
+const Color kFieldFocusColor = Colors.black87;
 
 // İkon genel
-const Color  kIconColor = Colors.black87;
-const double kIconSize  = 22.0;
+const Color kIconColor = Colors.black87;
+const double kIconSize = 22.0;
 
 /// ===== RAPOR KNOB’LARI =====
-const double kReportMaxWidth      = 660.0;
-const Color  kResultSheetBg       = Colors.white;
-const double kResultSheetCorner   = 22.0;
-const double kResultHeaderScale   = 1.00;
+const double kReportMaxWidth = 660.0;
+const Color kResultSheetBg = Colors.white;
+const double kResultSheetCorner = 22.0;
+const double kResultHeaderScale = 1.00;
 const FontWeight kResultHeaderWeight = FontWeight.w400;
 
-const Color kReportGood           = Color(0xFF16A34A);
-const Color kReportWarn           = Color(0xFFDC2626);
+const Color kReportGood = Color(0xFF16A34A);
+const Color kReportWarn = Color(0xFFDC2626);
 
 /// ===== YAZILI ÖZET MADDE KNOB’LARI =====
-const EdgeInsets kSumItemPadding  = EdgeInsets.symmetric(vertical: 4, horizontal: 0);
-const double     kSumItemFontScale = 1.10;
+const EdgeInsets kSumItemPadding =
+    EdgeInsets.symmetric(vertical: 4, horizontal: 0);
+const double kSumItemFontScale = 1.10;
 
 class AppW {
   static const appBarTitle = FontWeight.w700;
-  static const heading     = FontWeight.w500;
-  static const body        = FontWeight.w300;
-  static const minor       = FontWeight.w300;
-  static const tableHead   = FontWeight.w600;
+  static const heading = FontWeight.w500;
+  static const body = FontWeight.w300;
+  static const minor = FontWeight.w300;
+  static const tableHead = FontWeight.w600;
 }
 
 extension AppText on BuildContext {
@@ -57,9 +60,9 @@ extension AppText on BuildContext {
 ThemeData uygulamaTemasi = (() {
   final double sizeTitleLg = 16.5 * kTextScale;
   final double sizeTitleMd = 15 * kTextScale;
-  final double sizeBody    = 13.5 * kTextScale;
-  final double sizeSmall   = 12.5 * kTextScale;
-  final double sizeAppBar  = 20.5 * kTextScale;
+  final double sizeBody = 13.5 * kTextScale;
+  final double sizeSmall = 12.5 * kTextScale;
+  final double sizeAppBar = 20.5 * kTextScale;
 
   // ThemeHelper'dan tema rengini al
   final themeHelper = ThemeHelper();
@@ -71,7 +74,6 @@ ThemeData uygulamaTemasi = (() {
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: Colors.white,
-
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.white,
       foregroundColor: themeColor,
@@ -86,7 +88,6 @@ ThemeData uygulamaTemasi = (() {
         fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
       ),
     ),
-
     textTheme: TextTheme(
       titleLarge: TextStyle(
         fontSize: sizeTitleLg,
@@ -124,31 +125,31 @@ ThemeData uygulamaTemasi = (() {
         fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
       ),
     ),
-
     dividerTheme: const DividerThemeData(
       color: Colors.black,
       thickness: kDividerThickness,
       space: kDividerSpace,
     ),
-
     iconTheme: const IconThemeData(
       color: kIconColor,
       size: kIconSize,
     ),
-
     inputDecorationTheme: const InputDecorationTheme(
       isDense: true,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+        borderSide:
+            BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+        borderSide:
+            BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+        borderSide:
+            BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
@@ -156,7 +157,8 @@ ThemeData uygulamaTemasi = (() {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+        borderSide:
+            BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
       ),
       hintStyle: TextStyle(fontSize: 13 * kTextScale, color: Colors.grey),
       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -167,19 +169,19 @@ ThemeData uygulamaTemasi = (() {
 /// ========== CENTER NOTICE ==========
 enum AppNoticeType { error, info, success, warning }
 
-const double     kCenterNoticeRadius     = 16.0;
-const double     kCenterNoticeElevation  = 0.0;
-const EdgeInsets kCenterNoticePadding    = EdgeInsets.fromLTRB(16, 14, 16, 16);
-const Duration   kCenterNoticeAnimDur    = Duration(milliseconds: 220);
-const Duration   kCenterNoticeAutoHide   = Duration(seconds: 2);
+const double kCenterNoticeRadius = 16.0;
+const double kCenterNoticeElevation = 0.0;
+const EdgeInsets kCenterNoticePadding = EdgeInsets.fromLTRB(16, 14, 16, 16);
+const Duration kCenterNoticeAnimDur = Duration(milliseconds: 220);
+const Duration kCenterNoticeAutoHide = Duration(seconds: 2);
 
 Future<void> showCenterNotice(
-    BuildContext context, {
-      String? title,
-      required String message,
-      AppNoticeType type = AppNoticeType.error,
-      bool autoHide = true,
-    }) async {
+  BuildContext context, {
+  String? title,
+  required String message,
+  AppNoticeType type = AppNoticeType.error,
+  bool autoHide = true,
+}) async {
   Color bg, border, textMain;
   IconData icon;
 
@@ -236,18 +238,18 @@ Future<void> showCenterNotice(
                     Text(
                       title,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w400,
-                        color: textMain,
-                      ),
+                            fontWeight: FontWeight.w400,
+                            color: textMain,
+                          ),
                     ),
                   if (title != null && title.trim().isNotEmpty)
                     const SizedBox(height: 4),
                   Text(
                     message,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: textMain,
-                      fontWeight: AppW.body,
-                    ),
+                          color: textMain,
+                          fontWeight: AppW.body,
+                        ),
                   ),
                 ],
               ),
@@ -292,8 +294,18 @@ Future<void> showCenterNotice(
 /// ======================
 
 const List<String> months = [
-  'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
-  'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'
+  'Ocak',
+  'Şubat',
+  'Mart',
+  'Nisan',
+  'Mayıs',
+  'Haziran',
+  'Temmuz',
+  'Ağustos',
+  'Eylül',
+  'Ekim',
+  'Kasım',
+  'Aralık'
 ];
 
 String formatDateDDMMYYYY(DateTime d) {
@@ -323,7 +335,8 @@ class YillikUcretliIzinSayfasi extends StatefulWidget {
   const YillikUcretliIzinSayfasi({super.key});
 
   @override
-  State<YillikUcretliIzinSayfasi> createState() => _YillikUcretliIzinSayfasiState();
+  State<YillikUcretliIzinSayfasi> createState() =>
+      _YillikUcretliIzinSayfasiState();
 }
 
 class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
@@ -335,6 +348,7 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
 
   String? sigortaKolu;
   String? day, month, year;
+  DateTime? dogumTarihi;
 
   // ——— TR Cupertino Tarih Seçici
   static const List<String> _ayAdlariTR = months;
@@ -346,8 +360,19 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
     return '$d.$m.$year';
   }
 
+  String _fmtBirthDateLabel() =>
+      dogumTarihi == null ? 'Seçiniz' : formatDateDDMMYYYY(dogumTarihi!);
+
+  int _fullYearsBetween(DateTime start, DateTime end) {
+    var years = end.year - start.year;
+    final anniversary = DateTime(end.year, start.month, start.day);
+    if (anniversary.isAfter(end)) years--;
+    return years;
+  }
+
   int _daysInMonth(int y, int m) {
-    if (m == 12) return DateTime(y + 1, 1, 1).subtract(const Duration(days: 1)).day;
+    if (m == 12)
+      return DateTime(y + 1, 1, 1).subtract(const Duration(days: 1)).day;
     return DateTime(y, m + 1, 1).subtract(const Duration(days: 1)).day;
   }
 
@@ -363,9 +388,9 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
         int m = initial.month;
         int d = initial.day;
 
-        final yearCtrl  = FixedExtentScrollController(initialItem: y - minYear);
+        final yearCtrl = FixedExtentScrollController(initialItem: y - minYear);
         final monthCtrl = FixedExtentScrollController(initialItem: m - 1);
-        final dayCtrl   = FixedExtentScrollController(initialItem: d - 1);
+        final dayCtrl = FixedExtentScrollController(initialItem: d - 1);
 
         return Container(
           height: 320,
@@ -380,12 +405,15 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('İptal', style: TextStyle(color: Colors.black87)),
+                      child: const Text('İptal',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      onPressed: () => Navigator.pop(context, DateTime(y, m, d)),
-                      child: const Text('Tamam', style: TextStyle(color: Colors.black87)),
+                      onPressed: () =>
+                          Navigator.pop(context, DateTime(y, m, d)),
+                      child: const Text('Tamam',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
@@ -412,7 +440,10 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
                             scrollController: dayCtrl,
                             onSelectedItemChanged: (i) => d = i + 1,
                             children: List.generate(
-                              maxD, (i) => Center(child: Text('${(i + 1).toString().padLeft(2, '0')}')),
+                              maxD,
+                              (i) => Center(
+                                  child: Text(
+                                      '${(i + 1).toString().padLeft(2, '0')}')),
                             ),
                           ),
                         ),
@@ -421,9 +452,13 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
                             itemExtent: 32,
                             scrollController: monthCtrl,
                             onSelectedItemChanged: (i) {
-                              setModalState(() { m = i + 1; });
+                              setModalState(() {
+                                m = i + 1;
+                              });
                             },
-                            children: _ayAdlariTR.map((e) => Center(child: Text(e))).toList(),
+                            children: _ayAdlariTR
+                                .map((e) => Center(child: Text(e)))
+                                .toList(),
                           ),
                         ),
                         Expanded(
@@ -431,10 +466,13 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
                             itemExtent: 32,
                             scrollController: yearCtrl,
                             onSelectedItemChanged: (i) {
-                              setModalState(() { y = (minYear + i).toInt(); });
+                              setModalState(() {
+                                y = (minYear + i).toInt();
+                              });
                             },
                             children: List.generate(
-                              maxYear - minYear + 1, (i) => Center(child: Text('${minYear + i}')),
+                              maxYear - minYear + 1,
+                              (i) => Center(child: Text('${minYear + i}')),
                             ),
                           ),
                         ),
@@ -452,7 +490,11 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
 
   // ——— Sonuç Sheet'ini aç (mantık aynı, sadece görünüm değişti)
   Future<void> _hesaplaVeGoster() async {
-    if (sigortaKolu == null || day == null || month == null || year == null) {
+    if (sigortaKolu == null ||
+        day == null ||
+        month == null ||
+        year == null ||
+        (sigortaKolu == '4/A' && dogumTarihi == null)) {
       showCenterNotice(
         context,
         title: 'Eksik Alan',
@@ -490,23 +532,36 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
       return;
     }
 
-    final fark = bugun.difference(iseBaslangic);
-    final yilSayisi = fark.inDays ~/ 365;
+    if (dogumTarihi != null && dogumTarihi!.isAfter(bugun)) {
+      showCenterNotice(
+        context,
+        title: 'Tarih Hatası',
+        message: 'Doğum tarihi gelecekte olamaz.',
+        type: AppNoticeType.error,
+      );
+      return;
+    }
+
+    final yilSayisi = _fullYearsBetween(iseBaslangic, bugun);
+    final yas = sigortaKolu == '4/A' && dogumTarihi != null
+        ? _fullYearsBetween(dogumTarihi!, bugun)
+        : null;
 
     String baslikMesaji; // (UI'da gösterilmeyecek)
     bool isSuccess;
     final Map<String, String> detaylar = {
       'İşe Başlangıç Tarihi':
-      '${day!.padLeft(2, '0')}/${(months.indexOf(month!) + 1).toString().padLeft(2, '0')}/$year',
+          '${day!.padLeft(2, '0')}/${(months.indexOf(month!) + 1).toString().padLeft(2, '0')}/$year',
       'Sigorta Kolu': sigortaKolu!,
       'Çalışma Süresi': '$yilSayisi Yıl',
+      if (yas != null) 'Yaş': '$yas',
     };
 
     if (yilSayisi < 1) {
       isSuccess = false;
       baslikMesaji = 'Henüz Yıllık Ücretli İzin Hakkınız Bulunmamaktadır.';
       detaylar['Açıklama'] =
-      'Çalışma süreniz 1 yıldan az. Minimum 1 yıl çalışma şartı gerekmektedir.';
+          'Çalışma süreniz 1 yıldan az. Minimum 1 yıl çalışma şartı gerekmektedir.';
     } else {
       isSuccess = true;
       baslikMesaji = 'Yıllık Ücretli İzin Kullanmaya Hak Kazandınız.';
@@ -516,17 +571,23 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
       } else {
         if (yilSayisi <= 5) {
           izinHakki = '14 Gün';
-        } else if (yilSayisi <= 15) {
+        } else if (yilSayisi < 15) {
           izinHakki = '20 Gün';
         } else {
           izinHakki = '26 Gün';
+        }
+        if (yas != null && (yas <= 18 || yas >= 50) && izinHakki == '14 Gün') {
+          izinHakki = '20 Gün';
+          detaylar['Yaşa Bağlı Alt Sınır'] =
+              '18 yaş ve altı ile 50 yaş ve üzeri çalışanlarda en az 20 gün';
         }
       }
       detaylar['Yıllık Ücretli İzin Hakkı'] = izinHakki;
     }
 
     final Map<String, String> ekBilgi = {
-      'Sosyal Güvenlik Mobil Herhangi Resmi Bir Kurumun Uygulaması Değildir!': '',
+      'Sosyal Güvenlik Mobil Herhangi Resmi Bir Kurumun Uygulaması Değildir!':
+          '',
       'Yapılan Hesaplamalar Tahmini Olup Resmi Bir Nitelik Taşımamaktadır!': '',
       'Hesaplamalar Bilgi İçindir Hiçbir Sorumluluk Kabul Edilmez!': '',
       'Hesaplama Tarihi': formatDateDDMMYYYY(DateTime.now()),
@@ -538,8 +599,10 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
         'iseBaslangicTarihi': iseBaslangic.toIso8601String(),
         'sigortaKolu': sigortaKolu,
         'yilSayisi': yilSayisi,
+        if (sigortaKolu == '4/A' && dogumTarihi != null)
+          'dogumTarihi': dogumTarihi!.toIso8601String(),
       };
-      
+
       final sonHesaplama = SonHesaplama(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         hesaplamaTuru: 'Yıllık İzin Süresi Hesaplama',
@@ -548,9 +611,9 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
         sonuclar: detaylar,
         ozet: baslikMesaji,
       );
-      
+
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
-      
+
       // Firebase Analytics: Hesaplama tamamlandı
       AnalyticsHelper.logCalculation('yillik_izin', parameters: {
         'hesaplama_turu': 'Yıllık İzin Süresi',
@@ -562,9 +625,10 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
+      backgroundColor: AppDesign.activeSurface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
       ),
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.90,
@@ -581,7 +645,8 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
   Future<void> _pickSigortaKolu() async {
     final items = const ['4/A', '4/C'];
     final init = sigortaKolu != null ? items.indexOf(sigortaKolu!) : 0;
-    final secim = await _showCupertinoListPicker(items: items, initialIndex: init < 0 ? 0 : init);
+    final secim = await _showCupertinoListPicker(
+        items: items, initialIndex: init < 0 ? 0 : init);
     if (secim != null) setState(() => sigortaKolu = secim);
   }
 
@@ -591,7 +656,8 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
     String okText = 'Tamam',
     String cancelText = 'İptal',
   }) async {
-    int selectedIndex = initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
+    int selectedIndex =
+        initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
     return showCupertinoModalPopup<String>(
       context: context,
       builder: (context) {
@@ -608,12 +674,15 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('İptal', style: TextStyle(color: Colors.black87)),
+                      child: const Text('İptal',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      onPressed: () => Navigator.pop(context, items.isNotEmpty ? items[selectedIndex] : null),
-                      child: const Text('Tamam', style: TextStyle(color: Colors.black87)),
+                      onPressed: () => Navigator.pop(context,
+                          items.isNotEmpty ? items[selectedIndex] : null),
+                      child: const Text('Tamam',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
@@ -622,7 +691,8 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
               Expanded(
                 child: CupertinoPicker(
                   itemExtent: 30,
-                  scrollController: FixedExtentScrollController(initialItem: selectedIndex),
+                  scrollController:
+                      FixedExtentScrollController(initialItem: selectedIndex),
                   onSelectedItemChanged: (i) => selectedIndex = i,
                   children: [for (final s in items) Center(child: Text(s))],
                 ),
@@ -637,7 +707,8 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final initial = (year != null && month != null && day != null)
-        ? DateTime(int.parse(year!), months.indexOf(month!) + 1, int.parse(day!))
+        ? DateTime(
+            int.parse(year!), months.indexOf(month!) + 1, int.parse(day!))
         : now;
 
     final picked = await _showTurkceDatePicker(initial: initial);
@@ -650,77 +721,57 @@ class _YillikUcretliIzinSayfasiState extends State<YillikUcretliIzinSayfasi> {
     }
   }
 
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await _showTurkceDatePicker(
+      initial: dogumTarihi ?? DateTime(now.year - 30, now.month, now.day),
+      minYear: 1930,
+      maxYear: now.year,
+    );
+    if (picked != null) setState(() => dogumTarihi = picked);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Yıllık Ücretli İzin Hakkı',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 12),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate.fixed([
-                  _CupertinoField(
-                    label: 'İşe Başlangıç Tarihi',
-                    valueText: _fmtDateLabel(),
-                    onTap: _pickDate,
-                  ),
-                  _CupertinoField(
-                    label: 'Sigorta Kolu',
-                    valueText: sigortaKolu ?? 'Seçiniz',
-                    onTap: _pickSigortaKolu,
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: () async => await _hesaplaVeGoster(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                        minimumSize: const Size.fromHeight(46),
-                      ),
-                      child: Text('Hesapla', style: TextStyle(fontSize: 17 * kTextScale)),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ]),
-              ),
-            ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(kPageHPad, 0, kPageHPad, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Divider(),
-                    _InfoNotice(),
-                  ],
-                ),
-              ),
-            ),
+    return CalculatorPage(
+        title: 'Yıllık İzin Süresi',
+        icon: Icons.beach_access_outlined,
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _CupertinoField(
+              label: 'İşe başlangıç tarihi',
+              valueText: _fmtDateLabel(),
+              onTap: _pickDate),
+          const SizedBox(height: 12),
+          _CupertinoField(
+              label: 'Sigorta kolu',
+              valueText: sigortaKolu ?? 'Seçiniz',
+              onTap: _pickSigortaKolu),
+          if (sigortaKolu == '4/A') ...[
+            const SizedBox(height: 12),
+            _CupertinoField(
+                label: 'Doğum tarihi',
+                valueText: _fmtBirthDateLabel(),
+                onTap: _pickBirthDate),
           ],
-        ),
-      ),
-    );
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () async => await _hesaplaVeGoster(),
+            icon: const Icon(Icons.calculate_outlined),
+            label: const Text('Hesapla'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: calculatorAccent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                minimumSize: const Size.fromHeight(54),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                textStyle:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          ),
+        ]));
   }
 }
 
@@ -740,50 +791,39 @@ class _CupertinoField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isPlaceholder = valueText.trim().isEmpty || valueText == 'Seçiniz';
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: context.sFormLabel),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: enabled ? onTap : null,
-            child: Opacity(
-              opacity: enabled ? 1 : 0.6,
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                    borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                    borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
-                  ),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
-                child: Row(
-                  children: [
+    final placeholder = valueText.trim().isEmpty || valueText == 'Seçiniz';
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label,
+          style: TextStyle(
+              color: AppDesign.activeInk, fontSize: 14, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      Semantics(
+          button: true,
+          label: label,
+          child: Material(
+            color: AppDesign.activeSurface,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AppDesign.activeBorder)),
+            child: InkWell(
+                onTap: enabled ? onTap : null,
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(children: [
                     Expanded(
-                      child: Text(
-                        isPlaceholder ? 'Seçiniz' : valueText,
-                        style: TextStyle(
-                          color: isPlaceholder ? Colors.grey[700] : Colors.black87,
-                          fontWeight: AppW.body,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+                        child: Text(placeholder ? 'Seçiniz' : valueText,
+                            style: TextStyle(
+                                color: placeholder
+                                    ? AppDesign.activeMuted
+                                    : AppDesign.activeInk,
+                                fontSize: 15))),
+                    Icon(Icons.expand_more_rounded,
+                        color: AppDesign.activeMuted),
+                  ]),
+                )),
+          )),
+    ]);
   }
 }
 
@@ -804,9 +844,9 @@ class _InfoNotice extends StatelessWidget {
           child: Text(
             'Bilgilendirme',
             style: Theme.of(context).textTheme.titleMedium!.copyWith(
-              fontWeight: FontWeight.w300,
-              color: Colors.black87,
-            ),
+                  fontWeight: FontWeight.w300,
+                  color: Colors.black87,
+                ),
           ),
         ),
         const SizedBox(height: 6),
@@ -814,16 +854,17 @@ class _InfoNotice extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.black26, size: 20),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.black26, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   m,
                   style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                    fontWeight: AppW.body,
-                    color: Colors.black,
-                    fontSize: 12,
-                  ),
+                        fontWeight: AppW.body,
+                        color: Colors.black,
+                        fontSize: 12,
+                      ),
                 ),
               ),
             ],
@@ -839,7 +880,7 @@ class _InfoNotice extends StatelessWidget {
 
 class YillikIzinReportSheet extends StatelessWidget {
   final String baslikMesaji; // (gösterilmeyecek)
-  final bool isSuccess;      // (gösterilmeyecek renk vs. için de kullanılmıyor)
+  final bool isSuccess; // (gösterilmeyecek renk vs. için de kullanılmıyor)
   final Map<String, String> detaylar;
   final Map<String, String> ekBilgi; // (tamamen yok sayılacak)
 
@@ -851,111 +892,11 @@ class YillikIzinReportSheet extends StatelessWidget {
     required this.ekBilgi,
   });
 
-  String _buildShareText() {
-    final b = StringBuffer('Yıllık Ücretli İzin Özeti\n');
-    // Durum bilgisini paylaşım metninde tutuyoruz (UI'da gösterilmiyor)
-    b.writeln('Durum: ${isSuccess ? "Hak Kazanıldı" : "Henüz Hak Yok"}');
-    detaylar.forEach((k, v) => b.writeln('$k: $v'));
-    return b.toString().trim();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final baseSmall = Theme.of(context).textTheme.bodySmall!;
-    final lineStyle = baseSmall.copyWith(
-      fontSize: (baseSmall.fontSize ?? 12) * kSumItemFontScale,
-      fontWeight: FontWeight.w400,
-      height: 1.5,
-      color: Colors.black87,
-    );
-
-    return Stack(
-      children: [
-        SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kReportMaxWidth),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 48,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Başlık (ince)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Hesaplama Sonucu',
-                      style: TextStyle(
-                        fontSize: 16 * kResultHeaderScale,
-                        fontWeight: kResultHeaderWeight,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-
-                  // İçerik: kart-sınır yok, direkt sonuç satırları
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-                      children: [
-                        ...detaylar.entries.map(
-                              (e) => Padding(
-                            padding: kSumItemPadding,
-                            child: Text('${e.key}: ${e.value}', style: lineStyle),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Alt orta paylaş
-        Positioned(
-          bottom: 10,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: _buildShareText()));
-                if (context.mounted) {
-                  showCenterNotice(
-                    context,
-                    title: 'Paylaş',
-                    message: 'Özet panoya kopyalandı.',
-                    type: AppNoticeType.success,
-                  );
-                }
-              },
-              icon: const Icon(Icons.ios_share_rounded, size: 18),
-              label: const Text('Paylaş', style: TextStyle(fontWeight: FontWeight.w400)),
-            ),
-          ),
-        ),
-      ],
-    );
+    return CalculatorResultSheet(
+        title: 'Yıllık İzin Süresi',
+        details: detaylar,
+        highlightKey: 'Yıllık Ücretli İzin Hakkı');
   }
 }

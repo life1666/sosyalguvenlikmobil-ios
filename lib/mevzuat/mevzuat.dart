@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -125,25 +126,21 @@ class _MevzuatSayfasiState extends State<MevzuatSayfasi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        titleSpacing: 16,
+      backgroundColor: AppDesign.activeBackground,
+      appBar: AppMenuBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: AppDesign.activeInk),
           onPressed: () => Navigator.maybePop(context),
         ),
-        title: const Text(
+        title: Text(
           'Mevzuat',
           style: TextStyle(
-            color: Colors.white,
+            color: AppDesign.activeInk,
             fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
           ),
         ),
-        centerTitle: false,
       ),
       body: Column(
         children: [
@@ -163,7 +160,7 @@ class _MevzuatSayfasiState extends State<MevzuatSayfasi> {
               children: [
                 Icon(
                   Icons.info_outline_rounded,
-                  color: Colors.indigo[700],
+                  color: Theme.of(context).primaryColor,
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -172,7 +169,7 @@ class _MevzuatSayfasiState extends State<MevzuatSayfasi> {
                     'Çalışma hayatına dair kanun ve yönetmeliklerin mevzuat.gov.tr linklerine buradan ulaşabilirsiniz.',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[800],
+                      color: AppDesign.activeInk,
                       height: 1.4,
                     ),
                   ),
@@ -191,7 +188,7 @@ class _MevzuatSayfasiState extends State<MevzuatSayfasi> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
+                    color: AppDesign.activeInk,
                   ),
                 ),
               ],
@@ -205,111 +202,16 @@ class _MevzuatSayfasiState extends State<MevzuatSayfasi> {
               itemCount: mevzuatListesi.length,
               itemBuilder: (context, index) {
                 final mevzuat = mevzuatListesi[index];
-                final isKanun = mevzuat['kategori'] == 'Kanun';
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isKanun
-                          ? Colors.red.withValues(alpha: 0.3)
-                          : Colors.blue.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => _acLink(mevzuat['link'] as String),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Başlık ve kategori
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isKanun
-                                        ? Colors.red.withValues(alpha: 0.1)
-                                        : Colors.blue.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    mevzuat['kategori'] as String,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: isKanun
-                                          ? Colors.red[700]
-                                          : Colors.blue[700],
-                                    ),
-                                  ),
-                                ),
-                                const Spacer(),
-                                Icon(
-                                  Icons.open_in_new,
-                                  size: 18,
-                                  color: Colors.grey[600],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            // İkon ve başlık
-                            Row(
-                              children: [
-                                Icon(
-                                  mevzuat['icon'] as IconData,
-                                  color: isKanun
-                                      ? Colors.red[700]
-                                      : Colors.blue[700],
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    mevzuat['baslik'] as String,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.grey[800],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            // Açıklama
-                            Text(
-                              mevzuat['aciklama'] as String,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600],
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
+
+                return Padding(padding: const EdgeInsets.only(bottom: 10),
+                  child: AppSurface(padding: EdgeInsets.zero, child: AppActionTile(
+                    title: mevzuat['baslik'] as String,
+                    subtitle: '${mevzuat['kategori']} · ${mevzuat['aciklama']}',
+                    icon: mevzuat['icon'] as IconData,
+                    onTap: () => _acLink(mevzuat['link'] as String),
+                  )),
+                );              },
             ),
           ),
         ],

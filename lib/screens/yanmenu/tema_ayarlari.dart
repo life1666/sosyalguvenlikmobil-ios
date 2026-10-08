@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
@@ -13,13 +14,15 @@ class TemaAyarlariEkrani extends StatefulWidget {
 class _TemaAyarlariEkraniState extends State<TemaAyarlariEkrani> {
   final ThemeHelper _themeHelper = ThemeHelper();
   double _fontSize = 14.0; // Varsayılan 14 punto
-  Color _selectedThemeColor = Colors.indigo; // Varsayılan indigo (orijinal renk)
+  Color _selectedThemeColor =
+      Colors.indigo; // Varsayılan indigo (orijinal renk)
+  bool _darkMode = false;
   final double _minFontSize = 12.0;
   final double _maxFontSize = 18.0;
 
   // Tema renkleri
   final List<Color> _themeColors = [
-    Colors.indigo,      // Varsayılan
+    Colors.indigo, // Varsayılan
     const Color(0xFF94A3B8), // Gri (slate)
     Colors.blue,
     Colors.pink,
@@ -45,7 +48,13 @@ class _TemaAyarlariEkraniState extends State<TemaAyarlariEkrani> {
     setState(() {
       _fontSize = _themeHelper.fontSize;
       _selectedThemeColor = _themeHelper.themeColor;
+      _darkMode = _themeHelper.darkMode;
     });
+  }
+
+  Future<void> _saveDarkMode(bool enabled) async {
+    setState(() => _darkMode = enabled);
+    await _themeHelper.setDarkMode(enabled);
   }
 
   Future<void> _saveFontSize(double size) async {
@@ -73,242 +82,299 @@ class _TemaAyarlariEkraniState extends State<TemaAyarlariEkrani> {
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).primaryColor;
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppMenuBar(
+        title: Text(
           'Tema Ayarları',
           style: TextStyle(
-            color: Colors.white,
+            color: AppDesign.activeInk,
             fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
           ),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: themeColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: AppDesign.activeInk),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              themeColor.withOpacity(0.02),
-            ],
+      body: SafeArea(
+          child: AppContent(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Theme.of(context).scaffoldBackgroundColor,
+                Theme.of(context).scaffoldBackgroundColor,
+              ],
+            ),
           ),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Yazı Fontunu Büyüt
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Yazı Fontunu Büyüt',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '(${_fontSize.toInt()} punto)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Yazı Boyutu'),
-                                content: const Text(
-                                  'Yazı boyutunu 12 ile 18 punto arasında ayarlayabilirsiniz. '
-                                  'Bu ayar uygulamanın tüm ekranlarına uygulanacaktır.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Tamam'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          child: Icon(
-                            Icons.help_outline,
-                            size: 18,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Slider
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: _selectedThemeColor,
-                              inactiveTrackColor: Colors.grey[300],
-                              thumbColor: _selectedThemeColor,
-                              overlayColor: _selectedThemeColor.withOpacity(0.2),
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 8,
-                              ),
-                            ),
-                            child: Slider(
-                              value: _fontSize,
-                              min: _minFontSize,
-                              max: _maxFontSize,
-                              divisions: 6, // 12, 13, 14, 15, 16, 17, 18
-                              label: '${_fontSize.toInt()} punto',
-                              onChanged: (value) {
-                                setState(() {
-                                  _fontSize = value;
-                                });
-                                _saveFontSize(value);
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // Kullanılan Tema
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Kullanılan Tema',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(AppDesign.radius),
+                    border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : AppDesign.border),
+                  ),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(11),
+                      decoration: BoxDecoration(
+                        color: _selectedThemeColor.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      child: Icon(
+                          _darkMode
+                              ? Icons.dark_mode_rounded
+                              : Icons.light_mode_rounded,
+                          color: _selectedThemeColor),
                     ),
-                    const SizedBox(height: 16),
-                    // Renk grid'i (5 sütun, 3 satır - 12 renk)
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 5,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.0,
-                      ),
-                      itemCount: _themeColors.length,
-                      itemBuilder: (context, index) {
-                        final color = _themeColors[index];
-                        final isSelected = _selectedThemeColor.value == color.value;
-                        
-                        return GestureDetector(
-                          onTap: () {
-                            _saveThemeColor(color);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected ? Colors.black : Colors.transparent,
-                                width: isSelected ? 2 : 0,
-                              ),
-                            ),
-                            child: isSelected
-                                ? const Center(
-                                    child: Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                      size: 24,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              // Bilgilendirme
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _selectedThemeColor.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: _selectedThemeColor),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     Expanded(
-                      child: Text(
-                        'Yazı boyutu ve tema ayarları uygulamanın tüm ekranlarına uygulanacaktır. Değişikliklerin etkili olması için uygulamayı yeniden başlatmanız gerekebilir.',
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Koyu Tema',
+                                style: TextStyle(
+                                    color: colors.onSurface,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 3),
+                            Text(
+                                _darkMode
+                                    ? 'Koyu görünüm etkin'
+                                    : 'Açık görünüm etkin',
+                                style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                    fontSize: 12)),
+                          ]),
+                    ),
+                    Switch.adaptive(
+                      value: _darkMode,
+                      activeColor: _selectedThemeColor,
+                      onChanged: _saveDarkMode,
+                    ),
+                  ]),
+                ),
+                // Yazı Fontunu Büyüt
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(AppDesign.radius),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Yazı Fontunu Büyüt',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: colors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '(${_fontSize.toInt()} punto)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Yazı Boyutu'),
+                                  content: const Text(
+                                    'Yazı boyutunu 12 ile 18 punto arasında ayarlayabilirsiniz. '
+                                    'Bu ayar uygulamanın tüm ekranlarına uygulanacaktır.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Tamam'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            child: Icon(
+                              Icons.help_outline,
+                              size: 18,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Slider
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: _selectedThemeColor,
+                                inactiveTrackColor: Colors.grey[300],
+                                thumbColor: _selectedThemeColor,
+                                overlayColor:
+                                    _selectedThemeColor.withOpacity(0.2),
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 8,
+                                ),
+                              ),
+                              child: Slider(
+                                value: _fontSize,
+                                min: _minFontSize,
+                                max: _maxFontSize,
+                                divisions: 6, // 12, 13, 14, 15, 16, 17, 18
+                                label: '${_fontSize.toInt()} punto',
+                                onChanged: (value) {
+                                  setState(() {
+                                    _fontSize = value;
+                                  });
+                                  _saveFontSize(value);
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Kullanılan Tema
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(AppDesign.radius),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kullanılan Tema',
                         style: TextStyle(
-                          fontSize: 13,
-                          color: _selectedThemeColor.withOpacity(0.9),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      // Renk grid'i (5 sütun, 3 satır - 12 renk)
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 5,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.0,
+                        ),
+                        itemCount: _themeColors.length,
+                        itemBuilder: (context, index) {
+                          final color = _themeColors[index];
+                          final isSelected =
+                              _selectedThemeColor.value == color.value;
+
+                          return GestureDetector(
+                            onTap: () {
+                              _saveThemeColor(color);
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Colors.black
+                                      : Colors.transparent,
+                                  width: isSelected ? 2 : 0,
+                                ),
+                              ),
+                              child: isSelected
+                                  ? const Center(
+                                      child: Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+
+                // Bilgilendirme
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: _selectedThemeColor.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(AppDesign.radius),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: _selectedThemeColor),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Yazı boyutu, vurgu rengi ve koyu tema seçimi anında uygulanır ve sonraki açılışta korunur.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _selectedThemeColor.withOpacity(0.9),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
+      )),
     );
   }
 }
-

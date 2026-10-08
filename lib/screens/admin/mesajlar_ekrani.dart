@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -413,17 +414,13 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
 
     if (currentUser == null || !_isAdmin(currentUser)) {
       return Scaffold(
-        appBar: AppBar(
+        appBar: AppMenuBar(
           title: const Text(
             "Erişim Reddedildi",
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+            style: TextStyle(color: AppDesign.ink, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
           ),
-          titleSpacing: 16,
-          centerTitle: false,
-          backgroundColor: Theme.of(context).primaryColor,
-          elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_rounded, color: AppDesign.ink),
             onPressed: () => Navigator.maybePop(context),
           ),
         ),
@@ -483,17 +480,13 @@ class _MesajlarEkraniState extends State<MesajlarEkrani> {
     }
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppMenuBar(
         title: const Text(
           "Gelen Mesajlar",
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+          style: TextStyle(color: AppDesign.ink, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppDesign.ink),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),

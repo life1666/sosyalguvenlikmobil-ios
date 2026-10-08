@@ -1,3 +1,5 @@
+import '../utils/calculator_design.dart';
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,60 +11,62 @@ import '../utils/theme_helper.dart';
 
 const double kPageHPad = 16.0;
 const double kTextScale = 1.00;
-const Color  kTextColor = Colors.black;
+const Color kTextColor = Colors.black;
 
 // Divider (global)
 const double kDividerThickness = 0.2;
-const double kDividerSpace     = 2.0;
+const double kDividerSpace = 2.0;
 
 // Form alanı çerçevesi
-const double kFieldBorderWidth   = 0.2;
-const double kFieldBorderRadius  = 10.0;
-const Color  kFieldBorderColor   = Colors.black87;
-const Color  kFieldFocusColor    = Colors.black87;
+const double kFieldBorderWidth = 1.0;
+const double kFieldBorderRadius = 12.0;
+const Color kFieldBorderColor = AppDesign.border;
+const Color kFieldFocusColor = calculatorAccent;
 
 // İkon genel
-const Color  kIconColor = Colors.black87;
-const double kIconSize  = 22.0;
+const Color kIconColor = Colors.black87;
+const double kIconSize = 22.0;
 
 /// ===== RAPOR KNOB’LARI =====
-const double kReportMaxWidth      = 660.0;
-const Color  kResultSheetBg       = Colors.white;
-const double kResultSheetCorner   = 22.0;
-const double kResultHeaderScale   = 1.00;
+const double kReportMaxWidth = 660.0;
+const Color kResultSheetBg = Colors.white;
+const double kResultSheetCorner = 22.0;
+const double kResultHeaderScale = 1.00;
 // Başlıklar ince (hiçbiri kalın değil)
 const FontWeight kResultHeaderWeight = FontWeight.w400;
 
-const Color kReportGood           = Color(0xFF16A34A);
-const Color kReportWarn           = Color(0xFFDC2626);
+const Color kReportGood = Color(0xFF16A34A);
+const Color kReportWarn = Color(0xFFDC2626);
 
 /// ===== YAZILI ÖZET MADDE (BULLET) KNOB’LARI =====
-const double     kSumSectionTitleGap   = 8.0;
-const double     kSumBetweenItemsGap   = 8.0;
-const EdgeInsets kSumItemPadding       = EdgeInsets.symmetric(vertical: 4, horizontal: 0);
-const FontWeight kSumItemWeight        = FontWeight.w400;
-const double     kSumItemFontScale     = 1.10; // sonuç ekranını biraz büyük göster
-const Color      kSumOkColor           = kReportGood;
-const Color      kSumWarnColor         = kReportWarn;
+const double kSumSectionTitleGap = 8.0;
+const double kSumBetweenItemsGap = 8.0;
+const EdgeInsets kSumItemPadding =
+    EdgeInsets.symmetric(vertical: 4, horizontal: 0);
+const FontWeight kSumItemWeight = FontWeight.w400;
+const double kSumItemFontScale = 1.10; // sonuç ekranını biraz büyük göster
+const Color kSumOkColor = kReportGood;
+const Color kSumWarnColor = kReportWarn;
 
 class AppW {
   static const appBarTitle = FontWeight.w700;
-  static const heading     = FontWeight.w500;
-  static const body        = FontWeight.w300;
-  static const minor       = FontWeight.w300;
-  static const tableHead   = FontWeight.w600;
+  static const heading = FontWeight.w500;
+  static const body = FontWeight.w300;
+  static const minor = FontWeight.w300;
+  static const tableHead = FontWeight.w600;
 }
 
 extension AppText on BuildContext {
   TextStyle get sFormLabel => Theme.of(this).textTheme.titleLarge!;
-  TextStyle get sBody      => Theme.of(this).textTheme.bodyMedium!;
-  TextStyle get sMinor     => Theme.of(this).textTheme.bodySmall!;
+  TextStyle get sBody => Theme.of(this).textTheme.bodyMedium!;
+  TextStyle get sMinor => Theme.of(this).textTheme.bodySmall!;
   TextStyle get sTableHead =>
       Theme.of(this).textTheme.bodyMedium!.copyWith(fontWeight: AppW.tableHead);
   TextStyle sEmphasis(Color color) =>
       Theme.of(this).textTheme.titleMedium!.copyWith(
-        fontWeight: AppW.heading, color: color,
-      );
+            fontWeight: AppW.heading,
+            color: color,
+          );
 }
 
 /// ----------------------------------------------
@@ -73,18 +77,18 @@ ThemeData get uygulamaTemasi {
   // sizeTitleLg: Form başlıkları (İnşaat Başlangıç Tarihi, Sınıf, Grup, vb.) için punto
   //              16.5 değerini değiştirerek form başlık puntolarını kontrol edebilirsiniz
   final double sizeTitleLg = 16.5 * kTextScale;
-  
+
   // sizeTitleMd: Orta boy başlıklar için punto (context.sEmphasis() ile kullanılır)
   final double sizeTitleMd = 15 * kTextScale;
-  
+
   // sizeBody: Normal metin içeriği için punto (context.sBody ile kullanılır)
-  final double sizeBody    = 13.5 * kTextScale;
-  
+  final double sizeBody = 13.5 * kTextScale;
+
   // sizeSmall: Küçük metinler için punto (context.sMinor ile kullanılır)
-  final double sizeSmall   = 12.5 * kTextScale;
-  
+  final double sizeSmall = 12.5 * kTextScale;
+
   // sizeAppBar: AppBar başlık puntoları için
-  final double sizeAppBar  = 20.5 * kTextScale;
+  final double sizeAppBar = 20.5 * kTextScale;
 
   // ThemeHelper'dan tema rengini al
   final themeHelper = ThemeHelper();
@@ -96,7 +100,6 @@ ThemeData get uygulamaTemasi {
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: Colors.white,
-
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.white,
       foregroundColor: themeColor,
@@ -111,7 +114,6 @@ ThemeData get uygulamaTemasi {
         fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
       ),
     ),
-
     textTheme: TextTheme(
       titleLarge: TextStyle(
         fontSize: sizeTitleLg,
@@ -149,39 +151,41 @@ ThemeData get uygulamaTemasi {
         fontFamilyFallback: const ['SF Pro Text', 'Roboto', 'Arial'],
       ),
     ),
-
     dividerTheme: const DividerThemeData(
       color: Colors.black,
       thickness: kDividerThickness,
       space: kDividerSpace,
     ),
-
     iconTheme: const IconThemeData(
       color: kIconColor,
       size: kIconSize,
     ),
-
     inputDecorationTheme: const InputDecorationTheme(
       isDense: true, // daha kompakt
       border: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+        borderSide:
+            BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+        borderSide:
+            BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+        borderSide:
+            BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth), // ince kırmızı
+        borderSide: BorderSide(
+            color: Colors.red, width: kFieldBorderWidth), // ince kırmızı
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+        borderSide:
+            BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
       ),
       hintStyle: TextStyle(fontSize: 13 * kTextScale, color: Colors.grey),
       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -192,21 +196,21 @@ ThemeData get uygulamaTemasi {
 /// ========== CENTER NOTICE ==========
 enum AppNoticeType { error, info, success, warning }
 
-const double     kCenterNoticeMaxWidth   = 360.0;
-const double     kCenterNoticeRadius     = 16.0;
-const double     kCenterNoticeElevation  = 0.0;
-const EdgeInsets kCenterNoticePadding    = EdgeInsets.fromLTRB(16, 14, 16, 16);
-const Duration   kCenterNoticeAnimDur    = Duration(milliseconds: 220);
-const Duration   kCenterNoticeAutoHide   = Duration(seconds: 2);
-const bool       kCenterNoticeBarrierDismissible = true;
+const double kCenterNoticeMaxWidth = 360.0;
+const double kCenterNoticeRadius = 16.0;
+const double kCenterNoticeElevation = 0.0;
+const EdgeInsets kCenterNoticePadding = EdgeInsets.fromLTRB(16, 14, 16, 16);
+const Duration kCenterNoticeAnimDur = Duration(milliseconds: 220);
+const Duration kCenterNoticeAutoHide = Duration(seconds: 2);
+const bool kCenterNoticeBarrierDismissible = true;
 
 Future<void> showCenterNotice(
-    BuildContext context, {
-      String? title,
-      required String message,
-      AppNoticeType type = AppNoticeType.error,
-      bool autoHide = true,
-    }) async {
+  BuildContext context, {
+  String? title,
+  required String message,
+  AppNoticeType type = AppNoticeType.error,
+  bool autoHide = true,
+}) async {
   Color bg, border, textMain;
   IconData icon;
 
@@ -263,18 +267,18 @@ Future<void> showCenterNotice(
                     Text(
                       title,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w400,
-                        color: textMain,
-                      ),
+                            fontWeight: FontWeight.w400,
+                            color: textMain,
+                          ),
                     ),
                   if (title != null && title.trim().isNotEmpty)
                     const SizedBox(height: 4),
                   Text(
                     message,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: textMain,
-                      fontWeight: AppW.body,
-                    ),
+                          color: textMain,
+                          fontWeight: AppW.body,
+                        ),
                   ),
                 ],
               ),
@@ -319,8 +323,8 @@ Future<void> showCenterNotice(
 /// ======================
 
 class TarifeYiliSonucu {
-  final int tarifeYili;                // Birim maliyet tarifesi için baz yıl
-  final int sinifGrupReferansYili;     // Sınıf/grup referansı (başlangıç yılı)
+  final int tarifeYili; // Birim maliyet tarifesi için baz yıl
+  final int sinifGrupReferansYili; // Sınıf/grup referansı (başlangıç yılı)
   final bool ozelDurum;
   final String aciklama;
   const TarifeYiliSonucu({
@@ -361,7 +365,7 @@ TarifeYiliSonucu hesaplaTarifeYili({
     if (kenar2004) {
       tarifeYili = 2003;
       kuralNotu =
-      '2004 içinde 01.05 eşiğini aşan işler için kenar kuralı: tarife yılı 2003.';
+          '2004 içinde 01.05 eşiğini aşan işler için kenar kuralı: tarife yılı 2003.';
     } else {
       tarifeYili = b.year;
       kuralNotu = 'Başlangıç ve bitiş aynı yıl: tarife yılı $tarifeYili.';
@@ -370,7 +374,7 @@ TarifeYiliSonucu hesaplaTarifeYili({
     // Birden fazla yılı kapsıyorsa: BİTİŞ YILININ BİR ÖNCESİ
     tarifeYili = e.year - 1; // Örn: 2020..2025 => 2024
     kuralNotu =
-    'Başlangıç ve bitiş farklı yıl: bitiş yılının bir öncesi ($tarifeYili) baz alınır.';
+        'Başlangıç ve bitiş farklı yıl: bitiş yılının bir öncesi ($tarifeYili) baz alınır.';
   }
 
   final parts = <String>[
@@ -378,7 +382,8 @@ TarifeYiliSonucu hesaplaTarifeYili({
     'Sınıf/grup, başlangıç yılına ($sinifGrupReferansYili) göre seçilir.',
   ];
   if (ozelDurum) {
-    parts.add('2003 ve öncesi başlangıç + 01.05.2004 sonrası bitiş: özel yöntem notu eklendi.');
+    parts.add(
+        '2003 ve öncesi başlangıç + 01.05.2004 sonrası bitiş: özel yöntem notu eklendi.');
   }
 
   return TarifeYiliSonucu(
@@ -398,14 +403,15 @@ void main() {
 
 class MyApp extends StatelessWidget {
   MyApp({super.key}); // const kaldırıldı - hot reload için gerekli
-  
+
   @override
   Widget build(BuildContext context) {
     // Theme'i her build'de yeniden oluştur (hot reload için)
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Asgari İşçilik Hesaplama',
-      theme: uygulamaTemasi, // getter her çağrıldığında yeni ThemeData oluşturur
+      theme:
+          uygulamaTemasi, // getter her çağrıldığında yeni ThemeData oluşturur
       home: HesaplamaSayfasi(), // const kaldırıldı - hot reload için gerekli
     );
   }
@@ -462,6 +468,22 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
     'V': {'A': 34400.0, 'B': 35600.0, 'C': 39500.0, 'D': 43400.0, 'E': 86250.0},
   };
 
+  // 2026 Yapı Yaklaşık Birim Maliyetleri Tebliği (03.02.2026/33157)
+  // 01.01.2026 tarihinden itibaren geçerlidir (TL/m²).
+  final Map<String, Map<String, double>> birimMaliyetler2026 = {
+    'I': {'A': 2600.0, 'B': 3900.0, 'C': 4200.0, 'D': 4800.0},
+    'II': {'A': 8100.0, 'B': 12500.0, 'C': 15100.0},
+    'III': {'A': 19800.0, 'B': 21050.0, 'C': 23400.0},
+    'IV': {'A': 26450.0, 'B': 33900.0, 'C': 40500.0},
+    'V': {
+      'A': 42350.0,
+      'B': 43850.0,
+      'C': 48750.0,
+      'D': 53500.0,
+      'E': 103500.0
+    },
+  };
+
   @override
   void dispose() {
     alanController.dispose();
@@ -470,8 +492,18 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
 
   // ——— Türkçe tarihler
   static const List<String> _ayAdlariTR = [
-    'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
-    'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık'
   ];
 
   String _fmtDate(DateTime? d) {
@@ -482,7 +514,8 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
   }
 
   int _daysInMonth(int year, int month) {
-    if (month == 12) return DateTime(year + 1, 1, 1).subtract(const Duration(days: 1)).day;
+    if (month == 12)
+      return DateTime(year + 1, 1, 1).subtract(const Duration(days: 1)).day;
     return DateTime(year, month + 1, 1).subtract(const Duration(days: 1)).day;
   }
 
@@ -498,9 +531,9 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
         int m = initial.month;
         int d = initial.day;
 
-        final yearCtrl  = FixedExtentScrollController(initialItem: y - minYear);
+        final yearCtrl = FixedExtentScrollController(initialItem: y - minYear);
         final monthCtrl = FixedExtentScrollController(initialItem: m - 1);
-        final dayCtrl   = FixedExtentScrollController(initialItem: d - 1);
+        final dayCtrl = FixedExtentScrollController(initialItem: d - 1);
 
         return Container(
           height: 320,
@@ -515,18 +548,20 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('İptal', style: TextStyle(color: Colors.black87)),
+                      child: const Text('İptal',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      onPressed: () => Navigator.pop(context, DateTime(y, m, d)),
-                      child: const Text('Tamam', style: TextStyle(color: Colors.black87)),
+                      onPressed: () =>
+                          Navigator.pop(context, DateTime(y, m, d)),
+                      child: const Text('Tamam',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
               ),
               const Divider(height: 0),
-
               Expanded(
                 child: StatefulBuilder(
                   builder: (context, setModalState) {
@@ -542,17 +577,22 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
 
                     return Row(
                       children: [
-                        Expanded( // Gün
+                        Expanded(
+                          // Gün
                           child: CupertinoPicker(
                             itemExtent: 32,
                             scrollController: dayCtrl,
                             onSelectedItemChanged: (i) => d = i + 1,
                             children: List.generate(
-                              maxD, (i) => Center(child: Text('${(i + 1).toString().padLeft(2, '0')}')),
+                              maxD,
+                              (i) => Center(
+                                  child: Text(
+                                      '${(i + 1).toString().padLeft(2, '0')}')),
                             ),
                           ),
                         ),
-                        Expanded( // Ay (TR)
+                        Expanded(
+                          // Ay (TR)
                           child: CupertinoPicker(
                             itemExtent: 32,
                             scrollController: monthCtrl,
@@ -561,10 +601,13 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
                                 m = i + 1;
                               });
                             },
-                            children: _ayAdlariTR.map((e) => Center(child: Text(e))).toList(),
+                            children: _ayAdlariTR
+                                .map((e) => Center(child: Text(e)))
+                                .toList(),
                           ),
                         ),
-                        Expanded( // Yıl
+                        Expanded(
+                          // Yıl
                           child: CupertinoPicker(
                             itemExtent: 32,
                             scrollController: yearCtrl,
@@ -574,7 +617,8 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
                               });
                             },
                             children: List.generate(
-                              maxYear - minYear + 1, (i) => Center(child: Text('${minYear + i}')),
+                              maxYear - minYear + 1,
+                              (i) => Center(child: Text('${minYear + i}')),
                             ),
                           ),
                         ),
@@ -590,10 +634,12 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
     );
   }
 
-  /// Yalnız 2024 ve 2025 desteklenir; diğer yıllar için StateError fırlatır
+  /// Yalnız yayımlanmış ve uygulamaya tanımlanmış tarifeleri döndürür.
+  /// Gelecek yılları eski tarifeye düşürmek hatalı sonuç üreteceği için reddeder.
   Map<String, Map<String, double>> _mapForYear(int y) {
     if (y == 2024) return birimMaliyetler2024;
-    if (y >= 2025) return birimMaliyetler2025; // 2025 ve sonrası için şimdilik 2025 tablosu kullanılıyor
+    if (y == 2025) return birimMaliyetler2025;
+    if (y == 2026) return birimMaliyetler2026;
     throw StateError('Desteklenmeyen tarife yılı: $y');
   }
 
@@ -629,8 +675,12 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
 
   List<String> getGrupSecenekleri() {
     // Sınıf/grup referansı: her zaman başlangıç yılına göre (değişmedi)
-    final refYear = baslangicTarihi?.year ?? 2025;
-    final map = (refYear <= 2024) ? birimMaliyetler2024 : birimMaliyetler2025;
+    final refYear = baslangicTarihi?.year ?? DateTime.now().year;
+    final map = refYear <= 2024
+        ? birimMaliyetler2024
+        : refYear == 2025
+            ? birimMaliyetler2025
+            : birimMaliyetler2026;
     if (secilenSinif == null || !map.containsKey(secilenSinif)) {
       return map['I']!.keys.toList(); // default I sınıfı grupları
     }
@@ -719,15 +769,15 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
         _errors['bitis'] = 'Bitiş tarihi başlangıçtan önce olamaz';
         ok = false;
       } else {
-        // Tarife yılı kontrolü (2024-2025 dışında ise hesap yok)
+        // Yalnız uygulamada resmi tablosu bulunan tarife yıllarıyla hesap yapılır.
         final t = hesaplaTarifeYili(
           baslangicTarihi: baslangicTarihi!,
           bitisTarihi: bitisTarihi!,
         );
-        if (t.tarifeYili <= 2023) {
+        if (t.tarifeYili < 2024 || t.tarifeYili > 2026) {
           _errors['tarife'] =
-          'Bu Bilgilerle Hesaplanan Referans Yıl ${t.tarifeYili}. '
-              'Uygulamada 2024 ve 2025 Tarifeleriyle Hesap Yapılmaktadır.';
+              'Bu Bilgilerle Hesaplanan Referans Yıl ${t.tarifeYili}. '
+              'Uygulamada 2024, 2025 ve 2026 Tarifeleriyle Hesap Yapılmaktadır.';
           ok = false;
         }
       }
@@ -817,21 +867,22 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
         'alan': double.tryParse(alanController.text),
         'tarifeYili': t.tarifeYili,
       };
-      
+
       final detaylar = sonuc['detaylar'] as Map<dynamic, dynamic>?;
       final sonHesaplama = SonHesaplama(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         hesaplamaTuru: 'Asgari İşçilik Hesaplama',
         tarihSaat: DateTime.now(),
         veriler: veriler,
-        sonuclar: detaylar != null 
-            ? Map<String, String>.from(detaylar.map((k, v) => MapEntry(k.toString(), v.toString())))
+        sonuclar: detaylar != null
+            ? Map<String, String>.from(
+                detaylar.map((k, v) => MapEntry(k.toString(), v.toString())))
             : <String, String>{},
         ozet: 'Asgari işçilik hesaplaması tamamlandı',
       );
-      
+
       await SonHesaplamalarDeposu.ekle(sonHesaplama);
-      
+
       // Firebase Analytics: Hesaplama tamamlandı
       AnalyticsHelper.logCalculation('asgari_iscilik', parameters: {
         'hesaplama_turu': 'Asgari İşçilik',
@@ -843,9 +894,10 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
+      backgroundColor: AppDesign.activeSurface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
       ),
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.90,
@@ -861,7 +913,8 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
     String okText = 'Tamam',
     String cancelText = 'İptal',
   }) async {
-    int selectedIndex = initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
+    int selectedIndex =
+        initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
 
     return showCupertinoModalPopup<String>(
       context: context,
@@ -879,12 +932,15 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('İptal', style: TextStyle(color: Colors.black87)),
+                      child: const Text('İptal',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      onPressed: () => Navigator.pop(context, items.isNotEmpty ? items[selectedIndex] : null),
-                      child: const Text('Tamam', style: TextStyle(color: Colors.black87)),
+                      onPressed: () => Navigator.pop(context,
+                          items.isNotEmpty ? items[selectedIndex] : null),
+                      child: const Text('Tamam',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
@@ -893,7 +949,8 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
               Expanded(
                 child: CupertinoPicker(
                   itemExtent: 30, // kompakt
-                  scrollController: FixedExtentScrollController(initialItem: selectedIndex),
+                  scrollController:
+                      FixedExtentScrollController(initialItem: selectedIndex),
                   onSelectedItemChanged: (i) => selectedIndex = i,
                   children: [for (final s in items) Center(child: Text(s))],
                 ),
@@ -908,7 +965,8 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
   Future<void> _pickSinif() async {
     final items = const ['I', 'II', 'III', 'IV', 'V'];
     final init = secilenSinif != null ? items.indexOf(secilenSinif!) : 0;
-    final secim = await _showCupertinoListPicker(items: items, initialIndex: init < 0 ? 0 : init);
+    final secim = await _showCupertinoListPicker(
+        items: items, initialIndex: init < 0 ? 0 : init);
     if (secim != null) {
       setState(() {
         secilenSinif = secim;
@@ -922,7 +980,8 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
   Future<void> _pickGrup() async {
     final items = getGrupSecenekleri();
     final init = secilenGrup != null ? items.indexOf(secilenGrup!) : 0;
-    final secim = await _showCupertinoListPicker(items: items, initialIndex: init < 0 ? 0 : init);
+    final secim = await _showCupertinoListPicker(
+        items: items, initialIndex: init < 0 ? 0 : init);
     if (secim != null) {
       setState(() {
         secilenGrup = secim;
@@ -932,9 +991,15 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
   }
 
   Future<void> _pickTur() async {
-    final items = const ['Yığma (Kargir) İnşaat', 'Karkas İnşaat', 'Bina İnşaatı', 'Prefabrik'];
+    final items = const [
+      'Yığma (Kargir) İnşaat',
+      'Karkas İnşaat',
+      'Bina İnşaatı',
+      'Prefabrik'
+    ];
     final init = secilenInsTuru != null ? items.indexOf(secilenInsTuru!) : 0;
-    final secim = await _showCupertinoListPicker(items: items, initialIndex: init < 0 ? 0 : init);
+    final secim = await _showCupertinoListPicker(
+        items: items, initialIndex: init < 0 ? 0 : init);
     if (secim != null) {
       setState(() {
         secilenInsTuru = secim;
@@ -966,163 +1031,133 @@ class _HesaplamaSayfasiState extends State<HesaplamaSayfasi> {
   // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false, // klavye açılınca ekran zıplamasın
-      appBar: AppBar(
-        title: const Text(
-          'Asgari İşçilik Hesaplama',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Üst form içeriği (scroll edilebilir)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 12),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate.fixed([
-                  if (_errors['tarife'] != null) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        _errors['tarife']!,
-                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
+    return CalculatorPage(
+        title: 'Asgari İşçilik',
+        icon: Icons.engineering_outlined,
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (_errors['tarife'] != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                _errors['tarife']!,
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                      color: Colors.red[700],
+                      fontWeight: FontWeight.w400,
                     ),
-                  ],
-                  _CupertinoDateField(
-                    label: 'İnşaat Başlangıç Tarihi',
-                    valueText: _fmtDate(baslangicTarihi),
-                    onTap: () => _pickDate(isStart: true),
-                    errorText: _errors['baslangic'],
-                  ),
-                  _CupertinoDateField(
-                    label: 'İnşaat Bitiş Tarihi',
-                    valueText: _fmtDate(bitisTarihi),
-                    onTap: () => _pickDate(isStart: false),
-                    errorText: _errors['bitis'],
-                  ),
-                  _CupertinoSelectField(
-                    label: 'Sınıf',
-                    valueText: secilenSinif != null ? '${secilenSinif!}. Sınıf' : 'Seçiniz',
-                    onTap: _pickSinif,
-                    errorText: _errors['sinif'],
-                  ),
-                  _CupertinoSelectField(
-                    label: 'Grup',
-                    valueText: secilenGrup != null ? '$secilenGrup Grubu' : 'Seçiniz',
-                    onTap: _pickGrup,
-                    errorText: _errors['grup'],
-                  ),
-                  _CupertinoSelectField(
-                    label: 'İnşaat Türü',
-                    valueText: secilenInsTuru ?? 'Seçiniz',
-                    onTap: _pickTur,
-                    errorText: _errors['tur'],
-                  ),
-
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('İnşaat Alanı (m²)', style: context.sFormLabel),
-                        const SizedBox(height: 4),
-                      TextFormField(
-                        controller: alanController,
-                        decoration: InputDecoration(
-                          hintText: 'm²',
-                            hintStyle: context.sBody.copyWith(
-                              color: Colors.grey[700],
-                              fontWeight: AppW.body,
-                            ),
-                            enabledBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                              borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                              borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
-                            ),
-                            errorBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                              borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth),
-                            ),
-                            focusedErrorBorder: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                              borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
-                            ),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          errorText: _errors['alan'],
-                        ),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(10),
-                        ],
-                        onChanged: (_) {
-                          if (_errors['alan'] != null) {
-                            setState(() => _errors['alan'] = null);
-                          }
-                        },
-                      ),
-                    ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: () async => await _hesaplaVeGoster(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                        minimumSize: const Size.fromHeight(46),
-                      ),
-                      child: Text('Hesapla', style: TextStyle(fontSize: 17 * kTextScale)),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ]),
-              ),
-            ),
-
-            // Alt blok: yer varsa dibine yapışır; yoksa listeyle birlikte kayar
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(kPageHPad, 0, kPageHPad, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Divider(),
-                    _InfoNotice(),
-                  ],
-                ),
               ),
             ),
           ],
-        ),
-      ),
-    );
+          _CupertinoDateField(
+            label: 'İnşaat Başlangıç Tarihi',
+            valueText: _fmtDate(baslangicTarihi),
+            onTap: () => _pickDate(isStart: true),
+            errorText: _errors['baslangic'],
+          ),
+          _CupertinoDateField(
+            label: 'İnşaat Bitiş Tarihi',
+            valueText: _fmtDate(bitisTarihi),
+            onTap: () => _pickDate(isStart: false),
+            errorText: _errors['bitis'],
+          ),
+          _CupertinoSelectField(
+            label: 'Sınıf',
+            valueText:
+                secilenSinif != null ? '${secilenSinif!}. Sınıf' : 'Seçiniz',
+            onTap: _pickSinif,
+            errorText: _errors['sinif'],
+          ),
+          _CupertinoSelectField(
+            label: 'Grup',
+            valueText: secilenGrup != null ? '$secilenGrup Grubu' : 'Seçiniz',
+            onTap: _pickGrup,
+            errorText: _errors['grup'],
+          ),
+          _CupertinoSelectField(
+            label: 'İnşaat Türü',
+            valueText: secilenInsTuru ?? 'Seçiniz',
+            onTap: _pickTur,
+            errorText: _errors['tur'],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('İnşaat Alanı (m²)', style: context.sFormLabel),
+                const SizedBox(height: 4),
+                TextFormField(
+                  controller: alanController,
+                  decoration: InputDecoration(
+                    hintText: 'm²',
+                    hintStyle: context.sBody.copyWith(
+                      color: Colors.grey[700],
+                      fontWeight: AppW.body,
+                    ),
+                    enabledBorder: const OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                      borderSide: BorderSide(
+                          color: kFieldBorderColor, width: kFieldBorderWidth),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                      borderSide: BorderSide(
+                          color: kFieldFocusColor,
+                          width: kFieldBorderWidth + 0.2),
+                    ),
+                    errorBorder: const OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                      borderSide: BorderSide(
+                          color: Colors.red, width: kFieldBorderWidth),
+                    ),
+                    focusedErrorBorder: const OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                      borderSide: BorderSide(
+                          color: Colors.red, width: kFieldBorderWidth + 0.2),
+                    ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    errorText: _errors['alan'],
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  onChanged: (_) {
+                    if (_errors['alan'] != null) {
+                      setState(() => _errors['alan'] = null);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 46,
+            child: ElevatedButton(
+              onPressed: () async => await _hesaplaVeGoster(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: calculatorAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                minimumSize: const Size.fromHeight(46),
+              ),
+              child:
+                  Text('Hesapla', style: TextStyle(fontSize: 17 * kTextScale)),
+            ),
+          ),
+          const SizedBox(height: 6),
+        ]));
   }
 }
 
@@ -1140,7 +1175,8 @@ class _CupertinoSelectField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isPlaceholder = valueText.trim().isEmpty || valueText == 'Seçiniz';
+    final bool isPlaceholder =
+        valueText.trim().isEmpty || valueText == 'Seçiniz';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -1153,24 +1189,33 @@ class _CupertinoSelectField extends StatelessWidget {
             child: InputDecorator(
               decoration: InputDecoration(
                 enabledBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderSide: BorderSide(
+                      color: kFieldBorderColor, width: kFieldBorderWidth),
                 ),
                 focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderSide: BorderSide(
+                      color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
                 ),
                 errorBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth),
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderSide:
+                      BorderSide(color: Colors.red, width: kFieldBorderWidth),
                 ),
                 focusedErrorBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderSide: BorderSide(
+                      color: Colors.red, width: kFieldBorderWidth + 0.2),
                 ),
                 errorText: errorText, // kırmızı çerçeve + alt yazı
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               child: Row(
                 children: [
@@ -1207,7 +1252,8 @@ class _CupertinoDateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isPlaceholder = valueText.trim().isEmpty || valueText == 'Seçiniz';
+    final bool isPlaceholder =
+        valueText.trim().isEmpty || valueText == 'Seçiniz';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -1220,24 +1266,33 @@ class _CupertinoDateField extends StatelessWidget {
             child: InputDecorator(
               decoration: InputDecoration(
                 enabledBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderSide: BorderSide(
+                      color: kFieldBorderColor, width: kFieldBorderWidth),
                 ),
                 focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderSide: BorderSide(
+                      color: kFieldFocusColor, width: kFieldBorderWidth + 0.2),
                 ),
                 errorBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth),
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderSide:
+                      BorderSide(color: Colors.red, width: kFieldBorderWidth),
                 ),
                 focusedErrorBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(kFieldBorderRadius)),
+                  borderSide: BorderSide(
+                      color: Colors.red, width: kFieldBorderWidth + 0.2),
                 ),
                 errorText: errorText, // kırmızı çerçeve + alt yazı
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               child: Row(
                 children: [
@@ -1276,9 +1331,9 @@ class _InfoNotice extends StatelessWidget {
           child: Text(
             'Bilgilendirme',
             style: Theme.of(context).textTheme.titleMedium!.copyWith(
-              fontWeight: FontWeight.w300,
-              color: Colors.black87,
-            ),
+                  fontWeight: FontWeight.w300,
+                  color: Colors.black87,
+                ),
           ),
         ),
         const SizedBox(height: 6),
@@ -1286,16 +1341,17 @@ class _InfoNotice extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.black26, size: 20),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.black26, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   m,
                   style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                    fontWeight: AppW.body,
-                    color: Colors.black,
-                    fontSize: 12,
-                  ),
+                        fontWeight: AppW.body,
+                        color: Colors.black,
+                        fontSize: 12,
+                      ),
                 ),
               ),
             ],
@@ -1315,149 +1371,18 @@ class IscilikReportSheet extends StatelessWidget {
   final Map<String, dynamic> sonuc;
   const IscilikReportSheet({super.key, required this.sonuc});
 
-  String _buildShareText(Map<String, String> detaylar, Map<String, String> ek) {
-    final b = StringBuffer('Asgari İşçilik Özeti\n');
-    if (ek['Asgari İşçilik Oranı'] != null) {
-      b.writeln('Asgari İşçilik Oranı: ${ek['Asgari İşçilik Oranı']}');
-    }
-    // Tarife Yılı / Özel Durum / Açıklama paylaşım metninden çıkarılmıştı
-    if (ek['Sınıf/Grup Referans Yılı'] != null) {
-      b.writeln('Sınıf/Grup Referans Yılı: ${ek['Sınıf/Grup Referans Yılı']}');
-    }
-
-    detaylar.forEach((k, v) => b.writeln('$k: $v'));
-    return b.toString().trim();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final Map<String, String> detaylar =
-    Map<String, String>.from(sonuc['detaylar'] ?? {});
-    final Map<String, String> ek =
-    Map<String, String>.from(sonuc['ekBilgi'] ?? {});
-
-    final baseSmall = Theme.of(context).textTheme.bodySmall!;
-    final lineStyle = baseSmall.copyWith(
-      fontSize: (baseSmall.fontSize ?? 12) * kSumItemFontScale,
-      fontWeight: FontWeight.w400,
-      height: 1.5,
-      color: Colors.black87,
-    );
-
-    return Stack(
-      children: [
-        SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kReportMaxWidth),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 48,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Başlık (ince)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Hesaplama Sonucu',
-                      style: TextStyle(
-                        fontSize: 16 * kResultHeaderScale,
-                        fontWeight: kResultHeaderWeight,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-                      children: [
-                        // Ek Bilgiler — üstte (Tarife Yılı / Özel Durum / Açıklama gösterilmiyor)
-                        if (ek.isNotEmpty) ...[
-                          if (ek['Asgari İşçilik Oranı'] != null)
-                            Padding(
-                              padding: kSumItemPadding,
-                              child: Text(
-                                'Asgari İşçilik Oranı: ${ek['Asgari İşçilik Oranı']}',
-                                style: lineStyle.copyWith(
-                                  fontSize: lineStyle.fontSize! * 1.05,
-                                ),
-                              ),
-                            ),
-                          if (ek['Sınıf/Grup Referans Yılı'] != null)
-                            Padding(
-                              padding: kSumItemPadding,
-                              child: Text(
-                                'Sınıf/Grup Referans Yılı: ${ek['Sınıf/Grup Referans Yılı']}',
-                                style: lineStyle,
-                              ),
-                            ),
-                          const SizedBox(height: 10),
-                          Divider(color: Colors.black.withOpacity(.35), height: 16),
-                          const SizedBox(height: 2),
-                        ],
-
-                        // Detaylar
-                        ...detaylar.entries.map(
-                              (e) => Padding(
-                            padding: kSumItemPadding,
-                            child: Text('${e.key}: ${e.value}', style: lineStyle),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Alt orta paylaş
-        Positioned(
-          bottom: 10,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                await Clipboard.setData(
-                  ClipboardData(text: _buildShareText(detaylar, ek)),
-                );
-                if (context.mounted) {
-                  showCenterNotice(
-                    context,
-                    title: 'Paylaş',
-                    message: 'Özet panoya kopyalandı.',
-                    type: AppNoticeType.success,
-                  );
-                }
-              },
-              icon: const Icon(Icons.ios_share_rounded, size: 18),
-              label: const Text('Paylaş', style: TextStyle(fontWeight: FontWeight.w400)),
-            ),
-          ),
-        ),
-      ],
-    );
+    final details = Map<String, String>.from(sonuc['detaylar'] ?? {});
+    final extra = Map<String, String>.from(sonuc['ekBilgi'] ?? {});
+    return CalculatorResultSheet(
+        title: 'Asgari İşçilik',
+        details: {
+          if (extra['Asgari İşçilik Oranı'] != null)
+            'Asgari İşçilik Oranı': extra['Asgari İşçilik Oranı']!,
+          if (extra['Sınıf/Grup Referans Yılı'] != null)
+            'Sınıf/Grup Referans Yılı': extra['Sınıf/Grup Referans Yılı']!,
+          ...details
+        });
   }
 }

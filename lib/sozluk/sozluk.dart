@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../utils/analytics_helper.dart';
@@ -1568,7 +1569,7 @@ class _SozlukHomePageState extends State<SozlukHomePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
+      backgroundColor: AppDesign.activeSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
       ),
@@ -1586,7 +1587,7 @@ class _SozlukHomePageState extends State<SozlukHomePage> {
                     Container(
                       width: 48, height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.black12, borderRadius: BorderRadius.circular(3),
+                        color: AppDesign.activeBorder, borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1596,7 +1597,7 @@ class _SozlukHomePageState extends State<SozlukHomePage> {
                       style: TextStyle(
                         fontSize: 16 * kResultHeaderScale,
                         fontWeight: kResultHeaderWeight,
-                        color: Colors.black87,
+                        color: AppDesign.activeInk,
                         height: 1.2,
                       ),
                     ),
@@ -1637,17 +1638,13 @@ class _SozlukHomePageState extends State<SozlukHomePage> {
     final grouped = _groupByInitial(_filtered);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
+      appBar: AppMenuBar(
+        title: Text(
           'Sözlük',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+          style: TextStyle(color: AppDesign.activeInk, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: AppDesign.activeInk),
           onPressed: () => Navigator.maybePop(context),
         ),
       ),
@@ -1709,7 +1706,7 @@ class _GroupHeader extends StatelessWidget {
       letter,
       style: Theme.of(context).textTheme.titleMedium!.copyWith(
         fontWeight: FontWeight.w300,
-        color: Colors.black87,
+        color: AppDesign.activeInk,
       ),
     );
   }
@@ -1720,24 +1717,15 @@ class _DictTile extends StatelessWidget {
   final VoidCallback onTap;
   const _DictTile({required this.entry, required this.onTap});
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-      title: Text(
-        trTitleCase(entry.head),
-        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-          fontWeight: AppW.heading,
-          height: 1.25,
-        ),
-      ),
-      subtitle: Text(
-        entry.def,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: AppSurface(padding: EdgeInsets.zero, child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(trTitleCase(entry.head), style: TextStyle(color: AppDesign.activeInk, fontSize: 15, fontWeight: FontWeight.w600)),
+      subtitle: Text(entry.def, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppDesign.activeMuted, fontSize: 13, height: 1.4)),
+      trailing: Icon(Icons.chevron_right_rounded, color: AppDesign.activeMuted),
       onTap: onTap,
-    );
-  }
+    )),
+  );
 }

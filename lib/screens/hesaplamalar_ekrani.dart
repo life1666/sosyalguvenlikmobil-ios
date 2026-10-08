@@ -1,3 +1,4 @@
+import '../utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -14,6 +15,7 @@ import '../hesaplamalar/yillik_izin.dart';
 import '../hesaplamalar/4a_hesapla.dart';
 import '../hesaplamalar/4b_hesapla.dart';
 import '../hesaplamalar/4c_hesapla.dart';
+import '../hesaplamalar/emeklilik_hesaplama.dart';
 
 /// =================== GLOBAL KNOB'LAR ===================
 
@@ -31,6 +33,7 @@ const FontWeight kSmallWeight = FontWeight.w400; // Alt menü satırları
 
 // Ok kalınlığı (görsel ağırlık) → thin / regular / bold
 enum ArrowWeight { thin, regular, bold }
+
 const ArrowWeight kArrowWeight = ArrowWeight.regular;
 
 // Ok rengi & boyutu (global)
@@ -54,9 +57,18 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
   final List<Map<String, dynamic>> hesaplamalar = [
     {'baslik': 'Emeklilik Hesaplama', 'ikon': Icons.calendar_today},
     {'baslik': 'Kıdem - İhbar Tazminatı İşlemleri', 'ikon': Icons.work_history},
-    {'baslik': 'İşsizlik Maaşı İşlemleri', 'ikon': Icons.person_outline_rounded},
-    {'baslik': 'SGK Prim Borçlanma Tutarı Hesaplama', 'ikon': Icons.account_balance},
-    {'baslik': 'Brütten Nete Maaş Hesaplama', 'ikon': Icons.account_balance_wallet},
+    {
+      'baslik': 'İşsizlik Maaşı İşlemleri',
+      'ikon': Icons.person_outline_rounded
+    },
+    {
+      'baslik': 'SGK Prim Borçlanma Tutarı Hesaplama',
+      'ikon': Icons.account_balance
+    },
+    {
+      'baslik': 'Brütten Nete Maaş Hesaplama',
+      'ikon': Icons.account_balance_wallet
+    },
     {'baslik': 'Netten Brüte Maaş Hesaplama', 'ikon': Icons.bar_chart},
     {'baslik': 'Rapor Parası Hesaplama', 'ikon': Icons.local_hospital},
     {'baslik': 'Yıllık İzin Süresi Hesaplama', 'ikon': Icons.beach_access},
@@ -84,8 +96,7 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
   // Bu index alt menüye sahip mi?
   bool _indexHasSubmenu(int index) {
     final t = hesaplamalar[index]['baslik'] as String;
-    return t == 'Emeklilik Hesaplama' ||
-        t == 'Kıdem - İhbar Tazminatı İşlemleri' ||
+    return t == 'Kıdem - İhbar Tazminatı İşlemleri' ||
         t == 'İşsizlik Maaşı İşlemleri' ||
         t == 'SGK Prim Borçlanma Tutarı Hesaplama';
   }
@@ -105,7 +116,8 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
       if (_openIndex == index) {
         _openIndex = null; // aynı satıra basılırsa kapat
       } else {
-        _openIndex = index; // başka satır → direkt onu aç, diğeri anında kapanır
+        _openIndex =
+            index; // başka satır → direkt onu aç, diğeri anında kapanır
       }
     });
   }
@@ -113,8 +125,13 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
   // Ekrana navigasyon
   void _navigateToScreen(int index) {
     final title = hesaplamalar[index]['baslik'] as String;
-    
-    if (title == 'Brütten Nete Maaş Hesaplama') {
+
+    if (title == 'Emeklilik Hesaplama') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const EmeklilikHesaplamaBirlesik()),
+      );
+    } else if (title == 'Brütten Nete Maaş Hesaplama') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => SalaryCalculatorScreen()),
@@ -137,7 +154,8 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
     } else if (title == 'Yıllık İzin Süresi Hesaplama') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const YillikUcretliIzinSayfasi()),
+        MaterialPageRoute(
+            builder: (context) => const YillikUcretliIzinSayfasi()),
       );
     }
   }
@@ -147,12 +165,14 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
     if (title == '4/a (SSK) Emeklilik Hesaplama') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const EmeklilikHesaplama4aSayfasi()),
+        MaterialPageRoute(
+            builder: (context) => const EmeklilikHesaplama4aSayfasi()),
       );
     } else if (title == '4/b (Bağ-kur) Emeklilik Hesaplama') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const EmeklilikHesaplama4bSayfasi()),
+        MaterialPageRoute(
+            builder: (context) => const EmeklilikHesaplama4bSayfasi()),
       );
     } else if (title == '4/c (Memur) Emeklilik Hesaplama') {
       Navigator.push(
@@ -162,7 +182,8 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
     } else if (title == 'Kıdem - İhbar Tazminatı Hesaplama') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const CompensationCalculatorScreen()),
+        MaterialPageRoute(
+            builder: (context) => const CompensationCalculatorScreen()),
       );
     } else if (title == 'SGK\'dan Kıdem Tazminatı Alabilir Yazısı Sorgulama') {
       Navigator.push(
@@ -181,156 +202,120 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
       );
     } else if (title == 'İşsizlik Maaşı Başvurusu') {
       _acIssizlikBasvuru();
-    } else if (title == 'Askerlik, Doğum ve Diğer Borçlanmaların Prim Tutarı Hesaplama') {
+    } else if (title ==
+        'Askerlik, Doğum ve Diğer Borçlanmaların Prim Tutarı Hesaplama') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const BorclanmaHesaplamaScreen()),
+        MaterialPageRoute(
+            builder: (context) => const BorclanmaHesaplamaScreen()),
       );
     } else if (title == 'Yurt Dışı Borçlanması Prim Tutarı Hesaplama') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const BorclanmaHesaplamaScreen()),
+        MaterialPageRoute(
+            builder: (context) => const BorclanmaHesaplamaScreen()),
       );
     } else if (title == 'Borçlanma Başvurusu') {
       _acBorclanmaBasvuru();
     }
   }
 
+  String _query = '';
+  String _category = 'Tümü';
+  static const _groups = [
+    'Emeklilik',
+    'Tazminat',
+    'Destekler',
+    'Emeklilik',
+    'Maaş',
+    'Maaş',
+    'Destekler',
+    'İzin',
+    'İşveren'
+  ];
+  String _normalize(String text) => text
+      .replaceAll('İ', 'i')
+      .replaceAll('I', 'ı')
+      .toLowerCase()
+      .replaceAll('ı', 'i')
+      .replaceAll('ü', 'u')
+      .replaceAll('ö', 'o')
+      .replaceAll('ş', 's')
+      .replaceAll('ç', 'c')
+      .replaceAll('ğ', 'g');
+  static const _searchTerms = [
+    'SSK Bağkur Bağ-kur memur 4a 4b 4c',
+    'kıdem ihbar yazısı',
+    'işsizlik başvuru',
+    'askerlik doğum yurt dışı borçlanma',
+    'brüt net ücret',
+    'net brüt ücret',
+    'rapor iş göremezlik',
+    'yıllık izin',
+    'asgari işçilik'
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final themeColor = Theme.of(context).primaryColor;
-    final tt = Theme.of(context).textTheme;
-
-    final bool anyOpen = _openIndex != null;
-
+    final visible = List.generate(hesaplamalar.length, (i) => i)
+        .where((i) =>
+            (_category == 'Tümü' || _groups[i] == _category) &&
+            _normalize('${hesaplamalar[i]['baslik']} ${_searchTerms[i]}')
+                .contains(_normalize(_query.trim())))
+        .toList();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Hesaplamalar',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
+      backgroundColor: AppDesign.activeBackground,
+      appBar: AppDesign.appBar('Hesapla'),
+      body: SafeArea(
+          child: AppContent(
+              child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+        children: [
+          TextField(
+            onChanged: (value) => setState(() => _query = value),
+            decoration: InputDecoration(
+                hintText: 'Hesaplama ara',
+                prefixIcon: const Icon(Icons.search_rounded),
+                filled: true,
+                fillColor: AppDesign.activeSurface,
+                contentPadding: const EdgeInsets.all(16),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppDesign.activeBorder)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppDesign.activeBorder))),
           ),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: themeColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
-      body: Container(
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: kPageHPad),
-          child: anyOpen
-              // Alt menü AÇIK → ListView.separated (kaydırma açık)
-              ? ListView.separated(
-                  padding: EdgeInsets.zero,
-                  itemCount: hesaplamalar.length,
-                  separatorBuilder: (_, __) => const Divider(), // tema: thickness + space
-                  itemBuilder: (context, index) {
-                    final item = hesaplamalar[index];
-                    final bool isOpen = _isOpen(index);
-                    final bool hasSub = _indexHasSubmenu(index);
-
-                    return Column(
-                      children: [
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _onTapRow(index),
-                            splashColor: themeColor.withOpacity(0.2),
-                            highlightColor: themeColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        item['ikon'] as IconData,
-                                        size: 24,
-                                        color: themeColor,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(item['baslik'] as String, style: tt.bodyMedium),
-                                    ],
-                                  ),
-                                  Icon(
-                                    _arrowIconData(expanded: isOpen),
-                                    color: kArrowColor,
-                                    size: kArrowSize,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Sadece açık olanın alt menüsü render ediliyor (animasyon yok)
-                        if (hasSub && isOpen) ...[
-                          const SizedBox(height: 6),
-                          _buildAltMenuForIndex(index, tt),
-                        ],
-                      ],
-                    );
-                  },
-                )
-              // Hiç alt menü açık değilse → kaydırma kapalı, ekrana sığdır (Column + Expanded)
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Column(
-                      children: [
-                        for (int i = 0; i < hesaplamalar.length; i++) ...[
-                          Expanded(
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () => _onTapRow(i),
-                                splashColor: themeColor.withOpacity(0.2),
-                                highlightColor: themeColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            hesaplamalar[i]['ikon'] as IconData,
-                                            size: 24,
-                                            color: themeColor,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(hesaplamalar[i]['baslik'] as String, style: tt.bodyMedium),
-                                        ],
-                                      ),
-                                      Icon(
-                                        _arrowIconData(expanded: false),
-                                        color: kArrowColor,
-                                        size: kArrowSize,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (i != hesaplamalar.length - 1) const Divider(), // tema: thickness + space
-                        ]
-                      ],
-                    );
-                  },
-                ),
-        ),
-      ),
+          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          if (visible.isEmpty)
+            AppSurface(
+                child: Text(
+                    'Aramanıza uygun hesaplama bulunamadı. Başka bir kelime veya kategori deneyin.',
+                    style: TextStyle(color: AppDesign.activeMuted))),
+          for (final i in visible) ...[
+            AppSurface(
+                padding: EdgeInsets.zero,
+                child: Column(children: [
+                  AppActionTile(
+                      title: hesaplamalar[i]['baslik'] as String,
+                      subtitle: _indexHasSubmenu(i)
+                          ? 'Seçenekleri görüntüle'
+                          : 'Bilgilerinizi girin, sonucu görün',
+                      icon: hesaplamalar[i]['ikon'] as IconData,
+                      onTap: () => _onTapRow(i),
+                      badge: 'Ücretsiz',
+                      expanded: _isOpen(i)),
+                  if (_indexHasSubmenu(i) && _isOpen(i))
+                    Padding(
+                        padding: const EdgeInsets.only(bottom: 12, right: 12),
+                        child: _buildAltMenuForIndex(
+                            i, Theme.of(context).textTheme)),
+                ])),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ))),
     );
   }
 
@@ -338,11 +323,15 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
   IconData _arrowIconData({required bool expanded}) {
     switch (kArrowWeight) {
       case ArrowWeight.thin:
-        return expanded ? CupertinoIcons.chevron_down : CupertinoIcons.chevron_right;
+        return expanded
+            ? CupertinoIcons.chevron_down
+            : CupertinoIcons.chevron_right;
       case ArrowWeight.regular:
         return expanded ? Icons.expand_more : Icons.chevron_right_rounded;
       case ArrowWeight.bold:
-        return expanded ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded;
+        return expanded
+            ? Icons.keyboard_arrow_down_rounded
+            : Icons.keyboard_arrow_right_rounded;
     }
   }
 
@@ -380,42 +369,31 @@ class _HesaplamalarEkraniState extends State<HesaplamalarEkrani> {
     return _altMenuBlock(items, tt);
   }
 
-  // === KUTUSUZ, sadece ARADA DIVIDER olan ALT MENÜ BLOĞU ===
-  // Alt menü metnini üst menü metniyle optik hizalamak için sola 42px (24 ikon + 12 boşluk + 6 ekstra) padding veriyoruz.
-  // Buradaki Divider da temadaki thickness/space değerlerini kullanır.
-  Widget _altMenuBlock(List<String> items, TextTheme tt) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const Divider(indent: 42, endIndent: 0),
-      itemBuilder: (_, i) => _altRow(items[i], tt),
-    );
-  }
-
-  // Alt menü satırı (ikon yok)
-  Widget _altRow(String text, TextTheme tt) {
-    final themeColor = Theme.of(context).primaryColor;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _onTapAltMenuItem(text),
-        splashColor: themeColor.withOpacity(0.2),
-        highlightColor: themeColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          // 42 = 24px ikon + 12px boşluk + 6 ekstra; dış yatay pad zaten kPageHPad ile veriliyor
-          padding: const EdgeInsets.fromLTRB(42, 14, 8, 14),
-          child: Text(text, style: tt.bodySmall),
+  Widget _altMenuBlock(List<String> items, TextTheme tt) => Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+              color: AppDesign.activeBackground,
+              borderRadius: BorderRadius.circular(16)),
+          child: Column(children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              AppSubmenuTile(
+                  title: items[i],
+                  icon: Icons.arrow_forward_rounded,
+                  badge: items[i].contains('Başvurusu') ? null : 'Ücretsiz',
+                  onTap: () => _onTapAltMenuItem(items[i])),
+            ],
+          ]),
         ),
-      ),
-    );
-  }
+      );
 }
 
 // 📌 Başvuru linkleri
 void _acIssizlikBasvuru() async {
-  final Uri url = Uri.parse('https://www.turkiye.gov.tr/issizlik-odenegi-basvurusu');
+  final Uri url =
+      Uri.parse('https://www.turkiye.gov.tr/issizlik-odenegi-basvurusu');
   try {
     final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (!launched) {
@@ -427,7 +405,8 @@ void _acIssizlikBasvuru() async {
 }
 
 void _acBorclanmaBasvuru() async {
-  final Uri url = Uri.parse('https://www.turkiye.gov.tr/sosyal-guvenlik-kurumu');
+  final Uri url =
+      Uri.parse('https://www.turkiye.gov.tr/sosyal-guvenlik-kurumu');
   try {
     final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (!launched) {

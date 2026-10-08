@@ -1,3 +1,6 @@
+import 'package:src/utils/app_design.dart';
+import '../services/hesaplama_pdf_service.dart';
+import '../services/premium_pdf_action.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
@@ -30,7 +33,7 @@ const FontWeight kResultHeaderWeight = FontWeight.w400;
 
 /// ===== YAZILI ÖZET MADDE KNOB’LARI =====
 const EdgeInsets kSumItemPadding =
-EdgeInsets.symmetric(vertical: 4, horizontal: 0);
+    EdgeInsets.symmetric(vertical: 4, horizontal: 0);
 const double kSumItemFontScale = 1.10;
 
 class AppW {
@@ -125,16 +128,18 @@ ThemeData uygulamaTemasi = (() {
       isDense: true,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+        borderSide:
+            BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-        borderSide: BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
+        borderSide:
+            BorderSide(color: kFieldBorderColor, width: kFieldBorderWidth),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
         borderSide:
-        BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
+            BorderSide(color: kFieldFocusColor, width: kFieldBorderWidth + 0.4),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
@@ -143,7 +148,7 @@ ThemeData uygulamaTemasi = (() {
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
         borderSide:
-        BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
+            BorderSide(color: Colors.red, width: kFieldBorderWidth + 0.2),
       ),
       hintStyle: TextStyle(fontSize: 13 * kTextScale, color: Colors.grey),
       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -161,12 +166,12 @@ const Duration kCenterNoticeAnimDur = Duration(milliseconds: 220);
 const Duration kCenterNoticeAutoHide = Duration(seconds: 2);
 
 Future<void> showCenterNotice(
-    BuildContext context, {
-      String? title,
-      required String message,
-      AppNoticeType type = AppNoticeType.error,
-      bool autoHide = true,
-    }) async {
+  BuildContext context, {
+  String? title,
+  required String message,
+  AppNoticeType type = AppNoticeType.error,
+  bool autoHide = true,
+}) async {
   Color bg, border, textMain;
 
   switch (type) {
@@ -212,17 +217,18 @@ Future<void> showCenterNotice(
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w400,
-                  color: textMain,
-                ),
+                      fontWeight: FontWeight.w400,
+                      color: textMain,
+                    ),
               ),
-            if (title != null && title.trim().isNotEmpty) const SizedBox(height: 4),
+            if (title != null && title.trim().isNotEmpty)
+              const SizedBox(height: 4),
             Text(
               message,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: textMain,
-                fontWeight: AppW.body,
-              ),
+                    color: textMain,
+                    fontWeight: AppW.body,
+                  ),
             ),
           ],
         ),
@@ -317,10 +323,12 @@ class CustomCurrencyFormatter extends TextInputFormatter {
   }
 
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
     String digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digitsOnly.isEmpty) {
-      return newValue.copyWith(text: '', selection: const TextSelection.collapsed(offset: 0));
+      return newValue.copyWith(
+          text: '', selection: const TextSelection.collapsed(offset: 0));
     }
 
     if (digitsOnly.length < 5) {
@@ -379,49 +387,43 @@ class _CupertinoField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isPlaceholder = valueText.trim().isEmpty || valueText == 'Seçiniz';
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: context.sFormLabel),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: onTap,
-            child: InputDecorator(
-              decoration: const InputDecoration(
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(
-                    color: kFieldBorderColor,
-                    width: kFieldBorderWidth,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(kFieldBorderRadius)),
-                  borderSide: BorderSide(
-                    color: kFieldFocusColor,
-                    width: kFieldBorderWidth + 0.2,
-                  ),
-                ),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-              child: Text(
-                valueText.isEmpty ? 'Seçiniz' : valueText,
-                style: TextStyle(
-                  color: isPlaceholder ? Colors.grey[700] : Colors.black,
-                  fontWeight: AppW.body,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return Semantics(
+        button: true,
+        label: '$label: $valueText',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: InputDecorator(
+              decoration: _severanceInput(label),
+              child: Row(children: [
+                Expanded(
+                    child: Text(valueText.isEmpty ? 'Seçiniz' : valueText,
+                        style: TextStyle(
+                            fontSize: 14, color: AppDesign.activeInk))),
+                Icon(Icons.expand_more_rounded,
+                    size: 20, color: AppDesign.activeMuted),
+              ])),
+        ));
   }
 }
+
+const _severanceGreen = Color(0xFF169B55);
+InputDecoration _severanceInput(String label) => InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: AppDesign.activeSurface,
+      labelStyle: TextStyle(color: AppDesign.activeMuted, fontSize: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppDesign.activeBorder)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppDesign.activeBorder)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _severanceGreen, width: 1.5)),
+    );
 
 /// =====================
 ///  HESAP EKRANI
@@ -434,7 +436,8 @@ class CompensationCalculatorScreen extends StatefulWidget {
       _CompensationCalculatorScreenState();
 }
 
-class _CompensationCalculatorScreenState extends State<CompensationCalculatorScreen> {
+class _CompensationCalculatorScreenState
+    extends State<CompensationCalculatorScreen> {
   @override
   void initState() {
     super.initState();
@@ -453,14 +456,26 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
   Map<String, dynamic>? _hesaplamaSonucu;
 
   final List<String> aylar = const [
-    'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık'
   ];
 
   final Map<String, String> exitCodes = const {
     '1': 'Deneme Süreli İş Sözleşmesinin İşverence Feshi',
     '2': 'Deneme Süreli İş Sözleşmesinin İşçi Tarafından Feshi',
     '3': 'Belirsiz Süreli İş Sözleşmesinin İşçi Tarafından Feshi (İstifa)',
-    '4': 'Belirsiz Süreli İş Sözleşmesinin İşveren Tarafından Haklı Sebep Bildirilmeden Feshi',
+    '4':
+        'Belirsiz Süreli İş Sözleşmesinin İşveren Tarafından Haklı Sebep Bildirilmeden Feshi',
     '5': 'Belirli Süreli İş Sözleşmesinin Sona Ermesi',
     '8': 'Emeklilik (yaşlılık) veya Toptan Ödeme Nedeniyle',
     '9': 'Malulen Emeklilik Nedeniyle',
@@ -479,13 +494,16 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     '22': 'Diğer Nedenler',
     '23': 'İşçi Tarafından Zorunlu Nedenle Fesih',
     '24': 'İşçi Tarafından Sağlık Nedeniyle Fesih',
-    '25': 'İşçi Tarafından İşverenin Ahlak ve İyiniyet Kurallarına Aykırı Davranışı Nedeni ile Fesih',
+    '25':
+        'İşçi Tarafından İşverenin Ahlak ve İyiniyet Kurallarına Aykırı Davranışı Nedeni ile Fesih',
     '26': 'Disiplin Kurulu Kararı Nedeni ile Fesih',
     '27': 'İşveren Tarafından Zorunlu Nedenlerle ve Tutukluluk Nedeniyle Fesih',
     '28': 'İşveren Tarafından Sağlık Nedeni ile Fesih)',
-    '29': 'İşveren Tarafından İşçinin Ahlak ve İyiniyet Kurallarına Aykırı Davranışı Nedeni ile Fesih',
+    '29':
+        'İşveren Tarafından İşçinin Ahlak ve İyiniyet Kurallarına Aykırı Davranışı Nedeni ile Fesih',
     '30': 'Vize Süresinin Bitimi',
-    '31': 'Borçlar Kanunu, Sendikalar Kanunu, Grev Ve Lokavt Kanunu Gereği Fesih',
+    '31':
+        'Borçlar Kanunu, Sendikalar Kanunu, Grev Ve Lokavt Kanunu Gereği Fesih',
     '32': '4046 Sayılı Kanun Kapsamında Özelleştirme Nedeniyle Fesih',
     '33': 'Gazeteci Tarafından Sözleşmenin Feshi',
     '34': 'İşyerinin Devri veya Niteliğinin Değişmesi Nedeniyle Fesih',
@@ -518,7 +536,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
   }
 
   /// ✅ İhbar GV: kademeli tarife (kümülatif bilinmediği için yaklaşık)
-  double _calcProgressiveTax(double base, List<double> brackets, List<double> rates) {
+  double _calcProgressiveTax(
+      double base, List<double> brackets, List<double> rates) {
     double total = 0.0;
     double prev = 0.0;
 
@@ -545,23 +564,23 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     final month = exitDate.month;
 
     if (year < 2020) return 6379.86;
-    if (year == 2020) return month < 7 ? 6379.86 : 6730.15;
-    if (year == 2021) return month < 7 ? 7117.17 : 8284.51;
+    if (year == 2020) return month < 7 ? 6730.15 : 7117.17;
+    if (year == 2021) return month < 7 ? 7638.96 : 8284.51;
     if (year == 2022) return month < 7 ? 10848.59 : 15371.40;
-    if (year == 2023) return month < 7 ? 19982.31 : 23489.83;
+    if (year == 2023) return month < 7 ? 19982.83 : 23489.83;
     if (year == 2024) return month < 7 ? 35058.58 : 41828.42;
     if (year == 2025) return month < 7 ? 46655.43 : 53919.68;
 
-    // ✅ 2026 ilk 6 ay tavan (temmuz sonrası bilinmiyorsa aynı bırakıldı)
-    if (year == 2026) return month < 7 ? 64948.77 : 64948.77;
+    if (year == 2026) return month < 7 ? 64948.77 : 73729.87;
 
-    return 64948.77;
+    return 73729.87;
   }
 
   String formatSayi(double sayi) => formatTL(sayi);
   double parseSayi(String input) => parseTL(input);
 
-  Map<String, dynamic> calculateSeverancePay(double salary, DateTime start, DateTime end) {
+  Map<String, dynamic> calculateSeverancePay(
+      double salary, DateTime start, DateTime end) {
     double ceiling = getTavanUcreti(end);
     int daysWorked = end.difference(start).inDays + 1;
     double dailySalary = salary / 365;
@@ -584,7 +603,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     };
   }
 
-  Map<String, double> calculateNoticePay(double salary, DateTime start, DateTime end) {
+  Map<String, double> calculateNoticePay(
+      double salary, DateTime start, DateTime end) {
     int daysWorked = end.difference(start).inDays + 1;
     int noticeDays;
 
@@ -646,9 +666,31 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
 
   bool isEligibleForSeverance(String code) {
     return [
-      '4','5','8','9','10','11','12','13','14','15','17',
-      '18','19','20','23','24','25','31','32','33','34',
-      '35','36','39','40'
+      '4',
+      '5',
+      '8',
+      '9',
+      '10',
+      '11',
+      '12',
+      '13',
+      '14',
+      '15',
+      '17',
+      '18',
+      '19',
+      '20',
+      '23',
+      '24',
+      '25',
+      '31',
+      '32',
+      '33',
+      '34',
+      '35',
+      '36',
+      '39',
+      '40'
     ].contains(code);
   }
 
@@ -676,7 +718,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
       return;
     }
 
-    if (!isEligibleForSeverance(selectedExitCode!) && !isEligibleForNotice(selectedExitCode!)) {
+    if (!isEligibleForSeverance(selectedExitCode!) &&
+        !isEligibleForNotice(selectedExitCode!)) {
       _hesaplamaSonucu = {
         'basarili': false,
         'mesaj': 'Bu Şartlar Altında Kıdem Tazminatına Hak Kazanamıyorsunuz.',
@@ -686,7 +729,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
           'İhbar Tazminatı': 'Hak Kazanılmadı.',
         },
         'ekBilgi': {
-          'Not': 'İşten Çıkış Kodundan Dolayı Kıdem Ve İhbar Tazminatına Hak Kazanamıyorsunuz.',
+          'Not':
+              'İşten Çıkış Kodundan Dolayı Kıdem Ve İhbar Tazminatına Hak Kazanamıyorsunuz.',
           'Kontrol Tarihi': formatDateDDMMYYYY(DateTime.now()),
         },
       };
@@ -705,7 +749,7 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
         context,
         title: 'Uyarı',
         message:
-        'Tüm alanları doldurmanız gerekiyor! İşten çıkış kodunuz kıdem ve ihbar tazminatı almaya uygundur.',
+            'Tüm alanları doldurmanız gerekiyor! İşten çıkış kodunuz kıdem ve ihbar tazminatı almaya uygundur.',
         type: AppNoticeType.warning,
       );
       return;
@@ -716,8 +760,23 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     try {
       int startAyIndex = aylar.indexOf(startAy!) + 1;
       int endAyIndex = aylar.indexOf(endAy!) + 1;
-      startDate = DateTime(int.parse(startYil!), startAyIndex, int.parse(startGun!));
+      startDate =
+          DateTime(int.parse(startYil!), startAyIndex, int.parse(startGun!));
       endDate = DateTime(int.parse(endYil!), endAyIndex, int.parse(endGun!));
+      if (startDate.year != int.parse(startYil!) ||
+          startDate.month != startAyIndex ||
+          startDate.day != int.parse(startGun!) ||
+          endDate.year != int.parse(endYil!) ||
+          endDate.month != endAyIndex ||
+          endDate.day != int.parse(endGun!)) {
+        showCenterNotice(
+          context,
+          title: 'Hata',
+          message: 'Seçtiğiniz gün ilgili ayda bulunmuyor.',
+          type: AppNoticeType.error,
+        );
+        return;
+      }
       if (endDate.isBefore(startDate)) {
         showCenterNotice(
           context,
@@ -727,7 +786,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
         );
         return;
       }
-      if (startDate.isAfter(DateTime.now()) || endDate.isAfter(DateTime.now())) {
+      if (startDate.isAfter(DateTime.now()) ||
+          endDate.isAfter(DateTime.now())) {
         showCenterNotice(
           context,
           title: 'Hata',
@@ -782,7 +842,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
         detaylar['Not'] = 'Ücret tavanı aşıyor, tavan üzerinden hesaplandı.';
       }
     } else {
-      detaylar['İşten Çıkış'] = '$selectedExitCode - ${exitCodes[selectedExitCode]}';
+      detaylar['İşten Çıkış'] =
+          '$selectedExitCode - ${exitCodes[selectedExitCode]}';
       detaylar['Kıdem Tazminatı'] = 'Hak Kazanılmadı.';
     }
 
@@ -795,7 +856,7 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
       detaylar['İhbar Tazminatı (Net)'] = formatSayi(notice['net']!);
       // ✅ uyarı
       detaylar['İhbar GV Uyarısı'] =
-      'Gelir vergisi, kümülatif matrah bilgisi alınamadığı için kademeli tarife üzerinden yaklaşık hesaplanmıştır.';
+          'Gelir vergisi, kümülatif matrah bilgisi alınamadığı için kademeli tarife üzerinden yaklaşık hesaplanmıştır.';
     } else {
       detaylar['İhbar Tazminatı'] = 'Hak Kazanılmadı.';
     }
@@ -823,19 +884,27 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
   }
 
   Future<void> _openResultSheet() async {
-    final detaylar = Map<String, String>.from(_hesaplamaSonucu?['detaylar'] ?? {});
+    final detaylar =
+        Map<String, String>.from(_hesaplamaSonucu?['detaylar'] ?? {});
 
     if (_hesaplamaSonucu != null) {
       try {
         final veriler = <String, dynamic>{
           'isCikisKodu': selectedExitCode,
-          'baslangicTarihi': startGun != null && startAy != null && startYil != null
-              ? DateTime(int.parse(startYil!), aylar.indexOf(startAy!) + 1, int.parse(startGun!)).toIso8601String()
-              : null,
+          'baslangicTarihi':
+              startGun != null && startAy != null && startYil != null
+                  ? DateTime(int.parse(startYil!), aylar.indexOf(startAy!) + 1,
+                          int.parse(startGun!))
+                      .toIso8601String()
+                  : null,
           'cikisTarihi': endGun != null && endAy != null && endYil != null
-              ? DateTime(int.parse(endYil!), aylar.indexOf(endAy!) + 1, int.parse(endGun!)).toIso8601String()
+              ? DateTime(int.parse(endYil!), aylar.indexOf(endAy!) + 1,
+                      int.parse(endGun!))
+                  .toIso8601String()
               : null,
-          'brutMaas': grossSalaryController.text.isNotEmpty ? parseSayi(grossSalaryController.text) : null,
+          'brutMaas': grossSalaryController.text.isNotEmpty
+              ? parseSayi(grossSalaryController.text)
+              : null,
         };
 
         final sonHesaplama = SonHesaplama(
@@ -844,7 +913,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
           tarihSaat: DateTime.now(),
           veriler: veriler,
           sonuclar: detaylar,
-          ozet: (_hesaplamaSonucu!['mesaj'] ?? 'Hesaplama tamamlandı').toString(),
+          ozet:
+              (_hesaplamaSonucu!['mesaj'] ?? 'Hesaplama tamamlandı').toString(),
         );
 
         await SonHesaplamalarDeposu.ekle(sonHesaplama);
@@ -860,9 +930,10 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
+      backgroundColor: AppDesign.activeSurface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
       ),
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.90,
@@ -881,7 +952,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
     String okText = 'Tamam',
     String cancelText = 'İptal',
   }) async {
-    int selectedIndex = initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
+    int selectedIndex =
+        initialIndex.clamp(0, items.isNotEmpty ? items.length - 1 : 0);
     return showCupertinoModalPopup<String>(
       context: context,
       builder: (context) {
@@ -898,13 +970,15 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('İptal', style: TextStyle(color: Colors.black87)),
+                      child: const Text('İptal',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      onPressed: () =>
-                          Navigator.pop(context, items.isNotEmpty ? items[selectedIndex] : null),
-                      child: const Text('Tamam', style: TextStyle(color: Colors.black87)),
+                      onPressed: () => Navigator.pop(context,
+                          items.isNotEmpty ? items[selectedIndex] : null),
+                      child: const Text('Tamam',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
@@ -913,7 +987,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
               Expanded(
                 child: CupertinoPicker(
                   itemExtent: 30,
-                  scrollController: FixedExtentScrollController(initialItem: selectedIndex),
+                  scrollController:
+                      FixedExtentScrollController(initialItem: selectedIndex),
                   onSelectedItemChanged: (i) => selectedIndex = i,
                   children: [for (final s in items) Center(child: Text(s))],
                 ),
@@ -932,7 +1007,7 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
   }) async {
     final days = [for (int i = 1; i <= 31; i++) '$i'];
     final months = aylar;
-    final years = [for (int y = 2026; y >= 1980; y--) '$y'];
+    final years = [for (int y = DateTime.now().year; y >= 1980; y--) '$y'];
 
     int idxD = (gun != null) ? days.indexOf(gun) : 0;
     int idxM = (ay != null) ? months.indexOf(ay) : 0;
@@ -959,7 +1034,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('İptal', style: TextStyle(color: Colors.black87)),
+                      child: const Text('İptal',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -968,7 +1044,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
                         'ay': months[selM],
                         'yil': years[selY],
                       }),
-                      child: const Text('Tamam', style: TextStyle(color: Colors.black87)),
+                      child: const Text('Tamam',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
@@ -980,25 +1057,34 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
                     Expanded(
                       child: CupertinoPicker(
                         itemExtent: 30,
-                        scrollController: FixedExtentScrollController(initialItem: idxD),
+                        scrollController:
+                            FixedExtentScrollController(initialItem: idxD),
                         onSelectedItemChanged: (i) => selD = i,
-                        children: [for (final d in days) Center(child: Text(d))],
+                        children: [
+                          for (final d in days) Center(child: Text(d))
+                        ],
                       ),
                     ),
                     Expanded(
                       child: CupertinoPicker(
                         itemExtent: 30,
-                        scrollController: FixedExtentScrollController(initialItem: idxM),
+                        scrollController:
+                            FixedExtentScrollController(initialItem: idxM),
                         onSelectedItemChanged: (i) => selM = i,
-                        children: [for (final m in months) Center(child: Text(m))],
+                        children: [
+                          for (final m in months) Center(child: Text(m))
+                        ],
                       ),
                     ),
                     Expanded(
                       child: CupertinoPicker(
                         itemExtent: 30,
-                        scrollController: FixedExtentScrollController(initialItem: idxY),
+                        scrollController:
+                            FixedExtentScrollController(initialItem: idxY),
                         onSelectedItemChanged: (i) => selY = i,
-                        children: [for (final y in years) Center(child: Text(y))],
+                        children: [
+                          for (final y in years) Center(child: Text(y))
+                        ],
                       ),
                     ),
                   ],
@@ -1047,12 +1133,15 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('İptal', style: TextStyle(color: Colors.black87)),
+                      child: const Text('İptal',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      onPressed: () => Navigator.pop(context, entries[selectedIndex].key),
-                      child: const Text('Tamam', style: TextStyle(color: Colors.black87)),
+                      onPressed: () =>
+                          Navigator.pop(context, entries[selectedIndex].key),
+                      child: const Text('Tamam',
+                          style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
@@ -1061,7 +1150,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
               Expanded(
                 child: CupertinoPicker(
                   itemExtent: 48,
-                  scrollController: FixedExtentScrollController(initialItem: init),
+                  scrollController:
+                      FixedExtentScrollController(initialItem: init),
                   onSelectedItemChanged: (i) => selectedIndex = i,
                   children: [
                     for (final e in entries)
@@ -1110,7 +1200,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
   }
 
   Future<void> _pickStartDate() async {
-    final sel = await _showCupertinoDateTriplePicker(gun: startGun, ay: startAy, yil: startYil);
+    final sel = await _showCupertinoDateTriplePicker(
+        gun: startGun, ay: startAy, yil: startYil);
     if (sel != null) {
       setState(() {
         startGun = sel['gun'];
@@ -1121,7 +1212,8 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
   }
 
   Future<void> _pickEndDate() async {
-    final sel = await _showCupertinoDateTriplePicker(gun: endGun, ay: endAy, yil: endYil);
+    final sel = await _showCupertinoDateTriplePicker(
+        gun: endGun, ay: endAy, yil: endYil);
     if (sel != null) {
       setState(() {
         endGun = sel['gun'];
@@ -1135,120 +1227,127 @@ class _CompensationCalculatorScreenState extends State<CompensationCalculatorScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Kıdem ve İhbar Tazminatı Hesaplama',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: AppDesign.activeBackground,
       body: SafeArea(
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 12),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate.fixed([
-                  _CupertinoField(
-                    label: 'İşten Çıkış Kodunuz',
-                    valueText: selectedExitCode == null
-                        ? 'Seçiniz'
-                        : '${selectedExitCode!} - ${exitCodes[selectedExitCode]!}',
-                    onTap: _pickExitCode,
-                  ),
-                  const SizedBox(height: 8),
-                  _CupertinoField(
-                    label: 'İşe Giriş Tarihi',
-                    valueText: _composeDateText(startGun, startAy, startYil),
-                    onTap: _pickStartDate,
-                  ),
-                  const SizedBox(height: 8),
-                  _CupertinoField(
-                    label: 'İşten Çıkış Tarihi',
-                    valueText: _composeDateText(endGun, endAy, endYil),
-                    onTap: _pickEndDate,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildAmountField('Son Ay Giydirilmiş Brüt Ücret', grossSalaryController),
-                  const SizedBox(height: 12),
-                  _buildHesaplaButton(),
-                  const SizedBox(height: 12),
-                ]),
-              ),
-            ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(kPageHPad, 0, kPageHPad, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Divider(),
-                    _InfoNotice(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+          child: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(20),
+        child: AppContent(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          TextButton.icon(
+              onPressed: () => Navigator.maybePop(context),
+              icon: const Icon(Icons.chevron_left, size: 20),
+              label: const Text('Geri Dön'),
+              style: TextButton.styleFrom(foregroundColor: AppDesign.activeMuted)),
+          const SizedBox(height: 12),
+          Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                  color: AppDesign.activeSurface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppDesign.activeBorder),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 3))
+                  ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(children: [
+                      Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.trending_up_rounded,
+                              color: _severanceGreen, size: 24)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: Text('Kıdem Tazminatı',
+                              style: TextStyle(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppDesign.activeInk))),
+                    ]),
+                    const SizedBox(height: 24),
+                    _CupertinoField(
+                        label: 'İşten çıkış kodu',
+                        valueText: selectedExitCode == null
+                            ? 'Seçiniz'
+                            : '${selectedExitCode!} - ${exitCodes[selectedExitCode]!}',
+                        onTap: _pickExitCode),
+                    const SizedBox(height: 18),
+                    _CupertinoField(
+                        label: 'İşe giriş tarihi',
+                        valueText:
+                            _composeDateText(startGun, startAy, startYil),
+                        onTap: _pickStartDate),
+                    const SizedBox(height: 18),
+                    _CupertinoField(
+                        label: 'İşten çıkış tarihi',
+                        valueText: _composeDateText(endGun, endAy, endYil),
+                        onTap: _pickEndDate),
+                    const SizedBox(height: 18),
+                    _buildAmountField(
+                        'Giydirilmiş brüt ücret (TL)', grossSalaryController),
+                    const SizedBox(height: 8),
+                    Text(
+                        'Son aylık brüt ücretinizi düzenli yan haklarla birlikte girin.',
+                        style: TextStyle(
+                            fontSize: 12, height: 1.4, color: AppDesign.activeMuted)),
+                    const SizedBox(height: 24),
+                    _buildHesaplaButton(),
+                    const SizedBox(height: 12),
+                    Text(
+                        'Çıkış koşullarına göre ihbar tazminatı da hesaplanır.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 12, height: 1.4, color: AppDesign.activeMuted)),
+                  ])),
+          const SizedBox(height: 20),
+          Text(
+              'Hesaplamalar tahmini ve bilgi amaçlıdır. Uygulama resmi bir kurumu temsil etmez.',
+              style:
+                  TextStyle(fontSize: 12, height: 1.5, color: AppDesign.activeMuted)),
+        ])),
+      )),
     );
   }
 
   /// HESAPLA BUTONU — Odak kapat + mikro gecikme → hesapla
-  Widget _buildHesaplaButton() {
-    return SizedBox(
-      height: 46,
-      child: ElevatedButton(
-        onPressed: () async {
-          FocusScope.of(context).unfocus();
-          await Future.delayed(const Duration(milliseconds: 10));
-          await _calculateCompensation();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
-          minimumSize: const Size.fromHeight(46),
-        ),
-        child: Text('Hesapla', style: TextStyle(fontSize: 17 * kTextScale)),
-      ),
-    );
-  }
+  Widget _buildHesaplaButton() => SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+            onPressed: () async {
+              FocusScope.of(context).unfocus();
+              await _calculateCompensation();
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: _severanceGreen,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 17),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12))),
+            child: const Text('Hesapla',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+      );
 
-  Widget _buildAmountField(String label, TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: context.sFormLabel),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Brüt Ücret',
-            suffix: Text('TL', style: TextStyle(color: Colors.indigo, fontSize: 14)),
-          ),
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: Colors.black, fontWeight: AppW.body),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            CustomCurrencyFormatter(),
-            LengthLimitingTextInputFormatter(15),
-          ],
-        ),
-      ],
-    );
-  }
+  Widget _buildAmountField(String label, TextEditingController controller) =>
+      TextFormField(
+        controller: controller,
+        decoration: _severanceInput(label),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: TextStyle(color: AppDesign.activeInk, fontSize: 15),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+          CustomCurrencyFormatter(),
+          LengthLimitingTextInputFormatter(15)
+        ],
+      );
 }
 
 /// Bilgilendirme (ikon ve metin AYNI SATIRDA)
@@ -1268,9 +1367,9 @@ class _InfoNotice extends StatelessWidget {
           child: Text(
             'Bilgilendirme',
             style: Theme.of(context).textTheme.titleMedium!.copyWith(
-              fontWeight: FontWeight.w300,
-              color: Colors.black87,
-            ),
+                  fontWeight: FontWeight.w300,
+                  color: Colors.black87,
+                ),
           ),
         ),
         const SizedBox(height: 6),
@@ -1278,7 +1377,8 @@ class _InfoNotice extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.black26, size: 20),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.black26, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1306,109 +1406,125 @@ class ResultSheet extends StatelessWidget {
   final Map<String, String> detaylar;
   const ResultSheet({super.key, required this.title, required this.detaylar});
 
-  String _buildShareText() {
-    final b = StringBuffer('$title\n');
-    detaylar.forEach((k, v) => b.writeln('$k: $v'));
-    return b.toString().trim();
-  }
+
 
   @override
   Widget build(BuildContext context) {
-    final baseSmall = Theme.of(context).textTheme.bodySmall!;
-    final lineStyle = baseSmall.copyWith(
-      fontSize: (baseSmall.fontSize ?? 12) * kSumItemFontScale,
-      fontWeight: FontWeight.w400,
-      height: 1.5,
-      color: Colors.black87,
-    );
-
-    final entries = detaylar.entries.toList();
-
-    return Stack(
-      children: [
-        SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kReportMaxWidth),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 48,
-                    height: 5,
-                    decoration:
-                    BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(3)),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16 * kResultHeaderScale,
-                        fontWeight: kResultHeaderWeight,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-                      children: [
-                        ...entries.map(
-                              (e) => Padding(
-                            padding: kSumItemPadding,
-                            child: Text('${e.key}: ${e.value}', style: lineStyle),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+    final total = detaylar['Toplam Hak Edilen (Net)'];
+    return SafeArea(
+        top: false,
+        child: Column(children: [
+          const SizedBox(height: 10),
+          Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: AppDesign.activeBorder,
+                  borderRadius: BorderRadius.circular(4))),
+          Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 12, 4),
+              child: Row(children: [
+                Expanded(
+                    child: Text('Hesaplama Sonucu',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppDesign.activeInk))),
+                IconButton(
+                    tooltip: 'Kapat',
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close_rounded,
+                        color: AppDesign.activeMuted)),
+              ])),
+          Expanded(
+              child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: AppContent(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                        if (total != null) ...[
+                          Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                  color: AppDesign.isDark
+                                      ? const Color(0xFF12372B)
+                                      : const Color(0xFFF0FDF4),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: AppDesign.isDark
+                                          ? const Color(0xFF166534)
+                                          : const Color(0xFFDCFCE7))),
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Toplam net tazminat',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppDesign.isDark
+                                                ? const Color(0xFF86EFAC)
+                                                : const Color(0xFF166534))),
+                                    const SizedBox(height: 8),
+                                    Text(total,
+                                        style: TextStyle(
+                                            fontSize: 30,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppDesign.isDark
+                                                ? const Color(0xFF86EFAC)
+                                                : const Color(0xFF166534))),
+                                    const SizedBox(height: 6),
+                                    Text('Kıdem ve ihbar toplamı',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppDesign.isDark
+                                                ? const Color(0xFF86EFAC)
+                                                : const Color(0xFF166534))),
+                                  ])),
+                          const SizedBox(height: 24),
+                        ],
+                        for (final entry in detaylar.entries
+                            .where((e) => e.key != 'Toplam Hak Edilen (Net)'))
+                          Container(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              decoration: BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(
+                                          color: AppDesign.activeBorder))),
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(entry.key,
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppDesign.activeMuted)),
+                                    const SizedBox(height: 5),
+                                    Text(entry.value,
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            height: 1.4,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppDesign.activeInk)),
+                                  ])),
+                      ])))),
+          Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+              child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12))),
+                        onPressed: () => PremiumPdfAction.run(context,
+                            () => HesaplamaPdfService.shareSummary(
+                              title: title,
+                              details: detaylar,
+                              highlightKey: 'Toplam Hak Edilen (Net)',
+                            )),
+                        icon: const Icon(Icons.workspace_premium_outlined,
+                            size: 18),
+                        label: const Text('Premium PDF'))),
               ),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 10,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: _buildShareText()));
-                if (context.mounted) {
-                  showCenterNotice(
-                    context,
-                    title: 'Paylaş',
-                    message: 'Özet panoya kopyalandı.',
-                    type: AppNoticeType.success,
-                  );
-                }
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(CupertinoIcons.share, size: 18),
-                  SizedBox(width: 8),
-                  Text('Paylaş', style: TextStyle(fontWeight: FontWeight.w400)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+        ]));
   }
 }

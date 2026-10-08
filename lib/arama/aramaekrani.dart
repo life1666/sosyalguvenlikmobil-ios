@@ -1,3 +1,4 @@
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import '../makaleler/makale.dart';
@@ -152,14 +153,10 @@ class _AramaEkraniState extends State<AramaEkrani> {
     final menuItems = [
       'Hesaplamalar',
       'Mesai Takip',
-      'İK+',
       'CV Oluştur',
       'Makaleler',
-      'Mevzuat',
       'Sözlük',
-      'Asgari Ücret',
       'Emeklilik Takip',
-      'Hatırlatıcılar',
     ];
 
     for (final menu in menuItems) {
@@ -222,12 +219,7 @@ class _AramaEkraniState extends State<AramaEkrani> {
             );
           };
         } else {
-          onTap = () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$menu ekranı yakında eklenecek')),
-            );
-          };
+          continue;
         }
 
         sonuclar.add(AramaSonucu(
@@ -250,22 +242,18 @@ class _AramaEkraniState extends State<AramaEkrani> {
     final tt = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
+      appBar: AppMenuBar(
+        title: Text(
           'Ara',
           style: TextStyle(
-            color: Colors.white,
+            color: AppDesign.activeInk,
             fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
           ),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: AppDesign.activeInk),
           onPressed: () => Navigator.pop(context),
         ),
         bottom: PreferredSize(
@@ -273,7 +261,7 @@ class _AramaEkraniState extends State<AramaEkrani> {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Material(
-              color: Colors.white,
+              color: AppDesign.activeSurface,
               elevation: 1,
               borderRadius: BorderRadius.circular(14),
               child: TextField(
@@ -333,63 +321,13 @@ class _AramaEkraniState extends State<AramaEkrani> {
               : ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: _sonuclar.length,
-                  separatorBuilder: (_, __) => const Divider(),
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final sonuc = _sonuclar[index];
-                    return Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: sonuc.onTap,
-                        splashColor: Colors.indigo.withOpacity(0.2),
-                        highlightColor: Colors.indigo.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                          child: Row(
-                            children: [
-                              if (sonuc.ikon != null) ...[
-                                Icon(
-                                  sonuc.ikon,
-                                  color: Colors.indigo,
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 12),
-                              ],
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      sonuc.baslik,
-                                      style: tt.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    if (sonuc.altBaslik != null && sonuc.altBaslik!.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        sonuc.altBaslik!,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: tt.bodySmall?.copyWith(
-                                          color: Colors.black54,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const Icon(
-                                Icons.chevron_right_rounded,
-                                color: Colors.black38,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                    return AppSurface(padding: EdgeInsets.zero, child: AppActionTile(
+                      title: sonuc.baslik, subtitle: sonuc.altBaslik,
+                      icon: sonuc.ikon ?? Icons.search_rounded, onTap: sonuc.onTap,
+                    ));                  },
                 ),
     );
   }

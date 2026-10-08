@@ -1,4 +1,7 @@
+import 'package:src/utils/app_design.dart';
 import 'dart:ui';
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -6,21 +9,20 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'mesaihesaplama.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../utils/analytics_helper.dart';
+import '../services/account_scoped_local_store.dart';
 
 class AppScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
-    PointerDeviceKind.touch,
-    PointerDeviceKind.mouse,
-    PointerDeviceKind.trackpad,
-    PointerDeviceKind.stylus,
-    PointerDeviceKind.unknown,
-  };
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.unknown,
+      };
 }
-
 
 class OvertimeCalendarPage extends StatefulWidget {
   const OvertimeCalendarPage({super.key});
@@ -30,15 +32,22 @@ class OvertimeCalendarPage extends StatefulWidget {
 }
 
 enum SalaryMode { minimumWage, manual }
+
 enum SalaryKind { gross, net }
+
 enum OtMultiplierChoice { auto, onePointFive, twoPointZero }
+
 enum TimeUnit { day, hour }
+
 enum ResultsMode { monthly, yearly }
 
 class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   bool _restoring = false; // load sırasında autosave tetiklenmesin
   static const double _hoursPerDay = 7.5;
   static const _kStore = 'mesai_takip_v1';
+  late final AccountScopedLocalStore _localStore;
+  late final String? _openedUid;
+  StreamSubscription<User?>? _authSubscription;
 
   late DateTime _focusedDay;
   DateTime? _selectedDay; // ilk açılışta null kalsın (mavi olmasın)
@@ -57,13 +66,13 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
   // Ücret girişleri
   final List<TextEditingController> _grossCtrls =
-  List.generate(12, (_) => TextEditingController());
+      List.generate(12, (_) => TextEditingController());
   final List<TextEditingController> _netCtrls =
-  List.generate(12, (_) => TextEditingController());
+      List.generate(12, (_) => TextEditingController());
 
   // Ikramiye girişleri
   final List<TextEditingController> _bonusCtrls =
-  List.generate(12, (_) => TextEditingController());
+      List.generate(12, (_) => TextEditingController());
 
   final List<String> _monthNames = const [
     'Ocak',
@@ -110,7 +119,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     ),
     2026: const _MinWage(
       grossMonthly: 33030.00,
-      netMonthly: 28075.50,        // Normal çalışan net asgari
+      netMonthly: 28075.50, // Normal çalışan net asgari
       netMonthlyRetired: 30181.17,
     ),
   };
@@ -123,20 +132,22 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   bool _isPropagating = false;
 
   final NumberFormat _tryFmt =
-  NumberFormat.currency(locale: 'tr_TR', symbol: '₺ ', decimalDigits: 2);
+      NumberFormat.currency(locale: 'tr_TR', symbol: '₺ ', decimalDigits: 2);
   final NumberFormat _numFmt0 =
-  NumberFormat.decimalPatternDigits(locale: 'tr_TR', decimalDigits: 0);
+      NumberFormat.decimalPatternDigits(locale: 'tr_TR', decimalDigits: 0);
   final NumberFormat _numFmt1 =
-  NumberFormat.decimalPatternDigits(locale: 'tr_TR', decimalDigits: 1);
+      NumberFormat.decimalPatternDigits(locale: 'tr_TR', decimalDigits: 1);
   final NumberFormat _trFieldFmt =
-  NumberFormat.decimalPatternDigits(locale: 'tr_TR', decimalDigits: 2);
-
+      NumberFormat.decimalPatternDigits(locale: 'tr_TR', decimalDigits: 2);
 
   Future<void> _loadState() async {
     _restoring = true; // yükleme sırasında autosave çalışmasın
 
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kStore);
+    final raw = await _localStore.read(_kStore);
+    if (!mounted || AccountScopedLocalStore().currentUid != _openedUid) {
+      _restoring = false;
+      return;
+    }
     if (raw == null) {
       _restoring = false;
       return;
@@ -155,13 +166,16 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     setState(() {
       // basit alanlar
       final sd = map['startDate'] as String?;
-      _startDate   = sd == null ? null : DateTime.tryParse(sd);
-      _salaryYear  = (map['salaryYear']  ?? _salaryYear)  as int;
-      _salaryKind  = SalaryKind.values[(map['salaryKind'] ?? _salaryKind.index) as int];
-      _salaryMode  = SalaryMode.values[(map['salaryMode'] ?? _salaryMode.index) as int];
-      _isRetired   = (map['isRetired']   ?? _isRetired)   as bool;
-      _bonusKind   = SalaryKind.values[(map['bonusKind']  ?? _bonusKind.index)  as int];
-      _leaveYear   = (map['leaveYear']   ?? _leaveYear)   as int;
+      _startDate = sd == null ? null : DateTime.tryParse(sd);
+      _salaryYear = (map['salaryYear'] ?? _salaryYear) as int;
+      _salaryKind =
+          SalaryKind.values[(map['salaryKind'] ?? _salaryKind.index) as int];
+      _salaryMode =
+          SalaryMode.values[(map['salaryMode'] ?? _salaryMode.index) as int];
+      _isRetired = (map['isRetired'] ?? _isRetired) as bool;
+      _bonusKind =
+          SalaryKind.values[(map['bonusKind'] ?? _bonusKind.index) as int];
+      _leaveYear = (map['leaveYear'] ?? _leaveYear) as int;
       _resultsYear = (map['resultsYear'] ?? _resultsYear) as int;
 
       // map'ler
@@ -170,7 +184,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         _annualPaidLeaveDays
           ..clear()
           ..addAll(apRaw.map<int, double>(
-                (k, v) => MapEntry(int.parse(k.toString()), (v as num).toDouble()),
+            (k, v) => MapEntry(int.parse(k.toString()), (v as num).toDouble()),
           ));
       }
 
@@ -179,24 +193,27 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         _overtimeData
           ..clear()
           ..addAll(otRaw.map<String, double>(
-                (k, v) => MapEntry(k.toString(), (v as num).toDouble()),
+            (k, v) => MapEntry(k.toString(), (v as num).toDouble()),
           ));
       }
 
       // controller metinleri
       restoreTexts(_grossCtrls, map['grossTexts'] as List?);
-      restoreTexts(_netCtrls,   map['netTexts']   as List?);
+      restoreTexts(_netCtrls, map['netTexts'] as List?);
       restoreTexts(_bonusCtrls, map['bonusTexts'] as List?);
     });
 
     _restoring = false;
   }
 
-
-
   @override
   void initState() {
     super.initState();
+    _openedUid = AccountScopedLocalStore().currentUid;
+    _localStore = AccountScopedLocalStore(uidProvider: () => _openedUid);
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user?.uid != _openedUid && mounted) Navigator.of(context).maybePop();
+    });
     AnalyticsHelper.logScreenOpen('mesai_takip_opened');
     _focusedDay = DateTime.now();
     _selectedDay = null;
@@ -208,9 +225,15 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     _vBodyCtrl = ScrollController();
 
     // ↙︎ YENİ: metin kutuları değişince otomatik kaydet
-    for (final c in _grossCtrls) { c.addListener(_saveState); }
-    for (final c in _netCtrls)   { c.addListener(_saveState); }
-    for (final c in _bonusCtrls) { c.addListener(_saveState); }
+    for (final c in _grossCtrls) {
+      c.addListener(_saveState);
+    }
+    for (final c in _netCtrls) {
+      c.addListener(_saveState);
+    }
+    for (final c in _bonusCtrls) {
+      c.addListener(_saveState);
+    }
 
     // yatay sync (senin kodun)
     _hHeaderCtrl.addListener(() {
@@ -230,14 +253,22 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     _loadState();
   }
 
-
-
   @override
   void dispose() {
+    _authSubscription?.cancel();
     // ↙︎ YENİ: dinleyicileri kaldır
-    for (final c in _grossCtrls) { c.removeListener(_saveState); c.dispose(); }
-    for (final c in _netCtrls)   { c.removeListener(_saveState); c.dispose(); }
-    for (final c in _bonusCtrls) { c.removeListener(_saveState); c.dispose(); }
+    for (final c in _grossCtrls) {
+      c.removeListener(_saveState);
+      c.dispose();
+    }
+    for (final c in _netCtrls) {
+      c.removeListener(_saveState);
+      c.dispose();
+    }
+    for (final c in _bonusCtrls) {
+      c.removeListener(_saveState);
+      c.dispose();
+    }
     _leaveDaysCtrl.dispose();
     _hHeaderCtrl.dispose();
     _hBodyCtrl.dispose();
@@ -245,12 +276,12 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     super.dispose();
   }
 
-
   Future<void> _saveState() async {
-    if (_restoring || !mounted) return; // yükleme sırasında veya dispose sonrası tetiklenen dinleyicileri yoksay
+    if (_restoring ||
+        !mounted ||
+        AccountScopedLocalStore().currentUid != _openedUid)
+      return; // yükleme sırasında veya dispose sonrası tetiklenen dinleyicileri yoksay
     try {
-      final prefs = await SharedPreferences.getInstance();
-
       List<String> _texts(List<TextEditingController> list) =>
           list.map((c) => c.text).toList();
 
@@ -262,15 +293,15 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         'isRetired': _isRetired,
         'bonusKind': _bonusKind.index,
         'leaveYear': _leaveYear,
-        'annualPaidLeaveDays': _annualPaidLeaveDays,  // {year: days}
+        'annualPaidLeaveDays': _annualPaidLeaveDays, // {year: days}
         'resultsYear': _resultsYear,
-        'overtimeData': _overtimeData,                // {"yyyy-MM-dd_suffix": double}
-        'grossTexts': _texts(_grossCtrls),            // 12 eleman
-        'netTexts': _texts(_netCtrls),                // 12 eleman
-        'bonusTexts': _texts(_bonusCtrls),            // 12 eleman
+        'overtimeData': _overtimeData, // {"yyyy-MM-dd_suffix": double}
+        'grossTexts': _texts(_grossCtrls), // 12 eleman
+        'netTexts': _texts(_netCtrls), // 12 eleman
+        'bonusTexts': _texts(_bonusCtrls), // 12 eleman
       };
 
-      await prefs.setString(_kStore, jsonEncode(data));
+      await _localStore.write(_kStore, jsonEncode(data));
     } catch (e) {
       debugPrint('_saveState hatası: $e');
       FirebaseCrashlytics.instance.recordError(e, StackTrace.current);
@@ -304,20 +335,22 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
     // Aynı ayda işe başlanmışsa: 30 bazında kalan gün / 30
     if (_startDate!.year == month.year && _startDate!.month == month.month) {
-      final lastDayOfMonth = _daysInMonth(month.year, month.month); // örn: Ekim = 31
-      final remainingDays = (lastDayOfMonth - _startDate!.day + 1).clamp(0, lastDayOfMonth);
+      final lastDayOfMonth =
+          _daysInMonth(month.year, month.month); // örn: Ekim = 31
+      final remainingDays =
+          (lastDayOfMonth - _startDate!.day + 1).clamp(0, lastDayOfMonth);
       final ratio = (remainingDays / 30.0).clamp(0.0, 1.0); // <-- 30 baz
       return baseAmount * ratio;
     }
 
     // Ay tamamen işe girişten önceyse: 0
-    final endOfMonth = DateTime(month.year, month.month, _daysInMonth(month.year, month.month));
+    final endOfMonth = DateTime(
+        month.year, month.month, _daysInMonth(month.year, month.month));
     if (_startDate!.isAfter(endOfMonth)) return 0.0;
 
     // Ay tamamen işe girişten sonraysa: tam
     return baseAmount;
   }
-
 
   double? _enteredGrossFor(DateTime month) {
     final i = month.month - 1;
@@ -337,10 +370,10 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   }
 
   SalaryEngine _engineFor(int year) => SalaryEngine(
-    year: year,
-    status: _isRetired ? EmployeeStatus.sgdp : EmployeeStatus.normal,
-    incentive: Incentive.none,
-  );
+        year: year,
+        status: _isRetired ? EmployeeStatus.sgdp : EmployeeStatus.normal,
+        incentive: Incentive.none,
+      );
 
   double _cumTaxBaseBefore(DateTime month) {
     final eng = _engineFor(month.year);
@@ -351,23 +384,17 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       final nEntered = _parseMoney(_netCtrls[idx].text);
 
       if (_salaryKind == SalaryKind.gross) {
-        final g =
-        _proratedMonthlyAmount(DateTime(month.year, m, 1), gEntered);
+        final g = _proratedMonthlyAmount(DateTime(month.year, m, 1), gEntered);
         if (g != null && g > 0) {
           final res = eng.calculateNetFromGross(
-              grossMonthly: g,
-              monthIndex: idx,
-              cumulativeTaxBasePrev: cum);
+              grossMonthly: g, monthIndex: idx, cumulativeTaxBasePrev: cum);
           cum = res.cumulativeTaxBase;
         }
       } else {
-        final n =
-        _proratedMonthlyAmount(DateTime(month.year, m, 1), nEntered);
+        final n = _proratedMonthlyAmount(DateTime(month.year, m, 1), nEntered);
         if (n != null && n > 0) {
           final res = eng.calculateGrossFromNet(
-              targetNetMonthly: n,
-              monthIndex: idx,
-              cumulativeTaxBasePrev: cum);
+              targetNetMonthly: n, monthIndex: idx, cumulativeTaxBasePrev: cum);
           cum = res.cumulativeTaxBase;
         }
       }
@@ -386,9 +413,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       final n = _enteredNetFor(month);
       if (n == null) return null;
       final res = eng.calculateGrossFromNet(
-          targetNetMonthly: n,
-          monthIndex: i,
-          cumulativeTaxBasePrev: cumPrev);
+          targetNetMonthly: n, monthIndex: i, cumulativeTaxBasePrev: cumPrev);
       return res.gross;
     }
   }
@@ -404,17 +429,17 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       final g = _enteredGrossFor(month);
       if (g == null) return null;
       final res = eng.calculateNetFromGross(
-          grossMonthly: g,
-          monthIndex: i,
-          cumulativeTaxBasePrev: cumPrev);
+          grossMonthly: g, monthIndex: i, cumulativeTaxBasePrev: cumPrev);
       return res.net;
     }
   }
+
   double? _baseGrossForRate(DateTime month) {
     final year = month.year;
 
     // Asgari ücret modu: yılın brüt asgari ücreti
-    if (_salaryMode == SalaryMode.minimumWage && _minWageByYear.containsKey(year)) {
+    if (_salaryMode == SalaryMode.minimumWage &&
+        _minWageByYear.containsKey(year)) {
       return _minWageByYear[year]!.grossMonthly;
     }
 
@@ -444,16 +469,18 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     return base / 30.0 / _hoursPerDay; // _hoursPerDay zaten 7.5
   }
 
-
   double _monthlyOvertimeHours(DateTime month) {
     double h = 0;
     _overtimeData.forEach((k, v) {
       final parts = k.split('_');
       final date = DateTime.parse(parts[0]);
-      if (date.year == month.year && date.month == month.month && parts[1] == 'overtime') {
+      if (date.year == month.year &&
+          date.month == month.month &&
+          parts[1] == 'overtime') {
         // ↓↓↓ EKLE ↓↓↓
         if (_startDate != null) {
-          final sd = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+          final sd =
+              DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
           final d0 = DateTime(date.year, date.month, date.day);
           if (d0.isBefore(sd)) return; // işe girişten önceki günleri yoksay
         }
@@ -464,15 +491,17 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     return h;
   }
 
-
   double _monthlyUnpaidHours(DateTime month) {
     double h = 0;
     _overtimeData.forEach((k, v) {
       final parts = k.split('_');
       final date = DateTime.parse(parts[0]);
-      if (date.year == month.year && date.month == month.month && parts[1] == 'unpaid') {
+      if (date.year == month.year &&
+          date.month == month.month &&
+          parts[1] == 'unpaid') {
         if (_startDate != null) {
-          final sd = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+          final sd =
+              DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
           final d0 = DateTime(date.year, date.month, date.day);
           if (d0.isBefore(sd)) return;
         }
@@ -481,16 +510,18 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     });
     return h;
   }
-
 
   double _monthlyPaidHours(DateTime month) {
     double h = 0;
     _overtimeData.forEach((k, v) {
       final parts = k.split('_');
       final date = DateTime.parse(parts[0]);
-      if (date.year == month.year && date.month == month.month && parts[1] == 'paid') {
+      if (date.year == month.year &&
+          date.month == month.month &&
+          parts[1] == 'paid') {
         if (_startDate != null) {
-          final sd = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+          final sd =
+              DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
           final d0 = DateTime(date.year, date.month, date.day);
           if (d0.isBefore(sd)) return;
         }
@@ -499,7 +530,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     });
     return h;
   }
-
 
   double _trunc2(double v) => double.parse(v.toStringAsFixed(2));
 
@@ -508,9 +538,12 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     _overtimeData.forEach((k, v) {
       final parts = k.split('_');
       final date = DateTime.parse(parts[0]);
-      if (date.year == month.year && date.month == month.month && parts[1] == 'deduction') {
+      if (date.year == month.year &&
+          date.month == month.month &&
+          parts[1] == 'deduction') {
         if (_startDate != null) {
-          final sd = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+          final sd =
+              DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
           final d0 = DateTime(date.year, date.month, date.day);
           if (d0.isBefore(sd)) return;
         }
@@ -519,7 +552,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     });
     return h;
   }
-
 
   double _deductionGrossFor(DateTime month) {
     final h = _monthlyDeductionHours(month);
@@ -545,18 +577,22 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
     if (_salaryKind == SalaryKind.net || _bonusKind == SalaryKind.net) {
       // mevcut neti bul
-      final baseNet = eng.calculateNetFromGross(
-        grossMonthly: baseWithOt,
-        monthIndex: month.month - 1,
-        cumulativeTaxBasePrev: cumPrev,
-      ).net;
+      final baseNet = eng
+          .calculateNetFromGross(
+            grossMonthly: baseWithOt,
+            monthIndex: month.month - 1,
+            cumulativeTaxBasePrev: cumPrev,
+          )
+          .net;
 
       // hedef net = mevcut net + bonusInput olacak şekilde brütü geri bul
-      final afterGross = eng.calculateGrossFromNet(
-        targetNetMonthly: baseNet + bonusInput,
-        monthIndex: month.month - 1,
-        cumulativeTaxBasePrev: cumPrev,
-      ).gross;
+      final afterGross = eng
+          .calculateGrossFromNet(
+            targetNetMonthly: baseNet + bonusInput,
+            monthIndex: month.month - 1,
+            cumulativeTaxBasePrev: cumPrev,
+          )
+          .gross;
 
       final grossUp = afterGross - baseWithOt;
       return grossUp <= 0 ? 0.0 : _trunc2(grossUp);
@@ -565,7 +601,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       return _trunc2(bonusInput);
     }
   }
-
 
   double _effectiveMultiplierFor(DateTime date) {
     final key = _keyFor(date);
@@ -620,20 +655,24 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
     final baseWithOt = baseGross + otGross;
 
-    final baseRes = eng.calculateNetFromGross(
-      grossMonthly: baseWithOt,
-      monthIndex: month.month - 1,
-      cumulativeTaxBasePrev: cumPrev,
-    ).net;
+    final baseRes = eng
+        .calculateNetFromGross(
+          grossMonthly: baseWithOt,
+          monthIndex: month.month - 1,
+          cumulativeTaxBasePrev: cumPrev,
+        )
+        .net;
 
     if (_salaryKind == SalaryKind.net || _bonusKind == SalaryKind.net) {
       return bonusInput;
     } else {
-      final withRes = eng.calculateNetFromGross(
-        grossMonthly: baseWithOt + bonusInput,
-        monthIndex: month.month - 1,
-        cumulativeTaxBasePrev: cumPrev,
-      ).net;
+      final withRes = eng
+          .calculateNetFromGross(
+            grossMonthly: baseWithOt + bonusInput,
+            monthIndex: month.month - 1,
+            cumulativeTaxBasePrev: cumPrev,
+          )
+          .net;
       final netDelta = withRes - baseRes;
       return netDelta < 0 ? 0.0 : netDelta;
     }
@@ -652,16 +691,20 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
     if (_salaryKind == SalaryKind.net || _bonusKind == SalaryKind.net) {
       final targetNetBonus = bonusInput;
-      final baseNet = eng.calculateNetFromGross(
-        grossMonthly: baseWithOt,
-        monthIndex: month.month - 1,
-        cumulativeTaxBasePrev: cumPrev,
-      ).net;
-      final withNetRes = eng.calculateGrossFromNet(
-        targetNetMonthly: baseNet + targetNetBonus,
-        monthIndex: month.month - 1,
-        cumulativeTaxBasePrev: cumPrev,
-      ).gross;
+      final baseNet = eng
+          .calculateNetFromGross(
+            grossMonthly: baseWithOt,
+            monthIndex: month.month - 1,
+            cumulativeTaxBasePrev: cumPrev,
+          )
+          .net;
+      final withNetRes = eng
+          .calculateGrossFromNet(
+            targetNetMonthly: baseNet + targetNetBonus,
+            monthIndex: month.month - 1,
+            cumulativeTaxBasePrev: cumPrev,
+          )
+          .gross;
       return withNetRes - baseWithOt;
     } else {
       return bonusInput;
@@ -737,56 +780,56 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppMenuBar(
         title: Text(
           _titleForTab(_currentTabIndex),
-          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+          style: const TextStyle(
+              color: AppDesign.ink,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3),
         ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: IndexedStack(
-        index: _currentTabIndex,
-        children: [
-          _buildSettingsTab(),
-          _buildCalendarTab(),
-          _buildResultsTab(),
-        ],
+      body: SafeArea(
+        top: false,
+        child: IndexedStack(
+          index: _currentTabIndex,
+          children: [
+            _buildSettingsTab(),
+            _buildCalendarTab(),
+            _buildResultsTab(),
+          ],
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentTabIndex,
+      extendBody: true,
+      bottomNavigationBar: AppBottomMenu(
+        selectedIndex: _currentTabIndex,
         onTap: (i) => setState(() => _currentTabIndex = i),
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
-        elevation: 8,
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Ayarlar'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: 'Takvim'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart), label: 'Sonuçlar'),
+        labels: const ['Ayarlar', 'Takvim', 'Sonuçlar'],
+        icons: const [
+          Icons.tune_rounded,
+          Icons.calendar_today_outlined,
+          Icons.bar_chart_rounded
         ],
       ),
     );
   }
 
   String _titleForTab(int i) => switch (i) {
-    0 => 'Ayarlar',
-    1 => 'Mesai Hesaplama (Takvim)',
-    2 => 'Sonuçlar',
-    _ => 'Mesai Hesaplama',
-  };
+        0 => 'Ayarlar',
+        1 => 'Mesai Hesaplama (Takvim)',
+        2 => 'Sonuçlar',
+        _ => 'Mesai Hesaplama',
+      };
 
   // ----------- AYARLAR (eksiksiz) -----------
   Widget _buildSettingsTab() {
     final year = _salaryYear;
     final supportsMW = _minWageByYear.containsKey(year);
-    final headingStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).primaryColor);
+    final headingStyle = TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).primaryColor);
 
     _leaveDaysCtrl.text =
         (_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1);
@@ -815,7 +858,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         GestureDetector(
                           onTap: _showCupertinoDatePicker,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(10),
@@ -825,10 +869,15 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  _startDate == null ? 'Seçilmedi' : _fmt(_startDate!),
-                                  style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
+                                  _startDate == null
+                                      ? 'Seçilmedi'
+                                      : _fmt(_startDate!),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black87),
                                 ),
-                                const Icon(CupertinoIcons.chevron_right, size: 18, color: Colors.black54),
+                                const Icon(CupertinoIcons.chevron_right,
+                                    size: 18, color: Colors.black54),
                               ],
                             ),
                           ),
@@ -844,8 +893,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         Row(
                           children: [
                             const Text('Yıl',
-                                style: TextStyle(
-                                    color: Colors.black54)),
+                                style: TextStyle(color: Colors.black54)),
                             const SizedBox(width: 12),
                             GestureDetector(
                               onTap: _showSalaryYearPicker,
@@ -854,22 +902,22 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: Colors.grey.shade300),
+                                  border:
+                                      Border.all(color: Colors.grey.shade300),
                                 ),
                                 padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                                    const EdgeInsets.symmetric(horizontal: 12),
                                 child: Row(
                                   mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text('$_salaryYear',
                                         style: const TextStyle(
-                                            fontWeight: FontWeight.w600, color: Colors.black87)),
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87)),
                                     const SizedBox(width: 6),
                                     const Icon(CupertinoIcons.chevron_down,
-                                        size: 16,
-                                        color: Colors.black54),
+                                        size: 16, color: Colors.black54),
                                   ],
                                 ),
                               ),
@@ -878,9 +926,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         ),
                         const SizedBox(height: 12),
                         const Text('Ücret Seçimi',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54)),
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.black54)),
                         const SizedBox(height: 6),
                         CupertinoSlidingSegmentedControl<SalaryKind>(
                           groupValue: _salaryKind,
@@ -917,8 +964,9 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                               activeTrackColor: Theme.of(context).primaryColor,
                               onChanged: (v) {
                                 setState(() {
-                                  _salaryMode =
-                                  v ? SalaryMode.minimumWage : SalaryMode.manual;
+                                  _salaryMode = v
+                                      ? SalaryMode.minimumWage
+                                      : SalaryMode.manual;
                                   if (v && supportsMW) {
                                     _applyMinimumWageForYear(year);
                                   }
@@ -951,12 +999,11 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         Text(
                           _salaryMode == SalaryMode.minimumWage
                               ? (supportsMW
-                              ? '$year yılı için seçilen tipte (Brüt/Net) 12 ay otomatik doldurulur.'
-                              : '$year yılı için asgari ücret bilgisi yok, manuel girin.')
+                                  ? '$year yılı için seçilen tipte (Brüt/Net) 12 ay otomatik doldurulur.'
+                                  : '$year yılı için asgari ücret bilgisi yok, manuel girin.')
                               : 'Manuel modda bir ayı değiştirirseniz o aydan itibaren diğer aylar aynı değerle dolar.',
                           style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black54),
+                              fontSize: 12, color: Colors.black54),
                         ),
                         const SizedBox(height: 12),
                         const Divider(height: 1),
@@ -979,18 +1026,18 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                   Column(
                                     children: List.generate(12, (i) {
                                       final controller =
-                                      _salaryKind == SalaryKind.gross
-                                          ? _grossCtrls[i]
-                                          : _netCtrls[i];
+                                          _salaryKind == SalaryKind.gross
+                                              ? _grossCtrls[i]
+                                              : _netCtrls[i];
                                       final isReadOnly = _salaryMode ==
-                                          SalaryMode.minimumWage &&
+                                              SalaryMode.minimumWage &&
                                           supportsMW;
                                       return Padding(
                                         padding:
-                                        const EdgeInsets.only(bottom: 12),
+                                            const EdgeInsets.only(bottom: 12),
                                         child: Column(
                                           crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(_monthNames[i],
                                                 style: const TextStyle(
@@ -1001,39 +1048,49 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                               controller: controller,
                                               decoration: InputDecoration(
                                                 hintText: _salaryKind ==
-                                                    SalaryKind.gross
+                                                        SalaryKind.gross
                                                     ? 'Brüt ₺'
                                                     : 'Net ₺',
                                                 border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  borderSide: BorderSide(
+                                                      color:
+                                                          Colors.grey.shade300),
                                                 ),
-                                                enabledBorder: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  borderSide: BorderSide(
+                                                      color:
+                                                          Colors.grey.shade300),
                                                 ),
                                                 filled: true,
-                                                fillColor: isReadOnly ? Colors.grey.shade100 : Colors.white,
-                                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                                fillColor: isReadOnly
+                                                    ? Colors.grey.shade100
+                                                    : Colors.white,
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 12),
                                               ),
                                               readOnly: isReadOnly,
-                                              keyboardType:
-                                              const TextInputType
+                                              keyboardType: const TextInputType
                                                   .numberWithOptions(
                                                   decimal: true),
                                               onChanged: (v) =>
                                                   _propagateForward(
-                                                    startMonthIndex: i,
-                                                    isGrossColumn: _salaryKind ==
-                                                        SalaryKind.gross,
-                                                    value: v,
-                                                    isBonus: false,
-                                                  ),
+                                                startMonthIndex: i,
+                                                isGrossColumn: _salaryKind ==
+                                                    SalaryKind.gross,
+                                                value: v,
+                                                isBonus: false,
+                                              ),
                                               onSubmitted: (_) {
-                                                _formatControllerValue(controller);
+                                                _formatControllerValue(
+                                                    controller);
                                               },
-
-
                                             ),
                                           ],
                                         ),
@@ -1048,8 +1105,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                           ? 'Örnek ($year): Brüt ${_trFieldFmt.format(_minWageByYear[year]!.grossMonthly)} ₺'
                                           : 'Örnek ($year): Net ${_isRetired ? _trFieldFmt.format(_minWageByYear[year]!.netMonthlyRetired) : _trFieldFmt.format(_minWageByYear[year]!.netMonthly)} ₺',
                                       style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.black54),
+                                          fontSize: 12, color: Colors.black54),
                                     ),
                                   ],
                                 ],
@@ -1081,8 +1137,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                       },
                                       onValueChanged: (val) {
                                         setState(() {
-                                          _bonusKind =
-                                              val ?? SalaryKind.net;
+                                          _bonusKind = val ?? SalaryKind.net;
                                         });
                                       },
                                     ),
@@ -1092,22 +1147,21 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                     _salaryKind == SalaryKind.net
                                         ? '12 Aylık Net İkramiye'
                                         : (_bonusKind == SalaryKind.gross
-                                        ? '12 Aylık Brüt İkramiye'
-                                        : '12 Aylık Net İkramiye'),
+                                            ? '12 Aylık Brüt İkramiye'
+                                            : '12 Aylık Net İkramiye'),
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w600),
                                   ),
-
                                   const SizedBox(height: 8),
                                   Column(
                                     children: List.generate(12, (i) {
                                       final controller = _bonusCtrls[i];
                                       return Padding(
                                         padding:
-                                        const EdgeInsets.only(bottom: 12),
+                                            const EdgeInsets.only(bottom: 12),
                                         child: Column(
                                           crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(_monthNames[i],
                                                 style: const TextStyle(
@@ -1117,31 +1171,49 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                             TextField(
                                               controller: controller,
                                               decoration: InputDecoration(
-                                                hintText: _salaryKind == SalaryKind.net ? 'Net ₺' : (_bonusKind == SalaryKind.gross ? 'Brüt ₺' : 'Net ₺'),
+                                                hintText: _salaryKind ==
+                                                        SalaryKind.net
+                                                    ? 'Net ₺'
+                                                    : (_bonusKind ==
+                                                            SalaryKind.gross
+                                                        ? 'Brüt ₺'
+                                                        : 'Net ₺'),
                                                 border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  borderSide: BorderSide(
+                                                      color:
+                                                          Colors.grey.shade300),
                                                 ),
-                                                enabledBorder: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  borderSide: BorderSide(
+                                                      color:
+                                                          Colors.grey.shade300),
                                                 ),
                                                 filled: true,
                                                 fillColor: Colors.white,
-                                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 12),
                                               ),
-                                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                              keyboardType: const TextInputType
+                                                  .numberWithOptions(
+                                                  decimal: true),
                                               onChanged: (v) =>
                                                   _propagateForward(
-                                                    startMonthIndex: i,
-                                                    isGrossColumn: false,
-                                                    value: v,
-                                                    isBonus: true,
-                                                  ),
+                                                startMonthIndex: i,
+                                                isGrossColumn: false,
+                                                value: v,
+                                                isBonus: true,
+                                              ),
                                               onSubmitted: (_) {
-                                                _formatControllerValue(controller);
+                                                _formatControllerValue(
+                                                    controller);
                                               },
-
                                             ),
                                           ],
                                         ),
@@ -1153,7 +1225,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 12),
                         const Divider(height: 1),
                         const SizedBox(height: 12),
@@ -1173,25 +1244,26 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade50,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                        color: Colors.grey.shade300),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
                                   ),
-                                  padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
                                   child: Row(
                                     mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       const Text('Yıl',
-                                          style: TextStyle(
-                                              color: Colors.black54)),
+                                          style:
+                                              TextStyle(color: Colors.black54)),
                                       Row(
                                         children: [
                                           Text('$_leaveYear',
                                               style: const TextStyle(
                                                   fontWeight: FontWeight.w600)),
                                           const SizedBox(width: 6),
-                                          const Icon(CupertinoIcons.chevron_down,
+                                          const Icon(
+                                              CupertinoIcons.chevron_down,
                                               size: 16,
                                               color: Colors.black54),
                                         ],
@@ -1210,19 +1282,22 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                                   hintText: 'Gün (örn: 14, 20, 26)',
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey.shade300),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey.shade300),
                                   ),
                                   filled: true,
                                   fillColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
                                 ),
-                                keyboardType: const TextInputType
-                                    .numberWithOptions(
-                                    decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
                               ),
                             ),
                           ],
@@ -1230,21 +1305,14 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         const SizedBox(height: 10),
                         const Text(
                           'Bu yıl için yıllık ücretli izin hakkınızı girin.',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black54),
+                          style: TextStyle(fontSize: 12, color: Colors.black54),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Kayıtlı: ${(_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1)} gün',
                           style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black54),
+                              fontSize: 12, color: Colors.black54),
                         ),
-
-
-
-
                       ],
                     ),
                   ),
@@ -1317,7 +1385,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         await _loadState();
                         setState(() {
                           _leaveDaysCtrl.text =
-                              (_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1);
+                              (_annualPaidLeaveDays[_leaveYear] ?? 0)
+                                  .toStringAsFixed(1);
                         });
                       },
                       child: const Text(
@@ -1333,7 +1402,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                   Expanded(
                     child: TextButton(
                       style: TextButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                        backgroundColor:
+                            Theme.of(context).primaryColor.withOpacity(0.1),
                         foregroundColor: Theme.of(context).primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
@@ -1346,23 +1416,28 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                           for (int i = 0; i < 12; i++) {
                             if (_grossCtrls[i].text.trim().isNotEmpty) {
                               final v = _parseMoney(_grossCtrls[i].text);
-                              if (v != null) _grossCtrls[i].text = _trFieldFmt.format(v);
+                              if (v != null)
+                                _grossCtrls[i].text = _trFieldFmt.format(v);
                             }
                             if (_netCtrls[i].text.trim().isNotEmpty) {
                               final v = _parseMoney(_netCtrls[i].text);
-                              if (v != null) _netCtrls[i].text = _trFieldFmt.format(v);
+                              if (v != null)
+                                _netCtrls[i].text = _trFieldFmt.format(v);
                             }
                             if (_bonusCtrls[i].text.trim().isNotEmpty) {
                               final v = _parseMoney(_bonusCtrls[i].text);
-                              if (v != null) _bonusCtrls[i].text = _trFieldFmt.format(v);
+                              if (v != null)
+                                _bonusCtrls[i].text = _trFieldFmt.format(v);
                             }
                           }
                           // Kaydet izin günleri
                           final v = double.tryParse(
-                              _leaveDaysCtrl.text.replaceAll(',', '.')) ?? 0.0;
+                                  _leaveDaysCtrl.text.replaceAll(',', '.')) ??
+                              0.0;
                           _annualPaidLeaveDays[_leaveYear] = v.clamp(0, 365);
                           _leaveDaysCtrl.text =
-                              (_annualPaidLeaveDays[_leaveYear] ?? 0).toStringAsFixed(1);
+                              (_annualPaidLeaveDays[_leaveYear] ?? 0)
+                                  .toStringAsFixed(1);
                           // Tümünü kaydet
                           _saveState();
                         });
@@ -1386,8 +1461,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
   void _showSalaryYearPicker() {
     final years = [2022, 2023, 2024, 2025, 2026];
-    final initialIndex =
-    years.indexOf(_salaryYear).clamp(0, years.length - 1);
+    final initialIndex = years.indexOf(_salaryYear).clamp(0, years.length - 1);
     showCupertinoModalPopup(
       context: context,
       builder: (_) => Container(
@@ -1402,7 +1476,9 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Bitti', style: TextStyle(color: Theme.of(context).primaryColor)),
+                    child: Text('Bitti',
+                        style:
+                            TextStyle(color: Theme.of(context).primaryColor)),
                   ),
                 ],
               ),
@@ -1410,8 +1486,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
             Expanded(
               child: CupertinoPicker(
                 itemExtent: 36,
-                scrollController: FixedExtentScrollController(
-                    initialItem: initialIndex),
+                scrollController:
+                    FixedExtentScrollController(initialItem: initialIndex),
                 onSelectedItemChanged: (i) {
                   setState(() {
                     _saveState();
@@ -1422,8 +1498,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                     _saveState();
                   });
                 },
-                children:
-                years.map((y) => Center(child: Text('$y'))).toList(),
+                children: years.map((y) => Center(child: Text('$y'))).toList(),
               ),
             ),
           ],
@@ -1434,8 +1509,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
   void _showLeaveYearPicker() {
     final years = List<int>.generate(16, (i) => 2020 + i);
-    final initialIndex =
-    years.indexOf(_leaveYear).clamp(0, years.length - 1);
+    final initialIndex = years.indexOf(_leaveYear).clamp(0, years.length - 1);
     showCupertinoModalPopup(
       context: context,
       builder: (_) => Container(
@@ -1450,7 +1524,9 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Bitti', style: TextStyle(color: Theme.of(context).primaryColor)),
+                    child: Text('Bitti',
+                        style:
+                            TextStyle(color: Theme.of(context).primaryColor)),
                   ),
                 ],
               ),
@@ -1458,8 +1534,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
             Expanded(
               child: CupertinoPicker(
                 itemExtent: 36,
-                scrollController: FixedExtentScrollController(
-                    initialItem: initialIndex),
+                scrollController:
+                    FixedExtentScrollController(initialItem: initialIndex),
                 onSelectedItemChanged: (i) {
                   setState(() {
                     _leaveYear = years[i];
@@ -1468,8 +1544,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                             .toStringAsFixed(1);
                   });
                 },
-                children:
-                years.map((y) => Center(child: Text('$y'))).toList(),
+                children: years.map((y) => Center(child: Text('$y'))).toList(),
               ),
             ),
           ],
@@ -1493,7 +1568,9 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Bitti', style: TextStyle(color: Theme.of(context).primaryColor)),
+                    child: Text('Bitti',
+                        style:
+                            TextStyle(color: Theme.of(context).primaryColor)),
                   ),
                 ],
               ),
@@ -1508,7 +1585,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                   setState(() => _startDate = date);
                   _saveState();
                 },
-
               ),
             ),
           ],
@@ -1543,12 +1619,11 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         _overtimeData.containsKey('${_keyFor(d)}_$tag');
 
     Widget _dot(Color c) => Container(
-      width: 5,
-      height: 5,
-      margin: const EdgeInsets.symmetric(horizontal: 1),
-      decoration:
-      BoxDecoration(color: c, shape: BoxShape.circle),
-    );
+          width: 5,
+          height: 5,
+          margin: const EdgeInsets.symmetric(horizontal: 1),
+          decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+        );
 
     return TableCalendar(
       locale: 'tr_TR',
@@ -1561,14 +1636,13 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       headerStyle: const HeaderStyle(
         titleCentered: true,
         formatButtonVisible: false,
-        titleTextStyle:
-        TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        titleTextStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
       ),
       availableGestures: AvailableGestures.horizontalSwipe,
       startingDayOfWeek: StartingDayOfWeek.monday,
       weekNumbersVisible: true,
       selectedDayPredicate: (day) =>
-      _selectedDay != null && isSameDay(day, _selectedDay),
+          _selectedDay != null && isSameDay(day, _selectedDay),
       onDaySelected: (selected, focused) {
         setState(() {
           _selectedDay = selected; // tıklanınca seç
@@ -1579,15 +1653,15 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       onPageChanged: (focused) => setState(() => _focusedDay = focused),
       calendarStyle: const CalendarStyle(
         isTodayHighlighted:
-        false, // <-- bugün mavi/özel görünmesin, sadece seçilince mavi
+            false, // <-- bugün mavi/özel görünmesin, sadece seçilince mavi
         outsideDaysVisible: false,
         todayTextStyle: TextStyle(fontWeight: FontWeight.bold),
         defaultTextStyle: TextStyle(fontWeight: FontWeight.bold),
         weekendTextStyle: TextStyle(fontWeight: FontWeight.bold),
         selectedTextStyle:
-        TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         selectedDecoration:
-        BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+            BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
       ),
       calendarBuilders: CalendarBuilders(
         defaultBuilder: (context, day, focused) {
@@ -1610,9 +1684,11 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
           final hasDeduction = _hasTag(day, 'deduction');
 
           Widget _dot(Color c) => Container(
-            width: 6, height: 6, margin: const EdgeInsets.symmetric(horizontal: 1),
-            decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-          );
+                width: 6,
+                height: 6,
+                margin: const EdgeInsets.symmetric(horizontal: 1),
+                decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+              );
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1626,8 +1702,10 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                     border: isStart
                         ? Border.all(color: Colors.amber, width: 2)
                         : (isToday
-                        ? Border.all(color: Colors.grey.shade400, width: 2) // gri halka
-                        : null),
+                            ? Border.all(
+                                color: Colors.grey.shade400,
+                                width: 2) // gri halka
+                            : null),
                   ),
                   child: Text(
                     '${day.day}',
@@ -1663,7 +1741,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     // 1) Ayın "ekler dahil" final sonucunu al (vergiler BRÜT toplamdan)
     final yrAll = _yearWithExtras(monthAnchor.year);
     final res = yrAll.months.firstWhere(
-          (e) => e.monthIndex == monthAnchor.month - 1,
+      (e) => e.monthIndex == monthAnchor.month - 1,
       orElse: () => MonthResult(
         year: monthAnchor.year,
         monthIndex: monthAnchor.month - 1,
@@ -1704,24 +1782,22 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     final salaryKindIsGross = _salaryKind == SalaryKind.gross;
     final selectedOvertimeAmount = salaryKindIsGross ? otGross : otNet;
 
-
     String moneyFmt(double? v) => v == null ? '-' : _tryFmt.format(v);
     String hoursFmtLocal(double v) => hoursFmt(v);
     String daysFmtLocal(double v) => daysFmt(v);
 
     Widget row(String left, String right) => Padding(
-      padding:
-      const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(left, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(right,
-              style: const TextStyle(
-                  fontFeatures: [FontFeature.tabularFigures()])),
-        ],
-      ),
-    );
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(left, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(right,
+                  style: const TextStyle(
+                      fontFeatures: [FontFeature.tabularFigures()])),
+            ],
+          ),
+        );
 
     return Material(
       color: Colors.white,
@@ -1733,47 +1809,42 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Ay Özeti',
-              style:
-              TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Ay Özeti',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
 
-          row('Brüt maaş', moneyFmt(gross)),
-          row('Net maaş', moneyFmt(net)),
+            row('Brüt maaş', moneyFmt(gross)),
+            row('Net maaş', moneyFmt(net)),
 
-          row('Mesai saati', hoursFmtLocal(otHours)),
-          row(
-              salaryKindIsGross
-                  ? 'Brüt mesai ücreti'
-                  : 'Net mesai ücreti',
-              moneyFmt(selectedOvertimeAmount)),
+            row('Mesai saati', hoursFmtLocal(otHours)),
+            row(salaryKindIsGross ? 'Brüt mesai ücreti' : 'Net mesai ücreti',
+                moneyFmt(selectedOvertimeAmount)),
 
-          const SizedBox(height: 6),
-          const Divider(height: 1),
+            const SizedBox(height: 6),
+            const Divider(height: 1),
 
 // Önce ÜCRETLİ (yıllık izin), sonra ÜCRETSİZ, sonra KESİNTİ
-          row('Ücretli izin (yıllık izin) (gün / saat)',
-              '${daysFmtLocal(paidH)} g  /  ${hoursFmtLocal(paidH)} s'),
-          row('Ücretsiz izin (gün / saat)',
-              '${daysFmtLocal(unpaidH)} g  /  ${hoursFmtLocal(unpaidH)} s'),
-          row('Kesinti (gün / saat)',
-              '${daysFmtLocal(dedH)} g  /  ${hoursFmtLocal(dedH)} s'),
-          row('Kesinti tutarı (brüt)', moneyFmt(dedGross)),
+            row('Ücretli izin (yıllık izin) (gün / saat)',
+                '${daysFmtLocal(paidH)} g  /  ${hoursFmtLocal(paidH)} s'),
+            row('Ücretsiz izin (gün / saat)',
+                '${daysFmtLocal(unpaidH)} g  /  ${hoursFmtLocal(unpaidH)} s'),
+            row('Kesinti (gün / saat)',
+                '${daysFmtLocal(dedH)} g  /  ${hoursFmtLocal(dedH)} s'),
+            row('Kesinti tutarı (brüt)', moneyFmt(dedGross)),
 
-          const SizedBox(height: 6),
-          const Divider(height: 1),
+            const SizedBox(height: 6),
+            const Divider(height: 1),
 
-
-          const SizedBox(height: 6),
-          row('İkramiye (NET)', moneyFmt(bonusNet)),
-          // res.net: (Maaş + Mesai + (Net üstüne) İkramiye − Kesinti) sonrası FİNAL net
-          row('Toplam net ücret', moneyFmt(net)),
-        ],
-      ),
+            const SizedBox(height: 6),
+            row('İkramiye (NET)', moneyFmt(bonusNet)),
+            // res.net: (Maaş + Mesai + (Net üstüne) İkramiye − Kesinti) sonrası FİNAL net
+            row('Toplam net ücret', moneyFmt(net)),
+          ],
+        ),
       ),
     );
   }
@@ -1793,12 +1864,12 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                     groupValue: _resultsMode,
                     children: const {
                       ResultsMode.monthly: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           child: Text('Aylık Özet')),
                       ResultsMode.yearly: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           child: Text('Yıllık Özet')),
                     },
                     onValueChanged: (v) =>
@@ -1857,8 +1928,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
   void _showResultsYearPicker() {
     final years = List<int>.generate(16, (i) => 2020 + i);
-    final initialIndex =
-    years.indexOf(_resultsYear).clamp(0, years.length - 1);
+    final initialIndex = years.indexOf(_resultsYear).clamp(0, years.length - 1);
     showCupertinoModalPopup(
       context: context,
       builder: (_) => Container(
@@ -1873,7 +1943,9 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Bitti', style: TextStyle(color: Theme.of(context).primaryColor)),
+                    child: Text('Bitti',
+                        style:
+                            TextStyle(color: Theme.of(context).primaryColor)),
                   ),
                 ],
               ),
@@ -1881,12 +1953,11 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
             Expanded(
               child: CupertinoPicker(
                 itemExtent: 36,
-                scrollController: FixedExtentScrollController(
-                    initialItem: initialIndex),
+                scrollController:
+                    FixedExtentScrollController(initialItem: initialIndex),
                 onSelectedItemChanged: (i) =>
                     setState(() => _resultsYear = years[i]),
-                children:
-                years.map((y) => Center(child: Text('$y'))).toList(),
+                children: years.map((y) => Center(child: Text('$y'))).toList(),
               ),
             ),
           ],
@@ -1899,7 +1970,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
   Widget _buildMonthlyDetailsCard(DateTime month) {
     final yrAll = _yearWithExtras(month.year);
     final res = yrAll.months.firstWhere(
-          (e) => e.monthIndex == month.month - 1,
+      (e) => e.monthIndex == month.month - 1,
       orElse: () => MonthResult(
         year: month.year,
         monthIndex: month.month - 1,
@@ -1921,10 +1992,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         monthlyTaxableBase: 0,
       ),
     );
-    final taxBase =
-    (res.gross - res.sgkEmployee - res.unemploymentEmployee)
+    final taxBase = (res.gross - res.sgkEmployee - res.unemploymentEmployee)
         .clamp(0.0, double.infinity);
-
 
 // Görsel bilgi için
     final otGross = _monthlyOvertimeAmount(month, gross: true);
@@ -1936,22 +2005,22 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
     String money(double v) => _tryFmt.format(v);
     Widget r(String a, String b) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(a, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(b,
-              style: const TextStyle(
-                  fontFeatures: [FontFeature.tabularFigures()])),
-        ],
-      ),
-    );
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(a, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(b,
+                  style: const TextStyle(
+                      fontFeatures: [FontFeature.tabularFigures()])),
+            ],
+          ),
+        );
 
     Widget groupTitle(String t) => Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 6),
-      child: Text(t, style: const TextStyle(fontWeight: FontWeight.w700)),
-    );
+          padding: const EdgeInsets.only(top: 12, bottom: 6),
+          child: Text(t, style: const TextStyle(fontWeight: FontWeight.w700)),
+        );
 
     return Container(
       width: double.infinity,
@@ -2010,7 +2079,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
           const Divider(),
 // res.net artık (Maaş + Mesai + (Net üstüne) İkramiye − Kesinti) sonrası FİNAL NET
           r('Toplam Net(Maaş+Mesai+İkrm.−Kesinti)', money(res.net)),
-
         ],
       ),
     );
@@ -2034,12 +2102,12 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     final List<Map<String, num>> extras = List.generate(12, (mIdx) {
       final month = DateTime(_resultsYear, mIdx + 1, 1);
       final otH = _monthlyOvertimeHours(month);
-      final otAmt = _monthlyOvertimeAmount(
-          month, gross: _salaryKind == SalaryKind.gross ? true : false);
+      final otAmt = _monthlyOvertimeAmount(month,
+          gross: _salaryKind == SalaryKind.gross ? true : false);
       final bonus = _monthlyBonusNet(month);
 
       final res = yr.months.firstWhere(
-            (e) => e.monthIndex == mIdx,
+        (e) => e.monthIndex == mIdx,
         orElse: () => MonthResult(
           year: _resultsYear,
           monthIndex: mIdx,
@@ -2064,10 +2132,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
       // res.net zaten (maaş + mesai + bonus − kesinti) sonrası FİNAL net
       final netWithAll = res.net;
-
-
-
-
 
       return {
         'otHours': otH,
@@ -2111,7 +2175,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     List<Widget> _rowForIndex(int i) {
       final month = DateTime(_resultsYear, i + 1, 1);
       final res = yr.months.firstWhere(
-            (e) => e.monthIndex == i,
+        (e) => e.monthIndex == i,
         orElse: () => MonthResult(
           year: _resultsYear,
           monthIndex: i,
@@ -2172,27 +2236,28 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
 
       return cells
           .map((txt) => Container(
-        width: cellW,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-          color: Colors.white,
-        ),
-        child: Text(
-          txt,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
-        ),
-      ))
+                width: cellW,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                decoration: BoxDecoration(
+                  border:
+                      Border(bottom: BorderSide(color: Colors.grey.shade300)),
+                  color: Colors.white,
+                ),
+                child: Text(
+                  txt,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontFeatures: [FontFeature.tabularFigures()]),
+                ),
+              ))
           .toList();
     }
 
-
     final totalTaxBase = yr.months.fold<double>(
       0.0,
-          (p, r) => p + (r.gross - r.sgkEmployee - r.unemploymentEmployee),
+      (p, r) => p + (r.gross - r.sgkEmployee - r.unemploymentEmployee),
     );
-
 
     final totalsRow = <String>[
       m(yr.totalGross),
@@ -2211,29 +2276,26 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
       m(yr.totalUnemploymentEmployer),
       m(yr.totalEmployerCost),
       h(_sumHours(
-              (mth) => _monthlyUnpaidHours(DateTime(_resultsYear, mth, 1)))),
-      h(_sumHours(
-              (mth) => _monthlyPaidHours(DateTime(_resultsYear, mth, 1)))),
+          (mth) => _monthlyUnpaidHours(DateTime(_resultsYear, mth, 1)))),
+      h(_sumHours((mth) => _monthlyPaidHours(DateTime(_resultsYear, mth, 1)))),
       h(extras.fold<num>(0, (p, e) => p + (e['otHours'] as num))),
       m(extras.fold<num>(0, (p, e) => p + (e['otAmount'] as num))),
       m(extras.fold<num>(0, (p, e) => p + (e['bonus'] as num))),
       m(extras.fold<num>(0, (p, e) => p + (e['netWithAll'] as num))),
     ]
         .map((txt) => Container(
-      width: cellW,
-      padding:
-      const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(
-            bottom: BorderSide(color: Colors.grey.shade300)),
-        color: Colors.grey.shade100,
-      ),
-      child: Text(txt,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontFeatures: [FontFeature.tabularFigures()])),
-    ))
+              width: cellW,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+                color: Colors.grey.shade100,
+              ),
+              child: Text(txt,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFeatures: [FontFeature.tabularFigures()])),
+            ))
         .toList();
 
     final headerBar = Container(
@@ -2251,8 +2313,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 bottom: BorderSide(color: Colors.grey.shade300),
               ),
             ),
-            child: const Text('Ay',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child:
+                const Text('Ay', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
           Expanded(
             child: SingleChildScrollView(
@@ -2261,19 +2323,19 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
               child: Row(
                 children: headers
                     .map((h) => Container(
-                  width: cellW,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 10),
-                  decoration: BoxDecoration(
-                    border: Border(
-                        bottom: BorderSide(
-                            color: Colors.grey.shade300)),
-                  ),
-                  child: Text(h,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold)),
-                ))
+                          width: cellW,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 10),
+                          decoration: BoxDecoration(
+                            border: Border(
+                                bottom:
+                                    BorderSide(color: Colors.grey.shade300)),
+                          ),
+                          child: Text(h,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                        ))
                     .toList(),
               ),
             ),
@@ -2287,13 +2349,11 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         const SizedBox(height: headerH),
         ...List.generate(
           12,
-              (i) => Container(
+          (i) => Container(
             width: leftColW,
-            padding:
-            const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
             decoration: BoxDecoration(
-              border:
-              Border(bottom: BorderSide(color: Colors.grey.shade300)),
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
               color: Colors.white,
             ),
             child: Text(months[i], overflow: TextOverflow.ellipsis),
@@ -2303,8 +2363,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
           width: leftColW,
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
           decoration: BoxDecoration(
-            border:
-            Border(bottom: BorderSide(color: Colors.grey.shade300)),
+            border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             color: Colors.grey.shade100,
           ),
           child: const Text('TOPLAM',
@@ -2322,9 +2381,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
             Container(
               width: leftColW,
               decoration: BoxDecoration(
-                  border: Border(
-                      right:
-                      BorderSide(color: Colors.grey.shade300))),
+                  border:
+                      Border(right: BorderSide(color: Colors.grey.shade300))),
               child: leftColumn,
             ),
             Expanded(
@@ -2415,7 +2473,6 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     return YearResult(year: year, months: months);
   }
 
-
   // -------- Gün içi diyalog --------
   void _showOvertimeDialog(BuildContext context, DateTime day) {
     if (_startDate != null) {
@@ -2428,7 +2485,9 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
             title: const Text('Uyarı'),
             content: const Text('İşe giriş tarihinden önceye kayıt yapılamaz.'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Tamam')),
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Tamam')),
             ],
           ),
         );
@@ -2448,7 +2507,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
     double _hoursToDays(double h) => h / _hoursPerDay;
 
     final List<double> quarterHours =
-    List.generate(49, (i) => i * 0.25); // 0..12
+        List.generate(49, (i) => i * 0.25); // 0..12
     int selectedOtIndex = 0;
     final currentOt = _overtimeData['${key}_overtime'] ?? 0.0;
     selectedOtIndex =
@@ -2466,21 +2525,27 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
         return m == 15
             ? '15 dk'
             : m == 30
-            ? '30 dk'
-            : m == 45
-            ? '45 dk'
-            : '$m dk';
+                ? '30 dk'
+                : m == 45
+                    ? '45 dk'
+                    : '$m dk';
       }
       if (m == 0) return '$s s';
       return '$s s ${m} dk';
     }
 
     final unpaidCtrl = TextEditingController(
-        text: currentUnpaidH == 0 ? '' : _hoursToDays(currentUnpaidH).toStringAsFixed(2));
+        text: currentUnpaidH == 0
+            ? ''
+            : _hoursToDays(currentUnpaidH).toStringAsFixed(2));
     final paidCtrl = TextEditingController(
-        text: currentPaidH == 0 ? '' : _hoursToDays(currentPaidH).toStringAsFixed(2));
+        text: currentPaidH == 0
+            ? ''
+            : _hoursToDays(currentPaidH).toStringAsFixed(2));
     final deductionCtrl = TextEditingController(
-        text: currentDedH == 0 ? '' : _hoursToDays(currentDedH).toStringAsFixed(2));
+        text: currentDedH == 0
+            ? ''
+            : _hoursToDays(currentDedH).toStringAsFixed(2));
 
     OtMultiplierChoice otChoice = OtMultiplierChoice.auto;
     final manualMult = _overtimeData['${key}_otmult'];
@@ -2513,7 +2578,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Mesai', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Text('Mesai',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
                   Container(
                     height: 120,
@@ -2550,12 +2616,12 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                     children: const {
                       OtMultiplierChoice.auto: Text('Oto', style: segText),
                       OtMultiplierChoice.onePointFive:
-                      Text('1,5x', style: segText),
+                          Text('1,5x', style: segText),
                       OtMultiplierChoice.twoPointZero:
-                      Text('2,0x', style: segText),
+                          Text('2,0x', style: segText),
                     },
-                    onValueChanged: (v) =>
-                        setSheetState(() => otChoice = v ?? OtMultiplierChoice.auto),
+                    onValueChanged: (v) => setSheetState(
+                        () => otChoice = v ?? OtMultiplierChoice.auto),
                   ),
                   const SizedBox(height: 14),
                   const Divider(),
@@ -2569,9 +2635,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         child: TextField(
                           controller: paidCtrl,
                           decoration:
-                          const InputDecoration(labelText: 'Miktar'),
-                          keyboardType: const TextInputType
-                              .numberWithOptions(
+                              const InputDecoration(labelText: 'Miktar'),
+                          keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                         ),
                       ),
@@ -2602,9 +2667,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         child: TextField(
                           controller: unpaidCtrl,
                           decoration:
-                          const InputDecoration(labelText: 'Miktar'),
-                          keyboardType: const TextInputType
-                              .numberWithOptions(
+                              const InputDecoration(labelText: 'Miktar'),
+                          keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                         ),
                       ),
@@ -2619,13 +2683,12 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                             TimeUnit.day: Text('Gün', style: segText),
                             TimeUnit.hour: Text('Saat', style: segText),
                           },
-                          onValueChanged: (v) =>
-                              setSheetState(() => unpaidUnit = v ?? TimeUnit.day),
+                          onValueChanged: (v) => setSheetState(
+                              () => unpaidUnit = v ?? TimeUnit.day),
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 14),
                   const Text('Kesinti',
                       style: TextStyle(fontWeight: FontWeight.w700)),
@@ -2636,9 +2699,8 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                         child: TextField(
                           controller: deductionCtrl,
                           decoration:
-                          const InputDecoration(labelText: 'Miktar'),
-                          keyboardType: const TextInputType
-                              .numberWithOptions(
+                              const InputDecoration(labelText: 'Miktar'),
+                          keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                         ),
                       ),
@@ -2654,7 +2716,7 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                             TimeUnit.hour: Text('Saat', style: segText),
                           },
                           onValueChanged: (v) => setSheetState(
-                                  () => deductionUnit = v ?? TimeUnit.day),
+                              () => deductionUnit = v ?? TimeUnit.day),
                         ),
                       ),
                     ],
@@ -2686,11 +2748,10 @@ class _OvertimeCalendarPageState extends State<OvertimeCalendarPage> {
                   _saveState();
                   final selectedHours = quarterHours[selectedOtIndex];
                   final unpaidHours =
-                  _valueToHours(unpaidCtrl.text, unpaidUnit);
-                  final paidHours =
-                  _valueToHours(paidCtrl.text, paidUnit);
+                      _valueToHours(unpaidCtrl.text, unpaidUnit);
+                  final paidHours = _valueToHours(paidCtrl.text, paidUnit);
                   final dedHours =
-                  _valueToHours(deductionCtrl.text, deductionUnit);
+                      _valueToHours(deductionCtrl.text, deductionUnit);
 
                   setState(() {
                     if (selectedHours > 0) {

@@ -1,3 +1,5 @@
+import '../utils/calculator_design.dart';
+import 'package:src/utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,10 +18,10 @@ const double kDividerThickness = 0.2;
 const double kDividerSpace = 2.0;
 
 // Form alanı çerçevesi
-const double kFieldBorderWidth = 0.2;
-const double kFieldBorderRadius = 10.0;
-const Color kFieldBorderColor = Colors.black87;
-const Color kFieldFocusColor = Colors.black87;
+const double kFieldBorderWidth = 1.0;
+const double kFieldBorderRadius = 12.0;
+const Color kFieldBorderColor = AppDesign.border;
+const Color kFieldFocusColor = calculatorAccent;
 
 /// ===== RAPOR KNOB’LARI =====
 const double kReportMaxWidth = 660.0;
@@ -729,7 +731,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kResultSheetBg,
+      backgroundColor: AppDesign.activeSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(kResultSheetCorner)),
       ),
@@ -747,30 +749,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
   // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'SGK Prim Borçlanma Tutarı Hesaplama',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
-
-      body: SafeArea(
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(kPageHPad, 12, kPageHPad, 12),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate.fixed([
+    return CalculatorPage(title: 'SGK Prim Borçlanması', icon: Icons.savings_outlined, controller: _scrollController, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   // Başvuru Tarihi — başlık + kutucuk (okunur, seçim yok)
                   _ReadOnlyField(
                     label: 'Hesaplama Tutarı',
@@ -810,7 +789,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
                         await _hesapla();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: calculatorAccent,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         textStyle: const TextStyle(fontWeight: FontWeight.w600),
@@ -820,29 +799,7 @@ class _BorclanmaHesaplamaScreenState extends State<BorclanmaHesaplamaScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                ]),
-              ),
-            ),
-
-            // Alt bilgilendirme
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(kPageHPad, 0, kPageHPad, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Divider(),
-                    _InfoNotice(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+                ]));
   }
 }
 
@@ -908,116 +865,10 @@ class ResultSheet extends StatelessWidget {
     required this.statusDescription,
   });
 
-  String _buildShareText() {
-    final b = StringBuffer('Borçlanma Hesaplama Özeti\n');
-    detaylar.forEach((k, v) => b.writeln('$k: $v'));
-    b.writeln('\nDurum: $statusDescription');
-    return b.toString().trim();
-  }
+
 
   @override
   Widget build(BuildContext context) {
-    final baseSmall = Theme.of(context).textTheme.bodySmall!;
-    final lineStyle = baseSmall.copyWith(
-      fontSize: (baseSmall.fontSize ?? 12) * kSumItemFontScale,
-      fontWeight: FontWeight.w400,
-      height: 1.5,
-      color: Colors.black87,
-    );
-
-    final entries = detaylar.entries.toList();
-
-    return Stack(
-      children: [
-        SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kReportMaxWidth),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 48,
-                    height: 5,
-                    decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(3)),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Başlık — sabit ve yalın
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16 * kResultHeaderScale,
-                        fontWeight: kResultHeaderWeight,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-
-                  // İçerik: tüm kalemler satır satır
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-                      children: [
-                        ...entries.map(
-                              (e) => Padding(
-                            padding: kSumItemPadding,
-                            child: Text('${e.key}: ${e.value}', style: lineStyle),
-                          ),
-                        ),
-                        // Durum Açıklaması bölümü UI'dan kaldırıldı.
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Alt orta paylaş — Apple paylaş ikonlu
-        Positioned(
-          bottom: 10,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: _buildShareText()));
-                if (context.mounted) {
-                  showCenterNotice(
-                    context,
-                    title: 'Paylaş',
-                    message: 'Özet panoya kopyalandı.',
-                    type: AppNoticeType.success,
-                  );
-                }
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(CupertinoIcons.share, size: 18),
-                  SizedBox(width: 8),
-                  Text('Paylaş', style: TextStyle(fontWeight: FontWeight.w400)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+return CalculatorResultSheet(title: 'SGK Prim Borçlanması', details: detaylar, highlightKey: 'Borçlanma Alt Limiti');
   }
 }

@@ -1,593 +1,206 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../utils/analytics_helper.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class IletisimEkrani extends StatefulWidget {
-  @override
-  _IletisimEkraniState createState() => _IletisimEkraniState();
-}
+import '../../utils/app_design.dart';
 
-class _IletisimEkraniState extends State<IletisimEkrani> {
-  final _mesajController = TextEditingController();
-  final _firestore = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
-  bool _yukleniyor = false;
-  User? _currentUser;
-  bool _sorumlulukKabulEdildi = false;
-  final ScrollController _scrollController = ScrollController();
-  bool _initialScrollDone = false;
+/// New in-app messages are paused; older conversations remain readable.
+class IletisimEkrani extends StatelessWidget {
+  const IletisimEkrani({super.key});
 
-  @override
-  void initState() {
-    super.initState();
-    _auth.authStateChanges().listen((user) {
-      setState(() {
-        _currentUser = user;
-      });
-    });
-    _sorumlulukDurumunuKontrolEt();
-    _mesajController.addListener(() {
-      setState(() {});
-    });
-    AnalyticsHelper.logScreenOpen('iletisim_ekrani_opened');
-  }
+  static const _email = 'Sosyalguvenlikcepte@gmail.com';
 
-  Future<void> _sorumlulukDurumunuKontrolEt() async {
-    final prefs = await SharedPreferences.getInstance();
-    final kabulEdildi = prefs.getBool('_sorumlulukKabulEdildi') ?? false;
-    
-    if (!kabulEdildi) {
-      // İlk açılışta uyarı dialog'u göster
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showUyariDialog();
-      });
-    } else {
-      setState(() {
-        _sorumlulukKabulEdildi = true;
-      });
-    }
-  }
-
-  Future<void> _showUyariDialog() async {
-    final onay = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          width: double.maxFinite,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 48),
-              SizedBox(height: 16),
-              Text(
-                "Önemli Uyarı",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange[700],
-                ),
-              ),
-              SizedBox(height: 16),
-              Text(
-                "Bu uygulama resmi bir kurum (SGK, İşkur vs.) uygulaması değildir. Gönderdiğiniz mesajlar resmi bir kurum tarafından değil, uygulama geliştiricileri tarafından alınmaktadır.",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[800],
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('_sorumlulukKabulEdildi', true);
-                setState(() {
-                  _sorumlulukKabulEdildi = true;
-                });
-                AnalyticsHelper.logCustomEvent('disclaimer_accepted');
-                Navigator.pop(context, true);
-              },
-              icon: Icon(Icons.check_circle, color: Colors.white, size: 18),
-              label: Text(
-                "Okudum, Anladım",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[700],
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _mesajGonder() async {
-    if (_currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Mesaj göndermek için giriş yapmalısınız.")),
-      );
-      return;
-    }
-
-    if (!_sorumlulukKabulEdildi) {
-      _showUyariDialog();
-      return;
-    }
-
-    if (_mesajController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Mesajınızı yazmalısınız.")),
-      );
-      return;
-    }
-
-    setState(() => _yukleniyor = true);
-
+  Future<void> _emailGonder(BuildContext context) async {
+    final uri = Uri(scheme: 'mailto', path: _email);
     try {
-      await _firestore.collection('messages').add({
-        'userId': _currentUser!.uid,
-        'email': _currentUser!.email,
-        'message': _mesajController.text.trim(),
-        'timestamp': Timestamp.now(),
-        'read': false,
-      });
-
-      _mesajController.clear();
-
-      setState(() {
-        _yukleniyor = false;
-      });
-
-      AnalyticsHelper.logCustomEvent('message_sent');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Mesajınız başarıyla gönderildi."),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // Listeyi en alta kaydır
-      if (_scrollController.hasClients) {
-        Future.delayed(Duration(milliseconds: 300), () {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        });
-      }
-    } catch (e) {
-      setState(() => _yukleniyor = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Mesaj gönderilirken bir hata oluştu.")),
-      );
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {}
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content:
+            Text('E-posta uygulaması açılamadı. Adresi kopyalayabilirsiniz.'),
+      ));
     }
   }
 
-  Future<void> _mesajSil(String messageId) async {
-    final onay = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Mesajı Sil'),
-        content: Text('Bu mesajı silmek istediğinize emin misiniz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Sil', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+  Future<void> _adresiKopyala(BuildContext context) async {
+    await Clipboard.setData(const ClipboardData(text: _email));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('E-posta adresi kopyalandı.'),
+      ));
+    }
+  }
 
-    if (onay == true) {
-      try {
-        await _firestore.collection('messages').doc(messageId).delete();
-        AnalyticsHelper.logCustomEvent('message_deleted');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Mesaj silindi.")),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Mesaj silinirken bir hata oluştu.")),
-        );
+  String _date(Timestamp? timestamp) {
+    if (timestamp == null) return '';
+    final date = timestamp.toDate().toLocal();
+    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} '
+        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _notice(BuildContext context) => AppSurface(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.mark_email_read_outlined,
+                color: Theme.of(context).primaryColor, size: 25),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('Uygulama içi mesajlar geçici olarak kapalı',
+                  style: TextStyle(
+                      color: AppDesign.activeInk,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Text(
+            'Bilgi almak veya bize ulaşmak için $_email adresine e-posta gönderebilirsiniz.',
+            style: TextStyle(color: AppDesign.activeMuted, height: 1.5),
+          ),
+          const SizedBox(height: 6),
+          Text('Bu adres resmi SGK iletişim kanalı değildir.',
+              style: TextStyle(color: AppDesign.activeMuted, fontSize: 12)),
+          const SizedBox(height: 18),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            FilledButton.icon(
+              onPressed: () => _emailGonder(context),
+              icon: const Icon(Icons.mail_outline_rounded, size: 19),
+              label: const Text('E-posta gönder'),
+            ),
+            TextButton.icon(
+              onPressed: () => _adresiKopyala(context),
+              icon: const Icon(Icons.copy_rounded, size: 17),
+              label: const Text('Adresi kopyala'),
+            ),
+          ]),
+        ]),
+      );
+
+  Widget _history(String uid) =>
+      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('messages')
+            .where('userId', isEqualTo: uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Eski mesajlar şu anda yüklenemiyor.',
+                style: TextStyle(color: AppDesign.activeMuted));
+          }
+          if (!snapshot.hasData) {
+            return const Center(
+                child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ));
+          }
+          final docs = [...snapshot.data!.docs]..sort((a, b) {
+              final aTime = (a.data()['timestamp'] as Timestamp?)
+                      ?.millisecondsSinceEpoch ??
+                  0;
+              final bTime = (b.data()['timestamp'] as Timestamp?)
+                      ?.millisecondsSinceEpoch ??
+                  0;
+              return bTime.compareTo(aTime);
+            });
+          if (docs.isEmpty) {
+            return Text('Henüz geçmiş mesajınız yok.',
+                style: TextStyle(color: AppDesign.activeMuted));
+          }
+          return Column(children: [
+            for (final doc in docs) ...[
+              _messageCard(context, doc.data()),
+              const SizedBox(height: 10),
+            ],
+          ]);
+        },
+      );
+
+  Widget _messageCard(BuildContext context, Map<String, dynamic> data) {
+    final replies = <Map<String, dynamic>>[];
+    final first = data['response'];
+    if (first is String && first.trim().isNotEmpty) {
+      replies.add({
+        'text': first,
+        'timestamp': data['responseTimestamp'],
+        'adminName': data['adminName'],
+      });
+    }
+    final additional = data['responses'];
+    if (additional is List) {
+      for (final reply in additional) {
+        if (reply is Map) {
+          replies.add(Map<String, dynamic>.from(reply));
+        }
       }
     }
+    replies.sort((a, b) {
+      final aTime = (a['timestamp'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+      final bTime = (b['timestamp'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+      return aTime.compareTo(bTime);
+    });
+    return AppSurface(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('${data['message'] ?? ''}',
+            style: TextStyle(color: AppDesign.activeInk, height: 1.45)),
+        const SizedBox(height: 6),
+        Text(_date(data['timestamp'] as Timestamp?),
+            style: TextStyle(color: AppDesign.activeMuted, fontSize: 11)),
+        for (final reply in replies) ...[
+          const SizedBox(height: 14),
+          Divider(color: AppDesign.activeBorder, height: 1),
+          const SizedBox(height: 10),
+          Text('${reply['adminName'] ?? 'Yanıt'}',
+              style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text('${reply['text'] ?? ''}',
+              style: TextStyle(color: AppDesign.activeInk, height: 1.45)),
+          const SizedBox(height: 4),
+          Text(_date(reply['timestamp'] as Timestamp?),
+              style: TextStyle(color: AppDesign.activeMuted, fontSize: 11)),
+        ],
+      ]),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: const Text(
-          'İletişim',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
+      backgroundColor: AppDesign.activeBackground,
+      appBar: AppDesign.appBar('İletişim'),
       body: SafeArea(
-        child: _currentUser == null
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.login, size: 64, color: Colors.grey[400]),
-                      SizedBox(height: 16),
-                      Text(
-                        "Mesaj göndermek için giriş yapmalısınız.",
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            : Column(
+        child: AppContent(
+          child: StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            initialData: FirebaseAuth.instance.currentUser,
+            builder: (context, snapshot) {
+              final user = snapshot.data;
+              return ListView(
+                padding: const EdgeInsets.all(20),
                 children: [
-                  // Mesaj listesi
-                  Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _firestore
-                        .collection('messages')
-                        .where('userId', isEqualTo: _currentUser!.uid)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.error_outline, size: 64, color: Colors.red),
-                                SizedBox(height: 16),
-                                Text(
-                                  "Hata oluştu",
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-
-                      if (!snapshot.hasData) {
-                        return Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.indigo),
-                          ),
-                        );
-                      }
-
-                      final docs = snapshot.data!.docs;
-                      if (docs.isEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.mail_outline, size: 80, color: Colors.grey[300]),
-                                SizedBox(height: 16),
-                                Text(
-                                  "Henüz mesajınız yok",
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  "Aşağıdaki alandan ilk mesajınızı gönderin",
-                                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-
-                      // Client-side sorting: eskiden yeniye
-                      final sortedDocs = List.from(docs);
-                      sortedDocs.sort((a, b) {
-                        final aTime = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                        final bTime = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                        if (aTime == null && bTime == null) return 0;
-                        if (aTime == null) return 1;
-                        if (bTime == null) return -1;
-                        return aTime.compareTo(bTime);
-                      });
-
-                      // Ekran ilk açıldığında listeyi en alta (en son mesajlara) kaydır
-                      if (!_initialScrollDone && sortedDocs.isNotEmpty) {
-                        _initialScrollDone = true;
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (_scrollController.hasClients) {
-                            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-                          }
-                        });
-                      }
-
-                      return ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: sortedDocs.length,
-                        itemBuilder: (context, index) {
-                          final mesaj = sortedDocs[index];
-                          final mesajData = mesaj.data() as Map<String, dynamic>;
-                          final icerik = mesajData['message'] ?? "";
-                          final zaman = (mesajData['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
-                          final response = mesajData['response'] as String?;
-                          final responses = mesajData['responses'] as List<dynamic>?;
-
-                          final allResponses = <Map<String, dynamic>>[];
-                          if (response != null && response.isNotEmpty) {
-                            allResponses.add({
-                              'text': response,
-                              'timestamp': mesajData['responseTimestamp'] as Timestamp?,
-                              'adminName': mesajData['adminName'] as String? ?? 'Admin',
-                            });
-                          }
-                          if (responses != null) {
-                            for (var r in responses) {
-                              if (r is Map<String, dynamic>) {
-                                allResponses.add(r);
-                              }
-                            }
-                          }
-                          allResponses.sort((a, b) {
-                            final aTime = a['timestamp'] as Timestamp?;
-                            final bTime = b['timestamp'] as Timestamp?;
-                            if (aTime == null && bTime == null) return 0;
-                            if (aTime == null) return 1;
-                            if (bTime == null) return -1;
-                            return aTime.compareTo(bTime);
-                          });
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Kullanıcı mesajı (solda)
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.indigo.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(12),
-                                            topRight: Radius.circular(12),
-                                            bottomRight: Radius.circular(12),
-                                          ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              icerik,
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[800],
-                                                height: 1.4,
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              "${zaman.day}.${zaman.month}.${zaman.year} ${zaman.hour}:${zaman.minute.toString().padLeft(2, '0')}",
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    IconButton(
-                                      icon: Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                      onPressed: () => _mesajSil(mesaj.id),
-                                      padding: EdgeInsets.zero,
-                                      constraints: BoxConstraints(),
-                                    ),
-                                  ],
-                                ),
-                                // Admin cevapları (sağda)
-                                if (allResponses.isNotEmpty) ...[
-                                  SizedBox(height: 8),
-                                  ...allResponses.map((r) {
-                                    final rText = r['text'] as String? ?? '';
-                                    final rTime = (r['timestamp'] as Timestamp?)?.toDate();
-                                    final rAdmin = r['adminName'] as String? ?? 'Admin';
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 8, left: 40),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(12),
-                                            topRight: Radius.circular(12),
-                                            bottomLeft: Radius.circular(12),
-                                          ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              rText,
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[800],
-                                                height: 1.4,
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.end,
-                                              children: [
-                                                Text(
-                                                  rAdmin,
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.green[700],
-                                                  ),
-                                                ),
-                                                if (rTime != null) ...[
-                                                  SizedBox(width: 8),
-                                                  Text(
-                                                    "${rTime.day}.${rTime.month}.${rTime.year} ${rTime.hour}:${rTime.minute.toString().padLeft(2, '0')}",
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ],
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                // Mesaj gönderme alanı (sabit, altta)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      top: BorderSide(color: Colors.grey[200]!),
-                    ),
-                  ),
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 12,
-                    bottom: 12,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          constraints: BoxConstraints(maxHeight: 120),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: TextField(
-                            controller: _mesajController,
-                            maxLines: null,
-                            minLines: 1,
-                            textInputAction: TextInputAction.newline,
-                            decoration: InputDecoration(
-                              hintText: _sorumlulukKabulEdildi
-                                  ? "Mesajınızı yazın..."
-                                  : "Önce uyarıyı onaylayın",
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              hintStyle: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 14,
-                              ),
-                            ),
-                            enabled: _sorumlulukKabulEdildi,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: (_sorumlulukKabulEdildi && _mesajController.text.trim().isNotEmpty && !_yukleniyor)
-                              ? Colors.indigo
-                              : Colors.grey[300],
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: _yukleniyor
-                              ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.send,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                          onPressed: (_sorumlulukKabulEdildi && _mesajController.text.trim().isNotEmpty && !_yukleniyor)
-                              ? _mesajGonder
-                              : null,
-                          padding: EdgeInsets.all(12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                  _notice(context),
+                  if (user != null) ...[
+                    const SizedBox(height: 26),
+                    Text('Geçmiş mesajlarınız',
+                        style: TextStyle(
+                            color: AppDesign.activeInk,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 12),
+                    _history(user.uid),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }
-
-  @override
-  void dispose() {
-    _mesajController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
 }
-

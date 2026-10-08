@@ -1,5 +1,7 @@
+import '../utils/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 
 /// =====================
@@ -7,7 +9,8 @@ import 'dart:convert';
 /// =====================
 class SonHesaplama {
   final String id; // Benzersiz ID
-  final String hesaplamaTuru; // Örn: "4/a (SSK) Emeklilik", "Brütten Nete Maaş", vb.
+  final String
+      hesaplamaTuru; // Örn: "4/a (SSK) Emeklilik", "Brütten Nete Maaş", vb.
   final DateTime tarihSaat;
   final Map<String, dynamic> veriler; // Hesaplama verileri (JSON serializable)
   final Map<String, String> sonuclar; // Hesaplama sonuçları (gösterim için)
@@ -52,40 +55,79 @@ class SonHesaplama {
 /// ==================================================
 class SonHesaplamalarDeposu {
   static const String _key = 'son_hesaplamalar';
+  static const String _guestKey = 'son_hesaplamalar_v2_guest';
+  static const String _migrationKey = 'son_hesaplamalar_v2_migrated';
   static const int _maxKayit = 15;
 
+  static String? _uidFrom(String? Function()? uidProvider) {
+    if (uidProvider != null) return uidProvider();
+    try {
+      return FirebaseAuth.instance.currentUser?.uid;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _keyFor(String? uid) =>
+      uid == null ? _guestKey : 'son_hesaplamalar_v2_$uid';
+
+  static Future<String?> _storedJson(
+      SharedPreferences prefs, String? uid) async {
+    final scoped = prefs.getString(_keyFor(uid));
+    if (scoped != null) {
+      if (uid != null && prefs.getBool(_migrationKey) != true) {
+        await prefs.setBool(_migrationKey, true);
+        await prefs.remove(_key);
+      }
+      return scoped;
+    }
+    if (uid == null) return null;
+    // The former device-wide history belongs only to the first signed-in
+    // account that opens it. It must never reappear after sign-out.
+    if (prefs.getBool(_migrationKey) == true) return null;
+    final legacy = prefs.getString(_key);
+    if (legacy == null) return null;
+    if (!await prefs.setString(_keyFor(uid), legacy)) return null;
+    await prefs.setBool(_migrationKey, true);
+    await prefs.remove(_key);
+    return legacy;
+  }
+
   /// Yeni hesaplama ekle (en fazla 15 kayıt, en eskiden silinir)
-  static Future<void> ekle(SonHesaplama hesaplama) async {
+  static Future<void> ekle(SonHesaplama hesaplama,
+      {String? Function()? uidProvider}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final mevcutListe = await listele();
-      
+      final uid = _uidFrom(uidProvider);
+      final mevcutListe = await listele(uidProvider: () => uid);
+
       // Yeni kaydı en başa ekle
       mevcutListe.insert(0, hesaplama);
-      
+
       // En fazla 15 kayıt tut
       if (mevcutListe.length > _maxKayit) {
         mevcutListe.removeRange(_maxKayit, mevcutListe.length);
       }
-      
+
       // JSON'a dönüştür ve kaydet
       final jsonList = mevcutListe.map((h) => h.toJson()).toList();
-      await prefs.setString(_key, jsonEncode(jsonList));
+      await prefs.setString(_keyFor(uid), jsonEncode(jsonList));
     } catch (e) {
       debugPrint('Son hesaplama eklenirken hata: $e');
     }
   }
 
   /// Tüm hesaplamaları listele (en yeni en başta)
-  static Future<List<SonHesaplama>> listele() async {
+  static Future<List<SonHesaplama>> listele(
+      {String? Function()? uidProvider}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_key);
-      
+      final jsonString = await _storedJson(prefs, _uidFrom(uidProvider));
+
       if (jsonString == null || jsonString.isEmpty) {
         return [];
       }
-      
+
       final jsonList = jsonDecode(jsonString) as List;
       return jsonList
           .map((json) => SonHesaplama.fromJson(json as Map<String, dynamic>))
@@ -97,28 +139,36 @@ class SonHesaplamalarDeposu {
   }
 
   /// Belirli bir hesaplamayı sil
-  static Future<void> sil(String id) async {
+  static Future<void> sil(String id, {String? Function()? uidProvider}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final mevcutListe = await listele();
-      
+      final uid = _uidFrom(uidProvider);
+      final mevcutListe = await listele(uidProvider: () => uid);
+
       mevcutListe.removeWhere((h) => h.id == id);
-      
+
       final jsonList = mevcutListe.map((h) => h.toJson()).toList();
-      await prefs.setString(_key, jsonEncode(jsonList));
+      await prefs.setString(_keyFor(uid), jsonEncode(jsonList));
     } catch (e) {
       debugPrint('Son hesaplama silinirken hata: $e');
     }
   }
 
   /// Tüm hesaplamaları sil
-  static Future<void> tumunuSil() async {
+  static Future<void> tumunuSil({String? Function()? uidProvider}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_key);
+      await prefs.remove(_keyFor(_uidFrom(uidProvider)));
     } catch (e) {
       debugPrint('Tüm son hesaplamalar silinirken hata: $e');
     }
+  }
+
+  static Future<void> removeForUid(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyFor(uid));
+    await prefs.remove(_key);
+    await prefs.setBool(_migrationKey, true);
   }
 }
 
@@ -188,7 +238,7 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppDesign.activeBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -228,69 +278,71 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
                 _formatTarih(hesaplama.tarihSaat),
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: AppDesign.activeMuted,
                 ),
               ),
               const Divider(height: 32),
-              
+
               // Sonuçlar
               if (hesaplama.sonuclar.isNotEmpty) ...[
-                const Text(
+                Text(
                   'Hesaplama Sonuçları',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
+                    color: AppDesign.activeInk,
                   ),
                 ),
                 const SizedBox(height: 12),
                 ...hesaplama.sonuclar.entries.map((entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          entry.key,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              entry.key,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppDesign.activeInk,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          entry.value,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.black54,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              entry.value,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: AppDesign.activeMuted,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                )),
+                    )),
                 const Divider(height: 32),
               ],
-              
+
               // Özet
               if (hesaplama.ozet != null && hesaplama.ozet!.isNotEmpty) ...[
-                const Text(
+                Text(
                   'Özet',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
+                    color: AppDesign.activeInk,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   hesaplama.ozet!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
-                    color: Colors.black87,
+                    color: AppDesign.activeInk,
                     height: 1.5,
                   ),
                 ),
@@ -305,7 +357,7 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
   String _formatTarih(DateTime tarih) {
     final now = DateTime.now();
     final fark = now.difference(tarih);
-    
+
     if (fark.inDays == 0) {
       if (fark.inHours == 0) {
         if (fark.inMinutes == 0) {
@@ -327,36 +379,21 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).primaryColor;
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Son Hesaplamalar',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
-        ),
-        titleSpacing: 16,
-        centerTitle: false,
-        backgroundColor: themeColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
+      backgroundColor: AppDesign.activeBackground,
+      appBar: AppDesign.appBar(
+        'Son hesaplamalar',
         actions: [
           if (_hesaplamalar.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.white),
+              icon: Icon(Icons.delete_outline, color: AppDesign.activeMuted),
               tooltip: 'Tümünü Sil',
               onPressed: () async {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Tümünü Sil'),
-                    content: const Text('Tüm hesaplamaları silmek istediğinize emin misiniz?'),
+                    content: const Text(
+                        'Tüm hesaplamaları silmek istediğinize emin misiniz?'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
@@ -364,7 +401,8 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context, true),
-                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.red),
                         child: const Text('Tümünü Sil'),
                       ),
                     ],
@@ -384,114 +422,126 @@ class _SonHesaplamalarEkraniState extends State<SonHesaplamalarEkrani> {
             ),
         ],
       ),
-      body: _yukleniyor
-          ? Center(child: CircularProgressIndicator(color: themeColor))
-          : _hesaplamalar.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.calculate_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Henüz hesaplama yapılmamış',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
+      body: SafeArea(
+          child: AppContent(
+        child: _yukleniyor
+            ? Center(child: CircularProgressIndicator(color: themeColor))
+            : _hesaplamalar.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.calculate_outlined,
+                          size: 64,
+                          color: AppDesign.activeMuted,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Hesaplamalar bölümünden yeni hesaplamalar yapabilirsiniz',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
+                        const SizedBox(height: 16),
+                        Text(
+                          'Henüz hesaplama yapılmamış',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppDesign.activeInk,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _yukle,
-                  color: themeColor,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _hesaplamalar.length,
-                    separatorBuilder: (_, __) => const SizedBox.shrink(),
-                    itemBuilder: (context, index) {
-                      final hesaplama = _hesaplamalar[index];
-                      return InkWell(
-                        onTap: () => _detayGoster(hesaplama),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          child: Row(
-                            children: [
-                              Icon(Icons.calculate_rounded, color: themeColor, size: 22),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
+                        const SizedBox(height: 8),
+                        Text(
+                          'Hesaplamalar bölümünden yeni hesaplamalar yapabilirsiniz',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppDesign.activeMuted,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _yukle,
+                    color: themeColor,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                      itemCount: _hesaplamalar.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final hesaplama = _hesaplamalar[index];
+                        return Material(
+                            color: AppDesign.activeSurface,
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppDesign.radius),
+                                side:
+                                    BorderSide(color: AppDesign.activeBorder)),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () => _detayGoster(hesaplama),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      hesaplama.hesaplamaTuru,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF1E293B),
+                                    Icon(Icons.calculate_rounded,
+                                        color: themeColor, size: 22),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            hesaplama.hesaplamaTuru,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppDesign.activeInk,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 2),
+                                            child: Text(
+                                              _formatTarih(hesaplama.tarihSaat),
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppDesign.activeMuted),
+                                            ),
+                                          ),
+                                          if (hesaplama
+                                              .sonuclar.isNotEmpty) ...[
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.only(top: 2),
+                                              child: Text(
+                                                hesaplama.sonuclar.entries.first
+                                                    .value,
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    color:
+                                                        AppDesign.activeMuted),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Text(
-                                        _formatTarih(hesaplama.tarihSaat),
-                                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                                      ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline,
+                                          color: Colors.red, size: 20),
+                                      onPressed: () => _sil(hesaplama.id),
+                                      tooltip: 'Sil',
                                     ),
-                                    if (hesaplama.sonuclar.isNotEmpty) ...[
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          hesaplama.sonuclar.entries.first.value,
-                                          style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
                                   ],
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                onPressed: () => _sil(hesaplama.id),
-                                tooltip: 'Sil',
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                            ));
+                      },
+                    ),
                   ),
-                ),
+      )),
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
