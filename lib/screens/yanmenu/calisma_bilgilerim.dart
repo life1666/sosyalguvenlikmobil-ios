@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_design.dart';
 import '../../utils/personal_profile.dart';
@@ -753,7 +754,13 @@ class _CalismaBilgilerimState extends State<CalismaBilgilerim> {
           DateTime.now());
       if (!await store.saveRaw(jsonEncode(updated)))
         throw StateError('Save failed');
-      await NotificationService.instance.syncFromStoredPreferences();
+      // The profile is already saved. A notification scheduling error must not
+      // tell the user that their work information was lost.
+      try {
+        await NotificationService.instance.syncFromStoredPreferences();
+      } catch (error, stack) {
+        _recordSaveError(error, stack, 'profile_notification_sync');
+      }
       if (!mounted) return;
       setState(() {
         _dirty = false;
@@ -763,13 +770,25 @@ class _CalismaBilgilerimState extends State<CalismaBilgilerim> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) Navigator.pop(context, true);
       });
-    } catch (_) {
+    } catch (error, stack) {
+      _recordSaveError(error, stack, 'profile_save');
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text(
                 'Bilgiler kaydedilemedi. Girdileriniz burada duruyor; tekrar deneyin.')));
       }
+    }
+  }
+
+  void _recordSaveError(Object error, StackTrace stack, String stage) {
+    debugPrint('$stage: $error\n$stack');
+    try {
+      unawaited(FirebaseCrashlytics.instance
+          .recordError(error, stack, reason: stage, fatal: false)
+          .catchError((Object _) {}));
+    } catch (_) {
+      // Saving the profile must not depend on diagnostic reporting.
     }
   }
 
